@@ -318,6 +318,12 @@ function sommario() {
     tocEntry('3.3.2 — Cos\'e\' DNS di Azure?'),
     tocEntry('3.3.3 — Configurare DNS di Azure per ospitare il dominio'),
     tocEntry('3.3.4 — Risolvere dinamicamente il nome di una risorsa con un record alias'),
+    tocHeading('3.4 — Configurare il peering di rete virtuale'),
+    tocEntry('3.4.1 — Introduzione'),
+    tocEntry('3.4.2 — Determinare gli usi del peering della rete virtuale'),
+    tocEntry('3.4.3 — Determinare il transito e la connettivita\' del gateway'),
+    tocEntry('3.4.4 — Creare il peering di reti virtuali'),
+    tocEntry('3.4.5 — Estendere il peering con route definite dall\'utente e il concatenamento dei servizi'),
     tocMacro('Implementare e gestire l\'archiviazione in Azure'),
     tocMacro('Distribuire e gestire risorse di calcolo di Azure'),
     tocMacro('Monitorare ed eseguire il backup delle risorse di Azure'),
@@ -737,6 +743,100 @@ function modulo3(imgs) { return [
     bullet('Bilanciamento del carico sull\'apex — consente di collegare wideworldimports.com direttamente a Traffic Manager.'),
     bullet('Routing verso CDN — consente di fare riferimento direttamente a un\'istanza di Azure CDN.'),
     infoBox('Esempio pratico:','Un\'azienda vuole che wideworldimports.com punti al proprio load balancer. Non si puo\' usare un record A statico (l\'IP puo\' cambiare) ne\' un CNAME sull\'apex. La soluzione e\' un record alias di tipo A che punta all\'indirizzo IP pubblico Azure o al profilo Traffic Manager associato al load balancer.'),
+
+    // ─── 3.4 — Configurare il peering di rete virtuale ───────────────────────
+    h2('3.4 — Configurare il peering di rete virtuale'),
+    h3('3.4.1 — Introduzione'),
+    body('Il peering di reti virtuali di Azure consente di connettere reti virtuali nella stessa area o in aree diverse, facendo comunicare le risorse in modo privato attraverso la rete backbone Microsoft, senza passare per Internet.'),
+    body('Scenario tipico: un\'azienda sta migrando i propri servizi su Azure distribuendoli in reti virtuali separate. Le unita\' aziendali hanno bisogno che certi servizi comunichino tra loro privatamente, senza esporre traffico su Internet.'),
+    stepTitle('Obiettivi del modulo'),
+    bullet('Identificare i casi d\'uso e le funzionalita\' del peering di reti virtuali di Azure.'),
+    bullet('Configurare il Gateway VPN di Azure come punto di transito per la connettivita\' tra reti.'),
+    bullet('Estendere il peering tramite reti hub-spoke, route definite dall\'utente e concatenamento dei servizi.'),
+    infoBox('Prerequisito:','Conoscenza di base delle reti virtuali Azure e delle macchine virtuali.'),
+
+    h3('3.4.2 — Determinare gli usi del peering della rete virtuale'),
+    body('Il peering di reti virtuali e\' il modo piu\' semplice e rapido per connettere due reti virtuali Azure. Dopo il peering le due reti operano come un\'unica rete ai fini della connettivita\'.'),
+    stepTitle('Tipi di peering'),
+    bullet('Peering a livello di area — connette reti virtuali nella stessa area Azure (cloud pubblico, Azure Cina o Azure per enti pubblici).'),
+    bullet('Peering globale — connette reti virtuali in aree diverse (solo cloud pubblico o Azure Cina; non consentito tra aree diverse di Azure per enti pubblici).'),
+    stepTitle('Vantaggi'),
+    makeTable(
+      ['Vantaggio','Descrizione'],
+      [
+        ['Connessione privata','Il traffico rimane sulla rete backbone Microsoft — nessun gateway, nessun Internet pubblico, nessuna crittografia richiesta.'],
+        ['Alte prestazioni','Bassa latenza e alta larghezza di banda grazie all\'infrastruttura Azure.'],
+        ['Comunicazione semplice','Le risorse nelle reti con peering comunicano come se fossero sulla stessa rete.'],
+        ['Trasferimento dati flessibile','Supporta trasferimenti tra sottoscrizioni, modelli di distribuzione e aree diverse.'],
+        ['Nessun downtime','Il peering si crea e gestisce senza interruzioni per le risorse esistenti.'],
+      ]
+    ),
+    stepTitle('Requisiti e limitazioni'),
+    makeTable(
+      ['Requisito / Limitazione','Descrizione'],
+      [
+        ['Spazi indirizzi non sovrapposti','Le reti con peering devono avere spazi IP non sovrapposti. Il peering fallisce in caso di sovrapposizione.'],
+        ['Modifica dello spazio indirizzi','Per modificare l\'intervallo IP di una rete con peering attivo, eliminare il peering, aggiornare lo spazio e riconfigurare il peering.'],
+        ['Load Balancer Basic','Le risorse non possono comunicare con gli IP di un Load Balancer Basic interno nelle reti con peering globale. Usare Load Balancer Standard.'],
+        ['Risoluzione DNS','La risoluzione dei nomi predefinita di Azure non funziona tra reti con peering. Usare zone DNS private o server DNS personalizzati.'],
+      ]
+    ),
+    infoBox('Nota:','Le reti rimangono risorse separate dopo il peering. E\' possibile eseguire il peering tra sottoscrizioni e tenant diversi.'),
+
+    h3('3.4.3 — Determinare il transito e la connettivita\' del gateway'),
+    body('Il Gateway VPN di Azure puo\' essere configurato come punto di transito in una rete hub: le reti spoke usano il gateway dell\'hub per accedere a risorse esterne senza dover avere un proprio gateway VPN.'),
+    stepTitle('Scenario tipico'),
+    bullet('Rete Hub — contiene la subnet del gateway e il Gateway VPN di Azure.'),
+    bullet('Reti A e B — entrambe in peering con l\'Hub; la rete B usa il gateway remoto dell\'Hub per accedere a risorse esterne (on-premises o altre VNet).'),
+    stepTitle('Impostazioni chiave nella configurazione del peering'),
+    makeTable(
+      ['Impostazione','Descrizione'],
+      [
+        ['Traffico verso la rete virtuale remota','Controlla se il traffico puo\' fluire da questa rete alla rete remota.'],
+        ['Traffico inoltrato dalla rete virtuale remota','Controlla se accettare traffico inoltrato (non originato) dalla rete con peering.'],
+        ['Gateway di rete virtuale o Server di route','Abilita il transito: consente alle reti con peering di usare il gateway VPN o il Route Server di questa rete.'],
+        ['Gateway di rete virtuale remoto o Route Server','Permette a questa rete di usare il gateway VPN o il Route Server della rete remota.'],
+      ]
+    ),
+    stepTitle('Caratteristiche del Gateway VPN con peering'),
+    bullet('Una rete virtuale puo\' avere un solo gateway VPN.'),
+    bullet('Il transito e\' supportato sia per il peering a livello di area che globale.'),
+    bullet('Con il transito abilitato, il gateway hub puo\' gestire: VPN da sito a sito verso on-premises, connessioni VNet-to-VNet, VPN da punto a sito per client remoti.'),
+    bullet('Le reti spoke condividono il gateway dell\'hub senza bisogno di un gateway dedicato.'),
+    infoBox('NSG e peering:','E\' possibile applicare gruppi di sicurezza di rete per bloccare o consentire il traffico tra reti con peering, anche dopo la creazione del peering.'),
+
+    h3('3.4.4 — Creare il peering di reti virtuali'),
+    body('Il peering si configura tramite il portale Azure, PowerShell o l\'interfaccia della riga di comando. I passaggi seguenti si riferiscono al portale Azure con reti distribuite tramite Azure Resource Manager.'),
+    stepTitle('Prerequisiti'),
+    bullet('L\'account Azure deve avere il ruolo Network Contributor (o un ruolo personalizzato con le autorizzazioni di peering necessarie).'),
+    bullet('Devono esistere due reti virtuali — la seconda e\' chiamata rete remota.'),
+    bullet('Gli spazi indirizzi non devono sovrapporsi.'),
+    stepTitle('Creare il peering dal portale'),
+    bullet('Passo 1 — Aprire la prima rete virtuale nel portale Azure e selezionare Peering -> Aggiungi.'),
+    bullet('Passo 2 — Specificare un nome per il collegamento verso la rete remota e un nome per il collegamento inverso.'),
+    bullet('Passo 3 — Selezionare la rete virtuale remota (per sottoscrizione, ID risorsa o ricerca nel portale).'),
+    bullet('Passo 4 — Configurare le impostazioni di traffico e gateway in base alle esigenze.'),
+    bullet('Passo 5 — Confermare: Azure crea automaticamente entrambi i collegamenti (bidirezionale).'),
+    stepTitle('Verificare lo stato del peering'),
+    bullet('Avviato — il peering e\' stato creato dalla prima rete verso la remota, ma non e\' ancora bidirezionale.'),
+    bullet('Connesso — entrambe le reti hanno stabilito il peering correttamente.'),
+    infoBox('Importante:','Finche\' entrambe le reti non sono in stato Connesso, le macchine virtuali non possono comunicare tra loro.'),
+
+    h3('3.4.5 — Estendere il peering con route definite dall\'utente e il concatenamento dei servizi'),
+    body('Il peering di rete virtuale non e\' transitivo: se A e\' in peering con B e B e\' in peering con C, A e C non possono comunicare automaticamente. Per estendere la connettivita\' oltre il peering diretto occorre usare meccanismi aggiuntivi.'),
+    stepTitle('Meccanismi per estendere il peering'),
+    makeTable(
+      ['Meccanismo','Descrizione'],
+      [
+        ['Rete hub-spoke','La rete hub ospita componenti condivisi (NVA, Gateway VPN). Tutte le reti spoke eseguono il peering verso l\'hub. Il traffico tra spoke fluisce attraverso le appliance o il gateway nell\'hub.'],
+        ['Route definita dall\'utente (UDR)','Permette route personalizzate in cui l\'hop successivo e\' l\'IP di una VM o di un gateway VPN in una rete con peering, superando il routing predefinito.'],
+        ['Concatenamento dei servizi','Indirizza il traffico verso una NVA o un gateway tramite UDR che puntano a VM in reti con peering come hop successivo.'],
+        ['Azure Virtual Network Manager','Gestisce centralmente topologie hub-spoke o mesh su larga scala, automatizzando la creazione del peering.'],
+      ]
+    ),
+    stepTitle('Topologia hub-spoke'),
+    body('Nella topologia hub-spoke il traffico tra due reti spoke non scorre direttamente, ma transita sempre attraverso la rete hub dove risiedono le risorse condivise (NVA, firewall, gateway VPN). Questo centralizza il controllo e la sicurezza del traffico.'),
+    infoBox('Esempio:','La rete A vuole raggiungere la rete C. Entrambe sono in peering con l\'hub B. Senza UDR la comunicazione non e\' possibile. Con una UDR che instrada il traffico di A verso la NVA nell\'hub, il traffico transita per B e raggiunge C.'),
   ]; }
 
 function modulo4() { return [
