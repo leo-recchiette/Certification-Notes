@@ -38,11 +38,29 @@ npm install docx
 
 ### Generazione
 
-```bash
-node create_az104.js
-```
+Lo script supporta tre modalità tramite argomenti da riga di comando:
 
-Il documento viene salvato in output come `AZ-104_Note_di_Studio.docx`.
+| Comando | Output | Descrizione |
+|---|---|---|
+| `node create_az104.js` | `AZ-104_Note_di_Studio.docx` | Documento completo |
+| `node create_az104.js --toc` | `AZ-104_Sommario.docx` | Solo copertina e sommario |
+| `node create_az104.js --module N` | `AZ-104_Modulo_N.docx` | Solo il modulo N (1–6) |
+
+Esempi:
+
+```bash
+# Documento completo
+node create_az104.js
+
+# Solo il sommario
+node create_az104.js --toc
+
+# Solo il Modulo 2 — Gestire identità e governance in Azure
+node create_az104.js --module 2
+
+# Solo il Modulo 3 — Configurare e gestire reti virtuali
+node create_az104.js --module 3
+```
 
 > **Nota**: lo script si aspetta che la cartella `img/` si trovi nella stessa directory di `create_az104.js`.
 

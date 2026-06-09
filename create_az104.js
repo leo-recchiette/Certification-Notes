@@ -314,14 +314,33 @@ function sommario() {
   ];
 }
 
-// Script completo del documento -- per brevita' le funzioni modulo vengono generate inline
-async function main() {
-  console.log('Costruzione documento AZ-104 v6...');
+// ─── Argomenti da riga di comando ────────────────────────────────────────────
+// node create_az104.js              → documento completo
+// node create_az104.js --toc        → solo copertina + sommario
+// node create_az104.js --module 2   → solo copertina + Modulo 2
+function parseArgs() {
+  const args = process.argv.slice(2);
+  if (args.includes('--toc')) return { mode: 'toc' };
+  const mi = args.indexOf('--module');
+  if (mi !== -1 && args[mi + 1]) {
+    const n = parseInt(args[mi + 1], 10);
+    if (isNaN(n) || n < 1 || n > 6) {
+      console.error('Errore: --module accetta un numero da 1 a 6');
+      process.exit(1);
+    }
+    return { mode: 'module', n };
+  }
+  return { mode: 'full' };
+}
 
-  const children = [
-    ...coverPage(),
-    ...sommario(),
-    // MODULO 1
+function outputPath(mode, n) {
+  if (mode === 'toc')    return '/mnt/user-data/outputs/AZ-104_Sommario.docx';
+  if (mode === 'module') return `/mnt/user-data/outputs/AZ-104_Modulo_${n}.docx`;
+  return '/mnt/user-data/outputs/AZ-104_Note_di_Studio.docx';
+}
+
+// ─── Blocchi di contenuto per modulo ─────────────────────────────────────────
+function modulo1(imgs) { return [
     moduloTitle('Prerequisiti per gli amministratori di Azure'),
     moduloIntro('Questo percorso introduce i fondamenti operativi per lavorare come amministratore di Microsoft Azure, con focus sugli strumenti di gestione interattiva e sull\'automazione dell\'infrastruttura tramite template dichiarativi.'),
     h2('1.1 — Introduzione ad Azure Cloud Shell'),
@@ -389,7 +408,9 @@ async function main() {
     stepTitle('Esempio 3 — Output per esporre gli endpoint dello storage'),
     ...codeBlock(['"outputs": {','  "storageEndpoint": {','    "type": "object"','  }','}']),
     body('Al termine della distribuzione, PowerShell mostra l\'oggetto JSON con gli endpoint primari (blob, file, queue, table). Consultabili anche dal portale Azure: Gruppi di risorse -> rsg-1 -> Distribuzioni -> addOutputs -> Output.'),
-    // MODULO 2
+  ]; }
+
+function modulo2(imgs) { return [
     moduloTitle('Gestire identita\' e governance in Azure'),
     moduloIntro('Questo percorso affronta la gestione delle identita\' digitali e la governance dell\'infrastruttura Azure. Una corretta configurazione di identita\', accessi e policy e\' fondamentale per sicurezza e conformita\'.'),
     h2('2.1 — Conoscere Microsoft Entra ID'),
@@ -660,7 +681,9 @@ async function main() {
     stepTitle('Integrazione con ambienti ibridi — Password Writeback'),
     body('In ambienti ibridi con AD DS on-premise, il writeback permette di sincronizzare le reimpostazioni da Entra ID verso la directory locale.'),
     infoBox('Sincronizzazione cloud vs Entra Connect:','La sincronizzazione cloud offre alta disponibilita\' maggiore. E\' la scelta consigliata per i nuovi deployment ibridi.'),
-    // MODULO 3
+  ]; }
+
+function modulo3(imgs) { return [
     moduloTitle('Configurare e gestire reti virtuali per amministratori di Azure'),
     moduloIntro('Questo percorso illustra la configurazione delle reti virtuali in Azure, dalla pianificazione degli indirizzi IP alla sicurezza del traffico tramite NSG.'),
     h2('3.1 — Configurare reti virtuali'),
@@ -805,14 +828,65 @@ async function main() {
     bullet('Nessun vincolo di subnet — le VM possono essere organizzate logicamente per applicazione.'),
     bullet('Regole semplificate — una sola regola NSG copre tutte le VM dell\'ASG.'),
     infoBox('ASG vs tag di servizio:','I tag di servizio gestiscono i servizi Azure. Gli ASG raggruppano le VM personalizzate. I due strumenti sono complementari e possono essere usati insieme.'),
-    // MODULI PLACEHOLDER
+  ]; }
+
+function modulo4() { return [
     moduloTitle('Implementare e gestire l\'archiviazione in Azure'),
     moduloIntro('Questo percorso illustra le soluzioni di archiviazione in Azure, dalla configurazione degli account alle strategie di ridondanza. La scelta corretta e\' cruciale per performance, costi e conformita\' normativa.'),
+  ]; }
+
+function modulo5() { return [
     moduloTitle('Distribuire e gestire risorse di calcolo di Azure'),
     moduloIntro('Questo percorso copre le principali risorse di calcolo in Azure, dalla gestione delle macchine virtuali alle soluzioni container e PaaS.'),
+  ]; }
+
+function modulo6() { return [
     moduloTitle('Monitorare ed eseguire il backup delle risorse di Azure'),
     moduloIntro('Questo percorso affronta il monitoraggio proattivo delle risorse Azure e le strategie di backup e disaster recovery.'),
-  ];
+  ]; }
+
+// ─── Mappa modulo numero → funzione ──────────────────────────────────────────
+const MODULI = {
+  1: (i) => modulo1(i),
+  2: (i) => modulo2(i),
+  3: (i) => modulo3(i),
+  4: ()  => modulo4(),
+  5: ()  => modulo5(),
+  6: ()  => modulo6(),
+};
+
+const MODULI_LABELS = {
+  1: 'Modulo 1 — Prerequisiti',
+  2: 'Modulo 2 — Identità e Governance',
+  3: 'Modulo 3 — Reti Virtuali',
+  4: 'Modulo 4 — Archiviazione',
+  5: 'Modulo 5 — Calcolo',
+  6: 'Modulo 6 — Monitoraggio e Backup',
+};
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+async function main() {
+  const { mode, n } = parseArgs();
+
+  const modeLabel = mode === 'full'   ? 'documento completo'
+                  : mode === 'toc'    ? 'solo sommario'
+                  : `solo ${MODULI_LABELS[n]}`;
+  console.log(`Costruzione AZ-104 — ${modeLabel}...`);
+
+  let children = [...coverPage()];
+
+  if (mode === 'toc') {
+    children.push(...sommario());
+  } else if (mode === 'module') {
+    children.push(...sommario());
+    children.push(...MODULI[n](imgs));
+  } else {
+    // full
+    children.push(...sommario());
+    for (let m = 1; m <= 6; m++) {
+      children.push(...MODULI[m](imgs));
+    }
+  }
 
   const doc = new Document({
     numbering: { config: [{ reference:'bullets', levels:[
@@ -828,7 +902,7 @@ async function main() {
   });
 
   const buffer = await Packer.toBuffer(doc);
-  const outPath = '/mnt/user-data/outputs/AZ-104_Note_di_Studio.docx';
+  const outPath = outputPath(mode, n);
   fs.writeFileSync(outPath, buffer);
   console.log('Documento salvato: ' + outPath);
   console.log('Dimensione: ' + (buffer.length/1024).toFixed(1) + ' KB');
