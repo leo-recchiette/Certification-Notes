@@ -374,3 +374,165 @@ La configurazione richiede 3 regole NSG:
 
 > **ASG vs tag di servizio**: I tag di servizio semplificano la gestione degli indirizzi IP per i servizi Azure gestiti (Storage, SQL, AzureCloud, ecc.). Gli ASG invece raggruppano le VM personalizzate. I due strumenti sono complementari e possono essere usati insieme nella stessa regola NSG.
 _(infoBox)_
+
+---
+
+## 3.3 — Ospitare il dominio in DNS di Azure
+_(h2: Calibri 14pt grassetto #0078D4 keepNext)_
+
+
+### 3.3.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+DNS di Azure è un servizio di hosting per zone DNS che permette di gestire i record DNS dei propri domini usando l'infrastruttura Microsoft Azure. In questa sezione si vedrà cos'è il DNS e come funziona, come configurare DNS di Azure per ospitare un dominio pubblico o privato, e come usare i record alias per collegare dinamicamente un dominio apex alle risorse Azure.
+
+
+### 3.3.2 — Cos'è DNS e come funziona
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+DNS (Domain Name System) è un protocollo dello standard TCP/IP che traduce i nomi di dominio leggibili (es. `www.contoso.com`) in indirizzi IP. È una directory distribuita ospitata su server in tutto il mondo: quando un client richiede la risoluzione di un nome, il server DNS cerca nella cache locale o interroga altri server DNS finché trova una corrispondenza.
+
+**Le due funzioni principali di un server DNS** _(stepTitle)_
+
+- **Cache locale** — il server mantiene una cache dei nomi usati di recente con i relativi IP. Se la risposta è in cache, la restituisce subito. Se non la trova, passa la richiesta a un altro server DNS e così via fino alla corrispondenza o al timeout.
+- **Autorità su una zona** — il server gestisce il database delle coppie nome/IP per tutti gli host e sottodomini su cui ha autorità. Tipicamente associata a Web, posta e altri servizi Internet del dominio.
+
+**Come viene assegnato il server DNS** _(stepTitle)_
+
+- **Connessione da rete locale** — le impostazioni DNS provengono dal server della rete (es. AD, router aziendale).
+- **Connessione da posizione esterna** — le impostazioni DNS vengono fornite dall'ISP.
+- **In Azure** — DNS di Azure usa l'indirizzo `168.63.129.16` come resolver ricorsivo per le VNet. È possibile sovrascriverlo con server DNS personalizzati a livello di VNet.
+
+> **SOA e origine di autorità**: Quando si configura DNS di Azure come SOA per il proprio dominio, Azure diventa il punto di riferimento autorevole per quel dominio su Internet. Gli altri server DNS che ricevono richieste per quel dominio lo interrogheranno come fonte di verità.
+_(infoBox)_
+
+**Processo di risoluzione di un nome** _(stepTitle)_
+
+- Se il nome è in cache locale, il server DNS risponde direttamente.
+- Se non è in cache, interroga altri server DNS sul Web fino a trovare una corrispondenza.
+- Se non viene trovata risposta dopo un numero ragionevole di tentativi, restituisce un errore *impossibile trovare il dominio*.
+
+**IPv4 e IPv6** _(stepTitle)_
+
+- **IPv4** — quattro gruppi di numeri da 0 a 255 separati da punto (es. `127.0.0.1`). Standard ancora più diffuso, ma insufficiente per l'esplosione di dispositivi IoT.
+- **IPv6** — otto gruppi esadecimali separati da due punti (es. `fe80::e884:edb0:ddee:fea3`). Standard più recente destinato a sostituire IPv4. DNS di Azure supporta entrambi.
+
+
+### 3.3.3 — Tipi di record DNS
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Le informazioni di configurazione DNS sono archiviate come record all'interno di una zona. I principali tipi di record sono:
+
+- **A** — record host: mappa un dominio o nome host a un indirizzo IPv4. Tipo più comune.
+- **AAAA** — record host per IPv6: analogo al record A ma per indirizzi IPv6.
+- **CNAME** — nome canonico: crea un alias da un nome di dominio a un altro. Utile se più domini puntano allo stesso sito.
+- **MX** — mail exchange: instrada il traffico e-mail verso il server di posta, sia on-premise che cloud.
+- **TXT** — record di testo: associa stringhe di testo a un dominio. Usato da Azure e Microsoft 365 per verificare la proprietà del dominio.
+- **NS** — server dei nomi: indica quali server DNS sono autorevoli per la zona. Creato automaticamente con la zona.
+- **SOA** — Start of Authority: rappresenta il dominio e contiene informazioni amministrative sulla zona. Creato automaticamente.
+
+> **Set di record**: Alcuni tipi (es. A, AAAA) supportano più valori in un unico record. Ad esempio, un record A con due indirizzi IP consente il bilanciamento del traffico. I record SOA e CNAME non possono avere set di record.
+_(infoBox)_
+
+
+### 3.3.4 — Cos'è DNS di Azure e perché usarlo
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+DNS di Azure è un servizio di hosting per zone DNS basato sull'infrastruttura Microsoft Azure. Permette di gestire i record DNS dei propri domini usando le stesse credenziali, fatturazione e contratto di supporto degli altri servizi Azure. Funge da origine di autorità (SOA) per il dominio.
+
+> **Attenzione**: DNS di Azure NON consente di registrare nuovi nomi di dominio. La registrazione va effettuata presso un registrar di terze parti. DNS di Azure gestisce solo l'hosting e la risoluzione dei record per un dominio già registrato.
+_(infoBox)_
+
+**Vantaggi principali** _(stepTitle)_
+
+- **Sicurezza** — RBAC per controllo granulare degli accessi, log attività per audit, blocco risorse per proteggere zone critiche.
+- **Integrazione con Azure** — gestisce i record DNS per servizi Azure e risorse esterne. Supporta portale, PowerShell, CLI e API REST.
+- **Zone DNS private** — risoluzione dei nomi per VM in reti virtuali senza esporre i record su Internet. Supporta split-horizon DNS (stesso dominio risolto diversamente da dentro o fuori la VNet).
+- **Record alias** — i record DNS possono puntare direttamente a risorse Azure (IP pubblico, Traffic Manager, CDN, Front Door) e si aggiornano automaticamente al variare dell'IP della risorsa.
+
+> **Limitazione**: DNS di Azure non supporta DNSSEC (Domain Name System Security Extensions). Se necessario, occorre ospitare quei componenti presso un provider di terze parti.
+_(infoBox)_
+
+
+### 3.3.5 — Configurare una zona DNS pubblica
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Una zona DNS pubblica ospita i record DNS di un dominio rendendoli visibili su Internet. I passi per configurarla sono:
+
+**Passo 1 — Creare la zona DNS in Azure** _(stepTitle)_
+
+Nel portale Azure si crea una nuova risorsa "Zona DNS". I parametri richiesti sono: sottoscrizione, gruppo di risorse, nome del dominio (es. `contoso.com`) e area del gruppo di risorse (impostata automaticamente).
+
+**Passo 2 — Ottenere i server DNS di Azure** _(stepTitle)_
+
+Dopo la creazione, Azure assegna quattro server dei nomi (record NS) alla zona. Questi server sono il punto di riferimento a cui il registrar del dominio deve delegare la risoluzione.
+
+**Passo 3 — Aggiornare il registrar** _(stepTitle)_
+
+Accedere al pannello di gestione del registrar del dominio e sostituire i server dei nomi esistenti con i quattro forniti da Azure. Questa operazione si chiama *delega del dominio* e può richiedere da 10 minuti ad alcune ore per propagarsi.
+
+**Passo 4 — Verificare la delega** _(stepTitle)_
+
+Usare `nslookup` per verificare che la delegazione sia avvenuta correttamente interrogando il record SOA:
+
+    nslookup -type=SOA contoso.com
+
+**Passo 5 — Configurare i record personalizzati** _(stepTitle)_
+
+- **Record A** — mappa un nome host (es. `webserver1`) a un indirizzo IPv4. Richiede nome, tipo A, TTL e indirizzo IP.
+- **Record CNAME** — crea un alias verso un altro nome. Es. `www` → `contoso.com` con TTL 600s. Usato per funzioni di Azure e altri servizi PaaS.
+
+
+### 3.3.6 — Configurare una zona DNS privata
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Le zone DNS private risolvono i nomi solo all'interno delle reti virtuali collegate, senza esporre i record su Internet e senza richiedere un registrar esterno.
+
+**Passo 1 — Creare la zona DNS privata** _(stepTitle)_
+
+Nel portale Azure cercare "Zone DNS private" e creare una nuova zona specificando un gruppo di risorse e un nome (es. `private.contoso.com`).
+
+**Passo 2 — Identificare le reti virtuali** _(stepTitle)_
+
+Individuare le VNet in cui risiedono le VM che devono poter risolvere i nomi privati. I nomi delle VNet sono necessari per creare i collegamenti.
+
+**Passo 3 — Collegare la VNet alla zona privata** _(stepTitle)_
+
+Nella zona DNS privata, selezionare **Collegamenti di rete virtuale → Aggiungi** e scegliere la VNet da collegare. Ripetere per ogni VNet che deve partecipare alla risoluzione dei nomi privati.
+
+- I nomi host delle VM nella VNet vengono mantenuti automaticamente nella zona privata.
+- Il supporto split-horizon consente di avere lo stesso nome di dominio in zona pubblica e privata, risolto diversamente in base alla sorgente della richiesta.
+
+> **Vantaggi delle zone private**: Nessun investimento in infrastruttura DNS dedicata. Supporta tutti i tipi di record (A, AAAA, CNAME, MX, TXT, SOA, PTR, SRV). Aggiornamento automatico dei nomi host delle VM.
+_(infoBox)_
+
+
+### 3.3.7 — Record alias e dominio apex
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Il dominio apex (o apice di zona) è il livello radice del dominio, ad esempio `contoso.com` senza prefissi. Viene spesso indicato con il simbolo `@`. I record NS e SOA vengono creati automaticamente sull'apex.
+
+**Il problema dei record CNAME sull'apex** _(stepTitle)_
+
+I record CNAME non possono essere usati a livello di dominio apex. Questo crea un problema quando si vuole puntare `contoso.com` (senza `www`) verso un servizio come Traffic Manager o un CDN, che richiedono un nome invece di un IP fisso.
+
+**Soluzione — record alias** _(stepTitle)_
+
+I record alias di Azure permettono a un record sull'apex di zona (tipo A, AAAA o CNAME) di puntare direttamente a una risorsa Azure invece che a un indirizzo IP statico. Il collegamento è dinamico: se l'IP della risorsa cambia, il record DNS si aggiorna automaticamente.
+
+**Risorse supportate dai record alias** _(stepTitle)_
+
+- **Profilo di Traffic Manager** — per bilanciamento del carico globale e failover automatico.
+- **Endpoint di Azure CDN** — per distribuzione dei contenuti geograficamente distribuita.
+- **Indirizzo IP pubblico di Azure** — utile quando l'IP pubblico può cambiare nel tempo.
+- **Profilo Azure Front Door** — per applicazioni globali con routing avanzato.
+
+**Vantaggi dei record alias** _(stepTitle)_
+
+- **Impedisce il "dangling DNS"** — i record DNS non rimangono a puntare a risorse eliminate o con IP cambiato.
+- **Aggiornamento automatico** — se l'IP sottostante cambia, tutti i record alias associati si aggiornano senza intervento manuale.
+- **Supporto per il bilanciamento del carico sull'apex** — consente di collegare `contoso.com` direttamente a Traffic Manager.
+- **Ciclo di vita integrato** — il record alias è legato alla risorsa Azure di destinazione.
+
+> **Esempio pratico**: Una società vuole che `contoso.com` punti al proprio servizio di bilanciamento del carico. Non si può usare un record A statico perché l'IP del load balancer può cambiare, e non si può usare un CNAME sull'apex. La soluzione è un record alias di tipo A che punta all'indirizzo IP pubblico Azure o al profilo Traffic Manager associato al load balancer.
+_(infoBox)_
