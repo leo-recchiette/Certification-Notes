@@ -827,3 +827,166 @@ Se il traffico è instradato attraverso una NVA, questa diventa un componente cr
 
 > **Nota**: Alcune NVA richiedono più interfacce di rete: una dedicata alla gestione e altre per l'elaborazione del traffico. Dopo la distribuzione, la NVA viene configurata per instradare il traffico attraverso l'interfaccia appropriata.
 _(infoBox)_
+
+---
+
+## 3.6 — Introduzione ad Azure Load Balancer
+_(h2: Calibri 14pt grassetto #0078D4 keepNext)_
+
+
+### 3.6.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Adatum è un negozio online in espansione con diverse applicazioni a tre livelli, eseguite su macchine virtuali (VM) migrate dai data center locali e ospitate in più reti virtuali. Alcune applicazioni devono essere raggiungibili dalla rete Internet pubblica, altre solo dagli utenti della sede principale.
+
+Quando le applicazioni erano in locale, alcuni dispositivi hardware si occupavano del bilanciamento del carico di **livello 4 (modello OSI)**, distribuendo il traffico in ingresso tra le VM del livello Web e tra le VM del livello intermedio (analisi e trasformazione dei dati). Quegli stessi dispositivi consentivano l'accesso desktop remoto (RDP) alle singole VM per attività amministrative, interrompevano l'inoltro verso le VM in errore e garantivano che il traffico di una sessione client rimanesse sulla stessa VM del pool back-end. Con la migrazione ad Azure, l'obiettivo è replicare queste funzionalità usando un servizio nativo: **Azure Load Balancer**.
+
+Azure Load Balancer distribuisce il traffico in ingresso in un **pool back-end** costituito da VM o da istanze IaaS in un set di scalabilità di macchine virtuali (VMSS). Si configura la distribuzione del traffico tramite **regole di bilanciamento del carico** e si evita di indirizzare il traffico ai nodi che non rispondono tramite i **probe di integrità**.
+
+**Obiettivi di apprendimento** _(stepTitle)_
+
+- Conoscere Azure Load Balancer e le funzionalità che offre.
+- Determinare se Load Balancer soddisfa le esigenze dell'organizzazione.
+
+
+### 3.6.2 — Informazioni su Azure Load Balancer
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Alcune applicazioni ricevono così tanto traffico in ingresso che il singolo server che le ospita si sovraccarica e non riesce a rispondere in modo tempestivo. Invece di aggiungere continuamente CPU, RAM, disco e rete a un unico server, si applica il **bilanciamento del carico**: il traffico in ingresso viene distribuito equamente tra più computer. Un pool di computer con risorse modeste spesso risponde meglio di un singolo server molto potente.
+
+Azure Load Balancer distribuisce uniformemente il traffico di rete in ingresso tra un gruppo di VM di Azure o tra le istanze di un set di scalabilità (VMSS). Offre disponibilità elevata e buone prestazioni di rete tramite due meccanismi:
+
+- Le **regole di bilanciamento del carico** determinano come il traffico viene distribuito alle istanze del back-end.
+- I **probe di integrità** assicurano che il traffico non venga indirizzato a istanze back-end non integre.
+
+**Load balancer pubblici e interni** _(stepTitle)_
+
+In Azure è possibile distribuire load balancer **pubblici** e load balancer **interni** (o *privati*):
+
+- **Pubblico** — bilancia il traffico Internet verso le VM. Esegue il mapping dell'indirizzo IP pubblico e della porta del traffico in ingresso sull'indirizzo IP privato e sulla porta delle VM del pool back-end (ad esempio per distribuire le richieste Web tra più server Web). Può anche fornire connessioni in uscita per le VM della rete virtuale.
+- **Interno (privato)** — indirizza il traffico a risorse interne a una rete virtuale o raggiungibili tramite VPN. Gli indirizzi IP front-end e le reti virtuali non sono mai esposti direttamente a un endpoint Internet. È usato per applicazioni line-of-business interne, ad esempio per bilanciare il traffico dal livello Web verso un livello back-end che esegue calcoli o elaborazione dati.
+
+**Tipi di bilanciamento del load balancer interno** _(stepTitle)_
+
+- **All'interno di una rete virtuale** — dalle VM della VNet verso un set di VM nella stessa VNet.
+- **Cross-premise** — dai computer locali verso un set di VM nella rete virtuale.
+- **Applicazioni multilivello** — per app con connessione Internet i cui livelli back-end non sono esposti a Internet.
+- **Applicazioni LOB (line-of-business)** — ospitate in Azure senza aggiungere hardware o software di bilanciamento, includendo eventuali server locali nel set bilanciato.
+
+Ogni tipo di load balancer può essere usato sia in scenari in ingresso sia in uscita e può scalare fino a milioni di flussi TCP e UDP.
+
+
+### 3.6.3 — Funzionamento di Azure Load Balancer
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Azure Load Balancer opera al **livello di trasporto (livello 4)** del modello OSI. Gestisce il traffico in base a proprietà come l'indirizzo IP di origine e di destinazione, il protocollo (TCP o UDP) e il numero di porta. Non può applicare regole in base al *contenuto* del traffico: per la gestione a **livello 7** (livello applicazione) serve una soluzione come il **gateway applicazione di Azure**.
+
+**Componenti principali** _(stepTitle)_
+
+- Indirizzo IP front-end
+- Regole di bilanciamento del carico
+- Pool back-end
+- Probe di integrità
+- Regole NAT in ingresso
+- Porte a disponibilità elevata
+- Regole in uscita
+
+**Indirizzo IP front-end** _(stepTitle)_
+
+È l'indirizzo a cui i client si connettono. Può essere pubblico o privato, e questa scelta determina il tipo di load balancer: un **IP pubblico** crea un load balancer pubblico (mapping IP pubblico:porta → IP privato:porta della VM), un **IP privato** crea un load balancer interno (accesso limitato alla rete virtuale, raggiungibile anche da risorse locali tramite VPN o ExpressRoute). Un load balancer può avere più indirizzi IP front-end.
+
+![Figura 49](img/Module 3 - Configurare e gestire reti virtuali/lb-types.png) _(dimensioni: 326×522 px)_
+
+*Figura 49 — Confronto tra load balancer pubblico e interno in Azure Load Balancer.* _(caption)_
+
+**Regole di bilanciamento del carico** _(stepTitle)_
+
+Una regola definisce come il traffico viene distribuito al pool back-end, mappando una combinazione di IP e porta front-end a un set di combinazioni di IP e porta back-end.
+
+![Figura 50](img/Module 3 - Configurare e gestire reti virtuali/lb-rules.png) _(dimensioni: 550×161 px)_
+
+*Figura 50 — Funzionamento delle regole di bilanciamento del carico in Azure Load Balancer.* _(caption)_
+
+Il traffico viene gestito con un **hash a cinque tuple**:
+
+- **IP di origine** — indirizzo del client richiedente.
+- **Porta di origine** — porta del client richiedente.
+- **IP di destinazione** — indirizzo di destinazione della richiesta.
+- **Porta di destinazione** — porta di destinazione della richiesta.
+- **Protocollo** — TCP o UDP.
+
+> **Livello 4, non livello 7**: Load Balancer non può applicare regole diverse in base al contenuto del traffico perché opera al livello 4. Per gestire il traffico in base alle proprietà di livello 7 (applicazione) si usa il gateway applicazione di Azure.
+_(infoBox)_
+
+**Pool back-end** _(stepTitle)_
+
+È il gruppo di VM o istanze VMSS che risponde alle richieste in ingresso. Quando si aumentano o si riducono le istanze, Load Balancer si **riconfigura automaticamente** per ridistribuire il carico sul nuovo numero di istanze, in base alle regole già definite.
+
+**Probe di integrità (health probe)** _(stepTitle)_
+
+Determinano se un'istanza del pool è integra e può ricevere traffico. Se un probe non risponde (superata la soglia di non integrità), il load balancer **smette di inviare nuove connessioni** all'istanza non integra; le connessioni esistenti continuano fino al termine del flusso, a un timeout di inattività o all'arresto della VM.
+
+| Tipo di probe | Funzionamento |
+|---|---|
+| TCP | Verifica lo stabilirsi di una sessione TCP sulla porta indicata: se il listener esiste il probe ha successo, se la connessione è rifiutata fallisce. |
+| HTTP / HTTPS | Interroga l'endpoint a intervalli regolari (default ogni 15 s): l'istanza è integra se risponde con HTTP 200 entro il timeout (default 31 s); qualsiasi altro stato fa fallire il probe. |
+
+**Persistenza della sessione (session affinity)** _(stepTitle)_
+
+Per impostazione predefinita il traffico è distribuito uniformemente e qualsiasi VM integra può gestire le richieste. La persistenza della sessione indirizza invece le richieste di uno stesso client alla stessa istanza back-end:
+
+| Modalità | Comportamento |
+|---|---|
+| Nessuno (predefinita) | Qualsiasi VM integra può gestire la richiesta. |
+| IP client (2 tuple) | La stessa istanza back-end gestisce le richieste successive dallo stesso IP client. |
+| IP client e protocollo (3 tuple) | La stessa istanza gestisce le richieste successive dalla stessa combinazione di IP client e protocollo. |
+
+**Porte a disponibilità elevata (HA ports)** _(stepTitle)_
+
+Una regola di bilanciamento configurata con `protocol = All` e `port = 0` è una *regola per porte a disponibilità elevata*: una singola regola bilancia tutti i flussi TCP e UDP che arrivano su tutte le porte di un load balancer Standard interno. È utile in scenari critici come la disponibilità elevata e il ridimensionamento delle appliance virtuali di rete (NVA), o quando occorre bilanciare un numero elevato di porte.
+
+![Figura 51](img/Module 3 - Configurare e gestire reti virtuali/lb-ha-ports.png) _(dimensioni: 420×275 px)_
+
+*Figura 51 — Funzionamento delle porte a disponibilità elevata in Azure Load Balancer.* _(caption)_
+
+**Regole NAT in ingresso** _(stepTitle)_
+
+Si combinano le regole di bilanciamento con le regole NAT (Network Address Translation). Ad esempio, si può applicare NAT dall'indirizzo pubblico del load balancer alla porta TCP 3389 di una VM specifica, consentendo l'accesso desktop remoto (RDP) dall'esterno di Azure.
+
+![Figura 52](img/Module 3 - Configurare e gestire reti virtuali/lb-inbound-nat.png) _(dimensioni: 550×160 px)_
+
+*Figura 52 — Funzionamento delle regole NAT in ingresso in Azure Load Balancer.* _(caption)_
+
+**Regole in uscita** _(stepTitle)_
+
+Una regola in uscita configura la **SNAT (Source Network Address Translation)** per le VM identificate dal pool back-end, consentendo alle istanze di comunicare verso Internet o verso altri endpoint pubblici.
+
+![Figura 53](img/Module 3 - Configurare e gestire reti virtuali/lb-outbound-rule.png) _(dimensioni: 550×161 px)_
+
+*Figura 53 — Funzionamento delle regole in uscita in Azure Load Balancer.* _(caption)_
+
+
+### 3.6.4 — Quando usare Azure Load Balancer
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Azure Load Balancer è ideale per le applicazioni che richiedono **latenza molto bassa e prestazioni elevate**. Poiché opera al livello 4 come i dispositivi hardware usati in locale, è la scelta naturale per replicarne le funzionalità dopo la migrazione ad Azure: probe di integrità (per non inoltrare traffico alle VM guaste) e persistenza della sessione (perché un client comunichi con una sola VM durante la sessione).
+
+In pratica si configurano load balancer **pubblici** per il traffico verso il livello Web e load balancer **interni** per bilanciare il traffico tra il livello Web e il livello che esegue analisi e trasformazione dei dati; le **regole NAT in ingresso** abilitano l'accesso RDP amministrativo alle singole VM.
+
+**Quando non usare Azure Load Balancer** _(stepTitle)_
+
+Non è appropriato per un'applicazione Web che non richiede bilanciamento ed è eseguita su una singola istanza VM IaaS: se il traffico è ridotto e l'infrastruttura esistente lo gestisce già, non serve un pool back-end né Load Balancer. Inoltre, se l'applicazione richiede funzionalità di **web application firewall (WAF)**, Load Balancer non è la soluzione adatta.
+
+**Soluzioni alternative di bilanciamento** _(stepTitle)_
+
+Azure offre altre soluzioni, da scegliere in base al livello OSI e all'ambito (regionale o globale):
+
+| Soluzione | Livello | Ambito | Quando usarla |
+|---|---|---|---|
+| **Azure Load Balancer** | 4 (TCP/UDP) | Regionale (ridondanza di zona) | Bilanciamento in ingresso/uscita ad alte prestazioni e bassa latenza, milioni di richieste al secondo. |
+| **Azure Front Door** | 7 | Globale | App Web distribuite su più aree; offload TLS/SSL, routing per percorso, failover rapido, WAF, caching. |
+| **Gestione traffico (Traffic Manager)** | DNS | Globale | Distribuzione del traffico tra aree globali a livello di DNS; failover più lento per via della cache DNS/TTL. |
+| **Gateway applicazione (Application Gateway)** | 7 | Regionale | Application Delivery Controller come servizio; offload TLS/SSL ad alto consumo di CPU per ottimizzare la web farm. |
+
+> **In sintesi**: Azure Load Balancer è un servizio di livello 4 a bassa latenza per tutti i protocolli TCP/UDP, con ridondanza di zona; per funzionalità di livello 7 (WAF, routing per contenuto, offload TLS) si scelgono Front Door o gateway applicazione, mentre Gestione traffico opera a livello DNS tra aree.
+_(infoBox)_
