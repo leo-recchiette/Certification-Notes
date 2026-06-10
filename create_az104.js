@@ -57,8 +57,8 @@ const imgs = {
 const noSpacing = {before:0,after:0};
 const stdSpacing = {before:60,after:60};
 
-function body(text, opts={}) {
-  return new Paragraph({ spacing:stdSpacing,
+function body(text, opts={}, paraOpts={}) {
+  return new Paragraph({ spacing:stdSpacing, ...paraOpts,
     children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText, ...opts})] });
 }
 function h2(text) {
@@ -156,11 +156,11 @@ function tocTitle() {
     children:[new TextRun({text:'Sommario', font:'Calibri', size:36, bold:true, color:C.titleBlue})] });
 }
 function tocMacro(text) {
-  return new Paragraph({ spacing:{before:120,after:40},
+  return new Paragraph({ spacing:{before:120,after:40}, keepNext:true,
     children:[new TextRun({text, font:'Calibri', size:24, bold:true, color:C.titleBlue})] });
 }
 function tocHeading(text) {
-  return new Paragraph({ spacing:{before:60,after:20}, indent:{left:360},
+  return new Paragraph({ spacing:{before:60,after:20}, indent:{left:360}, keepNext:true,
     children:[new TextRun({text, font:'Calibri', size:22, bold:true, color:C.sectionBlue})] });
 }
 function tocEntry(text) {
@@ -391,7 +391,7 @@ function modulo1(imgs) { return [
     bullet('Distribuzioni piu\' veloci — Resource Manager crea le risorse in parallelo dove possibile.'),
     bullet('Migliore tracciabilita\' — ogni modifica al template e\' tracciata nel sistema di controllo versione (es. Git).'),
     bullet('Idempotenza — distribuire lo stesso template piu\' volte produce sempre lo stesso stato finale, senza duplicati.'),
-    body('Un modello ARM e\' un file JSON che usa sintassi dichiarativa: si descrive cosa distribuire, non come farlo passo per passo. Gli elementi del file modello sono:'),
+    body('Un modello ARM e\' un file JSON che usa sintassi dichiarativa: si descrive cosa distribuire, non come farlo passo per passo. Gli elementi del file modello sono:', {}, {pageBreakBefore:true}),
     ...spacer(1),
     armStructureTable(),
     caption('Tabella 2 — Elementi di un file modello ARM (* = obbligatorio).'),
@@ -520,8 +520,8 @@ function modulo2(imgs) { return [
     h3('2.4.2 — Cloud Adoption Framework for Azure'),
     ...figImg(imgs.cloudGovSteps,'png',2031,278,'Figura 21 — I 5 step della cloud governance.'),
     h3('2.4.3 — Principi di progettazione di Azure Policy'),
-    ...figImg(imgs.azureGovHierarchy,'png',1459,955,'Figura 22 — Gerarchia di governance Azure.'),
-    ...figImg(imgs.azurePolicyArm,'png',1853,964,'Figura 23 — Azure Policy e Azure Resource Manager.'),
+    ...figImg(imgs.azureGovHierarchy,'png',500,327,'Figura 22 — Gerarchia di governance Azure.'),
+    ...figImg(imgs.azurePolicyArm,'png',500,260,'Figura 23 — Azure Policy e Azure Resource Manager.'),
     h3('2.4.4 — Risorse di Azure Policy'),
     bullet('Definizioni (Definitions) — Built-in o Custom.'),
     bullet('Iniziative (Initiatives / Policy Set) — raccolta di piu\' definizioni per un obiettivo comune.'),
