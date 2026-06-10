@@ -764,7 +764,7 @@ function modulo3(imgs) { return [
     stepTitle('Tipi di peering'),
     bullet('Peering a livello di area — connette reti virtuali nella stessa area Azure (cloud pubblico, Azure Cina o Azure per enti pubblici).'),
     bullet('Peering globale — connette reti virtuali in aree diverse (solo cloud pubblico o Azure Cina; non consentito tra aree diverse di Azure per enti pubblici).'),
-    ...figImg(imgs.peering4Types,'png',779,156,'Figura 40 — I due tipi di peering di reti virtuali Azure: peering a livello di area (stessa area) e peering globale (aree diverse).'),
+    ...figImg(imgs.peering4Types,'png',550,110,'Figura 40 — I due tipi di peering di reti virtuali Azure: peering a livello di area (stessa area) e peering globale (aree diverse).'),
     stepTitle('Vantaggi'),
     makeTable(
       ['Vantaggio','Descrizione'],
@@ -793,7 +793,7 @@ function modulo3(imgs) { return [
     stepTitle('Scenario tipico'),
     bullet('Rete Hub — contiene la subnet del gateway e il Gateway VPN di Azure.'),
     bullet('Reti A e B — entrambe in peering con l\'Hub; la rete B usa il gateway remoto dell\'Hub per accedere a risorse esterne (on-premises o altre VNet).'),
-    ...figImg(imgs.peering4Gateway,'png',624,349,'Figura 41 — Peering a livello di area: la rete B usa il gateway VPN remoto dell\'hub per accedere a risorse esterne senza un proprio gateway.'),
+    ...figImg(imgs.peering4Gateway,'png',550,308,'Figura 41 — Peering a livello di area: la rete B usa il gateway VPN remoto dell\'hub per accedere a risorse esterne senza un proprio gateway.'),
     stepTitle('Impostazioni chiave nella configurazione del peering'),
     makeTable(
       ['Impostazione','Descrizione'],
@@ -804,7 +804,7 @@ function modulo3(imgs) { return [
         ['Gateway di rete virtuale remoto o Route Server','Permette a questa rete di usare il gateway VPN o il Route Server della rete remota.'],
       ]
     ),
-    ...figImg(imgs.peering4Settings,'png',1317,940,'Figura 42 — Opzioni di configurazione del peering nel portale Azure: traffico verso/da rete remota, gateway di rete virtuale e Route Server.'),
+    ...figImg(imgs.peering4Settings,'png',550,393,'Figura 42 — Opzioni di configurazione del peering nel portale Azure: traffico verso/da rete remota, gateway di rete virtuale e Route Server.'),
     stepTitle('Caratteristiche del Gateway VPN con peering'),
     bullet('Una rete virtuale puo\' avere un solo gateway VPN.'),
     bullet('Il transito e\' supportato sia per il peering a livello di area che globale.'),
