@@ -660,3 +660,150 @@ Nella topologia hub-spoke il traffico tra due reti spoke non scorre direttamente
 
 > **Esempio**: La rete A vuole raggiungere la rete C. Entrambe sono in peering con l'hub B. Senza UDR la comunicazione non è possibile. Con una UDR che instrada il traffico di A verso la NVA nell'hub, il traffico transita per B e raggiunge C.
 _(infoBox)_
+
+
+## 3.5 — Gestire e controllare il flusso del traffico nella distribuzione di Azure tramite route
+_(h2: Calibri 14pt grassetto #0078D4 keepNext)_
+
+
+### 3.5.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Una rete virtuale consente di implementare un perimetro di sicurezza per le risorse nel cloud. È possibile controllare le informazioni che passano attraverso una rete virtuale e limitare l'accesso per consentire solo il traffico proveniente da origini attendibili.
+
+Scenario tipico: un'organizzazione di rivendita al dettaglio ha subito un evento imprevisto per la sicurezza con esposizione di dati dei clienti. Utenti malintenzionati hanno sfruttato vulnerabilità nell'infrastruttura di rete. Come risposta, il team di sicurezza ha consigliato di aggiungere appliance virtuali di rete e il team cloud deve assicurarsi che il traffico venga instradato correttamente attraverso di esse.
+
+**Obiettivi di apprendimento** _(stepTitle)_
+
+- Identificare le funzionalità di routing di una rete virtuale di Azure.
+- Configurare il routing in una rete virtuale.
+- Distribuire un'appliance virtuale di rete di base.
+- Configurare il routing per inviare il traffico attraverso un'appliance virtuale di rete.
+
+> **Prerequisiti**: Conoscenza dei concetti fondamentali delle reti (subnet e indirizzi IP). Familiarità con le reti virtuali di Azure.
+_(infoBox)_
+
+
+### 3.5.2 — Identificare le funzionalità di routing di una rete virtuale di Azure
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Per controllare il flusso del traffico all'interno della rete virtuale è necessario conoscere lo scopo delle route personalizzate e come configurarle per indirizzare il traffico attraverso un'appliance virtuale di rete.
+
+**Routing di Azure — Route di sistema** _(stepTitle)_
+
+Il traffico di rete in Azure viene instradato automaticamente tra subnet, reti virtuali e reti locali tramite route di sistema. Queste route sono assegnate per impostazione predefinita a ogni subnet e consentono alle VM di comunicare tra loro e potenzialmente con l'ambiente locale e Internet. Non è possibile creare o eliminare route di sistema, ma è possibile eseguirne l'override aggiungendo route personalizzate.
+
+**Route di sistema predefinite per ogni subnet** _(stepTitle)_
+
+| Prefisso indirizzo | Tipo hop successivo |
+| --- | --- |
+| Univoco per la rete virtuale | Rete virtuale |
+| 0.0.0.0/0 | Internet |
+| 10.0.0.0/8 | Nessuno |
+| 172.16.0.0/12 | Nessuno |
+| 192.168.0.0/16 | Nessuno |
+| 100.64.0.0/10 | Nessuno |
+
+Il tipo di hop successivo determina il percorso del traffico: **Rete virtuale** crea route per ogni intervallo di indirizzi della VNet; **Internet** instrada tutto il traffico non corrispondente verso Internet; **Nessuno** elimina il traffico verso gli intervalli privati non instradabili a livello globale.
+
+![Figura 44](img/Module 3 - Configurare e gestire reti virtuali/route5-system-routes.png) _(dimensioni: 550×390 px)_
+
+*Figura 44 — Flusso del traffico tra subnet e Internet con le route di sistema predefinite: le subnet comunicano liberamente e il traffico non interno raggiunge Internet.* _(caption)_
+
+**Route di sistema aggiuntive** _(stepTitle)_
+
+Azure crea route di sistema aggiuntive quando si abilitano le seguenti funzionalità:
+
+**Peering di rete virtuale e concatenamento dei servizi** _(stepTitle)_
+
+Il peering consente l'interconnessione delle reti virtuali nella stessa area o in aree diverse, creando route aggiuntive nella tabella di route. Il concatenamento dei servizi consente di sostituire tali route con route definite dall'utente tra reti con peering.
+
+![Figura 45](img/Module 3 - Configurare e gestire reti virtuali/route5-vnet-peering-udrs.png) _(dimensioni: 550×347 px)_
+
+*Figura 45 — Peering di rete virtuale con route definite dall'utente: il traffico viene instradato attraverso un'appliance virtuale di rete o un Gateway VPN di Azure.* _(caption)_
+
+**Gateway di rete virtuale** _(stepTitle)_
+
+Un gateway di rete virtuale invia traffico crittografato tra Azure e l'ambiente locale tramite Internet, o tra reti Azure. Contiene le tabelle di routing e i servizi gateway.
+
+![Figura 46](img/Module 3 - Configurare e gestire reti virtuali/route5-vnet-gateway.png) _(dimensioni: 550×291 px)_
+
+*Figura 46 — Struttura di un gateway di rete virtuale: connette la rete Azure all'ambiente locale o ad altre reti tramite VPN crittografata.* _(caption)_
+
+Gli endpoint di rete virtuale estendono lo spazio indirizzi privato fornendo connessione diretta alle risorse Azure, limitando il flusso e impedendo l'accesso da VM pubbliche.
+
+**Route personalizzate** _(stepTitle)_
+
+Le route di sistema semplificano la gestione, ma in molti scenari occorre un controllo più preciso — ad esempio per instradare il traffico attraverso una NVA o un firewall.
+
+**Route definite dall'utente (UDR)** _(stepTitle)_
+
+Una UDR sovrascrive le route di sistema predefinite per instradare il traffico attraverso firewall o appliance virtuali di rete. Tipi di hop successivo disponibili:
+
+| Tipo hop successivo | Descrizione |
+| --- | --- |
+| **Appliance virtuale** | IP privato di una NIC su una VM (firewall) o IP di un bilanciamento del carico interno. |
+| **Gateway di rete virtuale** | Instrada verso un gateway VPN; specificato come tipo VPN per l'hop successivo. |
+| **Rete virtuale** | Sovrascrive la route di sistema predefinita all'interno della VNet. |
+| **Internet** | Instrada il traffico verso un prefisso specificato su Internet. |
+| **Nessuno** | Elimina il traffico inviato al prefisso specificato. |
+
+**Tag di servizio per le route definite dall'utente** _(stepTitle)_
+
+È possibile specificare un tag di servizio (anziché un intervallo IP esplicito) come prefisso per una UDR. Un tag di servizio rappresenta un gruppo di prefissi IP di un servizio Azure e viene aggiornato automaticamente da Microsoft, riducendo la complessità e il numero di route da gestire.
+
+**Protocollo BGP (Border Gateway Protocol)** _(stepTitle)_
+
+Un gateway di rete locale può scambiare route con un gateway di rete virtuale in Azure usando BGP — il protocollo di routing standard per scambiare informazioni tra sistemi autonomi. Si usa tipicamente con Azure ExpressRoute o connessioni VPN da sito a sito.
+
+![Figura 47](img/Module 3 - Configurare e gestire reti virtuali/route5-bgp.png) _(dimensioni: 550×198 px)_
+
+*Figura 47 — Topologia BGP: percorsi che consentono il passaggio dei dati tra il Gateway VPN di Azure e le reti locali tramite il protocollo Border Gateway.* _(caption)_
+
+BGP offre stabilità della rete: i router modificano rapidamente le connessioni se un percorso non è disponibile.
+
+**Selezione delle route e priorità** _(stepTitle)_
+
+Se in una tabella di route sono disponibili più route, Azure usa quella con la corrispondenza del prefisso più lungo. Se più route condividono lo stesso prefisso, la priorità è:
+
+1. Route definite dall'utente (priorità massima)
+2. Route BGP
+3. Route di sistema (priorità minima)
+
+
+### 3.5.3 — Che cos'è un'appliance virtuale di rete?
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Un'appliance virtuale di rete (NVA) è una VM virtuale multistrato che può svolgere funzioni di: firewall, ottimizzazione WAN, controller per la distribuzione delle applicazioni, router, bilanciamento del carico, rilevamento/prevenzione intrusioni (IDS/IPS) e proxy.
+
+È possibile distribuire NVA da Azure Marketplace (Cisco, Check Point, Barracuda, Sophos, WatchGuard, SonicWall) per filtrare il traffico in ingresso verso una rete virtuale e bloccare richieste dannose o provenienti da risorse impreviste.
+
+**Architettura con appliance virtuale di rete** _(stepTitle)_
+
+Le NVA sono VM che controllano il flusso del traffico gestendo il routing. Vengono in genere usate per gestire il flusso tra un ambiente di rete perimetrale e altre reti o subnet.
+
+![Figura 48](img/Module 3 - Configurare e gestire reti virtuali/route5-nva.png) _(dimensioni: 550×367 px)_
+
+*Figura 48 — Architettura di rete con NVA: l'appliance virtuale controlla il traffico tra la rete perimetrale, le subnet applicative e Internet.* _(caption)_
+
+**Microsegmentazione** _(stepTitle)_
+
+Con l'approccio basato su microsegmentazione è possibile creare subnet dedicate per il firewall e distribuire applicazioni Web e altri servizi in altre subnet. Tutto il traffico viene instradato attraverso il firewall e controllato dalla NVA. Si abilita l'inoltro per le interfacce di rete dell'appliance per passare il traffico accettato alla subnet appropriata.
+
+La microsegmentazione consente al firewall di ispezionare tutti i pacchetti al livello OSI 4 e, per appliance compatibili con le applicazioni, al livello 7.
+
+**Route definite dall'utente per NVA** _(stepTitle)_
+
+In alcuni casi è necessario creare tabelle di routing con route personalizzate:
+
+- Accesso a Internet tramite la rete locale mediante tunneling forzato.
+- Uso di appliance virtuali per controllare il flusso del traffico.
+
+È possibile creare più tabelle di route in Azure: ogni tabella può essere associata a una o più subnet, ma una subnet può essere associata a una sola tabella di route.
+
+**Alta disponibilità delle NVA** _(stepTitle)_
+
+Se il traffico è instradato attraverso una NVA, questa diventa un componente critico dell'infrastruttura: eventuali errori influiscono direttamente sulla capacità di comunicazione dei servizi. È importante includere un'architettura a disponibilità elevata nella distribuzione delle NVA.
+
+> **Nota**: Alcune NVA richiedono più interfacce di rete: una dedicata alla gestione e altre per l'elaborazione del traffico. Dopo la distribuzione, la NVA viene configurata per instradare il traffico attraverso l'interfaccia appropriata.
+_(infoBox)_

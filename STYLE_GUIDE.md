@@ -132,6 +132,11 @@ Tutte le immagini sono nella cartella `img/`.
 | Figura 32 | nsg-multiple.png | 650×478 |
 | Figura 33 | nsg-effective-rules.png | 859×65 |
 | Figura 34 | asg-diagram.png | 320×274 (ridimensionata da 547×468) |
+| Figura 44 | route5-system-routes.png | 772×548 (da SVG 386×274, visualizzata a 550×390) |
+| Figura 45 | route5-vnet-peering-udrs.png | 1014×640 (da SVG 507×320, visualizzata a 550×347) |
+| Figura 46 | route5-vnet-gateway.png | 1002×530 (da SVG 501×265, visualizzata a 550×291) |
+| Figura 47 | route5-bgp.png | 900×324 (da SVG 450×162, visualizzata a 550×198) |
+| Figura 48 | route5-nva.png | 1250×834 (da SVG 625×417, visualizzata a 550×367) |
 
 > **Nota**: Le tabelle generate da codice (Tabella 1-7) non hanno un file immagine — vengono costruite
 > direttamente nelle funzioni `toolsTable()`, `armStructureTable()`, `reservedTable()`,
