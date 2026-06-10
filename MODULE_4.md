@@ -331,3 +331,318 @@ La tabella seguente riassume quando preferire un approccio rispetto all'altro:
 
 > **Suggerimento**: per approfondire puoi seguire il modulo di formazione "Secure and isolate access to Azure resources by using network security groups and service endpoints". Il modulo include una sandbox in cui puoi esercitarti a limitare l'accesso ad **Azure Storage** tramite gli endpoint del servizio.
 _(infoBox)_
+
+## 4.2 — Configurare Azure Blob Storage
+
+### 4.2.1 — Introduzione
+
+**Azure Blob Storage** è il servizio di Azure pensato per archiviare grandi quantità di dati oggetto non strutturati e pronti per l'AI. Per dati non strutturati si intendono informazioni che non aderiscono a un particolare modello o definizione, come testo o dati binari (immagini, video, documenti, backup). In questa sezione partiamo da uno scenario concreto: la nostra azienda media dispone di un'ampia libreria di clip video a cui si accede migliaia di volte al giorno, e il compito è configurare **Blob Storage** per gestire questi dati in modo efficiente ed economico.
+
+Nel corso della sezione impareremo a comprendere lo scopo e i vantaggi di **Azure Blob Storage**, a creare e configurare gli **Storage Account**, e a gestire container e blob al loro interno. Vedremo inoltre come ottimizzare prestazioni e scalabilità sfruttando i livelli di accesso (access tier) per ridurre i costi, come definire una strategia di gestione del ciclo di vita (lifecycle management) per automatizzare lo spostamento e l'eliminazione dei dati più vecchi, come configurare la replica degli oggetti (object replication) per il failover, e infine come scegliere il piano tariffario più adatto alle nostre esigenze.
+
+### 4.2.2 — Implementare Azure Blob Storage
+
+**Azure Blob Storage** è il servizio di Azure dedicato alla memorizzazione di dati non strutturati nel cloud, gestiti sotto forma di oggetti (o *blob*). Il termine *blob* è l'acronimo di Binary Large Object, ovvero "grande oggetto binario": è il modo in cui Azure rappresenta qualsiasi insieme di byte che non ha uno schema predefinito. Per questo motivo **Azure Blob Storage** viene anche chiamato *object storage* o *container storage*.
+
+Il punto chiave da comprendere è il concetto di dato *non strutturato*: a differenza di una tabella o di un database, un blob non deve rispettare alcun formato rigido. Può essere un documento, un'immagine, un video o un file di installazione. Questa flessibilità rende il servizio adatto a scenari molto diversi tra loro, dall'archiviazione di backup fino allo streaming multimediale.
+
+**Caratteristiche di Azure Blob Storage** _(stepTitle)_
+
+Per capire come configurare il servizio, conviene partire dalla sua architettura e dagli elementi che lo compongono.
+
+![Architettura di Azure Blob Storage](img/blob-storage-94fb52b8.png) _(dimensioni: 660×302 px)_
+*Figura 70: Architettura di Azure Blob Storage: lo Storage Account contiene i container, che a loro volta contengono i blob.* _(caption)_
+
+- **Blob Storage** può memorizzare qualsiasi tipo di dato, testuale o binario. Alcuni esempi tipici sono documenti di testo, immagini, file video e programmi di installazione delle applicazioni.
+- Per organizzare e gestire i dati, **Blob Storage** utilizza tre risorse disposte in modo gerarchico (è importante capire questa gerarchia perché determina come si indirizzano e si proteggono i dati):
+  - Un **Azure Storage Account** (l'account di archiviazione), che rappresenta il contenitore di livello più alto e definisce l'endpoint univoco di accesso.
+  - I **container** all'interno dello Storage Account, che funzionano come "cartelle" logiche per raggruppare i blob.
+  - I **blob** veri e propri, ovvero gli oggetti che contengono i dati, collocati all'interno di un container.
+
+Per implementare correttamente **Blob Storage** occorre definire diverse impostazioni. Ognuna di queste risponde a un'esigenza specifica (controllo degli accessi, ottimizzazione dei costi, continuità operativa) ed è oggetto delle prossime unità:
+
+- Le opzioni del **container** dei blob (ad esempio il livello di accesso pubblico o privato).
+- I **tipi di blob** e le relative opzioni di caricamento (upload).
+- I **livelli di accesso** (access tier) di **Blob Storage**, che permettono di bilanciare costi e prestazioni in base alla frequenza con cui i dati vengono letti.
+- Le **regole di ciclo di vita** (lifecycle) dei blob, che automatizzano lo spostamento o l'eliminazione dei dati nel tempo.
+- Le opzioni di **replica degli oggetti** (object replication), per copiare i blob tra Storage Account diversi.
+
+**Quando conviene usare Azure Blob Storage** _(stepTitle)_
+
+Esistono molti casi d'uso comuni per **Blob Storage**. Esaminando i seguenti scenari è utile riflettere sulle proprie esigenze di archiviazione, perché aiutano a riconoscere quando questo servizio è la scelta giusta:
+
+- **Caricamenti da browser**. Usa **Blob Storage** per servire immagini o documenti direttamente a un browser, ad esempio le risorse statiche di un sito web.
+- **Accesso distribuito**. **Blob Storage** può archiviare file destinati a un accesso distribuito, come i file necessari durante un processo di installazione fruito da più utenti.
+- **Streaming di dati**. È possibile trasmettere in streaming contenuti video e audio appoggiandosi a **Blob Storage**.
+- **Archiviazione e ripristino**. **Blob Storage** è una soluzione ideale per conservare dati a fini di backup e ripristino, disaster recovery e archiviazione a lungo termine.
+- **Accesso applicativo**. Puoi archiviare i dati in **Blob Storage** per poi analizzarli tramite un servizio on-premises oppure ospitato in Azure.
+
+> **Nota**: la gerarchia Storage Account → container → blob è il modello mentale fondamentale di **Blob Storage**. Ogni blob è raggiungibile tramite un URL che combina il nome dello Storage Account, il nome del container e quello del blob.
+_(infoBox)_
+
+### 4.2.3 — Creare contenitori di blob
+
+In **Azure Blob Storage** i blob non possono esistere "da soli": ogni blob deve obbligatoriamente risiedere all'interno di una risorsa chiamata contenitore (*container*). Il contenitore è quindi l'unità organizzativa fondamentale dello storage a blob e rappresenta il primo elemento che devi predisporre prima di poter caricare qualsiasi dato. Capire come funzionano i contenitori ti aiuta a progettare una struttura di archiviazione ordinata e con i giusti livelli di accesso.
+
+**Contenitori e blob: i concetti chiave** _(stepTitle)_
+
+Prima di creare un contenitore conviene fissare alcune caratteristiche di base, perché definiscono i limiti e la logica di organizzazione dei tuoi dati:
+
+- Tutti i blob devono trovarsi all'interno di un contenitore: non esiste un blob "sciolto".
+- I contenitori servono a organizzare lo storage a blob, raggruppando insieme blob correlati (per esempio per progetto, applicazione o tipo di dato).
+- Un singolo contenitore può archiviare un numero illimitato di blob.
+- Un **Storage Account** di Azure può contenere un numero illimitato di contenitori.
+- Devi creare un contenitore prima di poter iniziare a caricare dati: è un passaggio obbligatorio, non opzionale.
+
+Il fatto che sia contenitori sia blob siano illimitati significa che la struttura non ti pone vincoli di scala: il vero criterio progettuale non è "quanti", ma "come" organizzarli in modo logico e gestibile.
+
+**Configurare un contenitore nel portale** _(stepTitle)_
+
+Nel portale di Azure configuri alcune impostazioni per creare un contenitore all'interno di uno Storage Account. Mentre imposti questi valori, è utile ragionare fin da subito su come intendi organizzare i contenitori, perché nome e livello di accesso sono scelte che condizionano l'uso futuro dei dati.
+
+![Pagina di creazione del contenitore e scelte del livello di accesso pubblico nel portale di Azure](img/blob-containers-a243a2b9.png) _(dimensioni: 741×307 px)_
+*Figura 71: Pagina di creazione del contenitore e scelte del livello di accesso pubblico nel portale di Azure.* _(caption)_
+
+**Nome del contenitore** _(stepTitle)_
+
+Devi assegnare al contenitore un nome che sia univoco all'interno dello Storage Account. Le regole di denominazione sono rigide perché il nome diventa parte dell'URL con cui il contenitore viene indirizzato, quindi deve rispettare un formato compatibile con gli indirizzi web:
+
+- Il nome può contenere solo lettere minuscole, numeri e trattini.
+- Il nome deve iniziare con una lettera o un numero.
+- La lunghezza minima del nome è di 3 caratteri.
+- La lunghezza massima del nome è di 63 caratteri.
+
+**Livello di accesso pubblico** _(stepTitle)_
+
+Il livello di accesso (*Public access level*) stabilisce se il contenitore e i suoi blob possano essere raggiunti pubblicamente, cioè in forma anonima e senza autenticazione. Per impostazione predefinita i dati di un contenitore sono privati e visibili solo al proprietario dell'account: questa è la scelta più sicura ed è quella di default proprio per evitare esposizioni accidentali di dati. Esistono tre livelli di accesso tra cui scegliere:
+
+| **Livello di accesso** | **Comportamento** |
+|---|---|
+| **Private** (predefinito) | Vieta qualsiasi accesso anonimo al contenitore e ai blob. |
+| **Blob** | Consente l'accesso pubblico anonimo in sola lettura ai soli blob. |
+| **Container** | Consente l'accesso pubblico anonimo in lettura e in elencazione (*list*) all'intero contenitore, blob inclusi. |
+
+La differenza pratica tra i livelli **Blob** e **Container** sta nel fatto che con *Container* un utente anonimo può anche elencare il contenuto del contenitore (vedere quali blob esistono), mentre con *Blob* può solo leggere un blob di cui conosca già l'indirizzo. Per questo *Container* è il livello più permissivo e va usato con maggiore cautela.
+
+> **Importante**: i livelli di accesso Blob e Container non hanno alcun effetto se l'impostazione **Allow Blob anonymous access** dello Storage Account non è abilitata. Quando è disabilitata, tutti i contenitori restano privati indipendentemente dal livello di accesso impostato sul singolo contenitore. Microsoft raccomanda di mantenere l'accesso anonimo disabilitato a livello di account, a meno che non si stiano servendo scenari di contenuti pubblici.
+_(infoBox)_
+
+Questa logica a due livelli (impostazione di account più impostazione del singolo contenitore) è una protezione voluta: anche se per errore imposti un contenitore come pubblico, finché l'account vieta l'accesso anonimo i dati restano comunque al sicuro. L'accesso pubblico effettivo richiede quindi una scelta esplicita e consapevole su entrambi i piani.
+
+### 4.2.4 — Assegnare i livelli di accesso dei blob
+
+I dati che archiviamo in **Azure Blob Storage** non hanno tutti lo stesso valore nel tempo: alcuni vengono letti e scritti continuamente, altri restano fermi per mesi e servono solo "per sicurezza". Per questo motivo **Azure Storage** offre diversi livelli di accesso (access tier) per i dati dei blob. I livelli disponibili sono Hot (frequente), Cool (sporadico), Cold (raro) e Archive (archiviazione). L'idea di fondo è semplice: ogni livello è ottimizzato per un determinato modello di utilizzo dei dati e, soprattutto, propone un diverso compromesso tra costo di archiviazione e costo di accesso. Scegliendo il livello giusto per ciascun tipo di dato, paghiamo solo per ciò che effettivamente ci serve.
+
+Il principio economico da tenere a mente è questo: più i dati sono "caldi" (cioè usati spesso), più costa conservarli ma meno costa accedervi; più i dati sono "freddi" (cioè usati di rado), meno costa conservarli ma più costa accedervi. La scelta del tier è quindi una decisione di ottimizzazione dei costi basata sulla frequenza di accesso prevista.
+
+**Livello Hot (accesso frequente)** _(stepTitle)_
+
+Il livello Hot è ottimizzato per letture e scritture frequenti degli oggetti nello **Storage Account**. È il livello indicato per i dati in uso attivo, cioè quelli che vengono elaborati o consultati di continuo. Ha i costi di archiviazione più alti, ma i costi di accesso più bassi: conviene quindi quando l'accesso ai dati è la voce di spesa predominante.
+
+**Livello Cool (accesso sporadico)** _(stepTitle)_
+
+Il livello Cool è ottimizzato per archiviare grandi quantità di dati a cui si accede di rado. È pensato per dati che restano in questo livello per almeno 30 giorni. Casi d'uso tipici sono i backup a breve termine, i dataset di disaster recovery e i contenuti multimediali più datati: materiale che non viene consultato spesso ma che deve restare immediatamente disponibile. Rispetto al livello Hot, il Cool ha costi di archiviazione più bassi e costi di accesso più alti.
+
+**Livello Cold (accesso raro)** _(stepTitle)_
+
+Anche il livello Cold è ottimizzato per archiviare grandi quantità di dati a cui si accede di rado, ma con una soglia temporale più lunga: è pensato per dati che possono rimanere nel livello per almeno 90 giorni. Rispetto al livello Cool, il Cold ha costi di archiviazione ancora più bassi e costi di accesso più alti. È quindi un gradino intermedio per dati più "freddi" del Cool ma che non vogliamo ancora portare offline.
+
+**Livello Archive (archiviazione)** _(stepTitle)_
+
+Il livello Archive è un livello offline, ottimizzato per dati che tollerano diverse ore di latenza in fase di recupero. I dati devono rimanere nel livello Archive per almeno 180 giorni, altrimenti si applica un addebito per eliminazione anticipata (early deletion charge). I dati adatti a questo livello includono i backup secondari, i dati grezzi originali e le informazioni di conformità richieste per legge. È l'opzione più economica in assoluto per l'archiviazione dei dati; in compenso, accedere ai dati nel livello Archive è più costoso rispetto a tutti gli altri livelli.
+
+> **Importante**: poiché il livello Archive è offline, prima di poter leggere il contenuto di un blob devi riportarlo (reidratarlo) in un livello online, ossia Hot, Cool o Cold.
+_(infoBox)_
+
+**Come reidratare un blob dal livello Archive** _(stepTitle)_
+
+Per accedere al contenuto di un blob in Archive, occorre reidratarlo verso il livello Hot, Cool o Cold. Esistono due metodi:
+
+- **Copy Blob** (consigliato): crea un nuovo blob in un livello online, lasciando intatto l'originale in Archive.
+- **Set Blob Tier**: modifica il livello del blob direttamente sul posto (in place).
+
+Entrambi i metodi supportano due priorità di reidratazione:
+
+- **Standard priority**: il recupero può richiedere fino a 15 ore.
+- **High priority**: il recupero avviene entro 1 ora per gli oggetti inferiori a 10 GB, ma a un costo più elevato.
+
+> **Suggerimento**: usa la priorità High per il recupero urgente dei dati negli scenari di disaster recovery, quando il tempo di ripristino è critico e giustifica il costo aggiuntivo.
+_(infoBox)_
+
+**Confronto tra i livelli di accesso** _(stepTitle)_
+
+Le opzioni di accesso di **Azure Blob Storage** offrono caratteristiche e livelli di servizio diversi, pensati per aiutarti a ottimizzare i costi di archiviazione. Confrontando le caratteristiche conviene ragionare su quale opzione supporti meglio le esigenze della tua applicazione, in particolare in termini di disponibilità, latenza di accesso e durata minima di permanenza dei dati.
+
+| **Confronto** | **Hot** | **Cool** | **Cold** | **Archive** |
+| --- | --- | --- | --- | --- |
+| **Disponibilità** | 99,9% | 99% | 99% | 99% |
+| **Disponibilità (letture RA-GRS)** | 99,99% | 99,9% | 99,9% | 99,9% |
+| **Latenza (tempo al primo byte)** | millisecondi | millisecondi | millisecondi | ore |
+| **Durata minima di archiviazione** | N/D | 30 giorni | 90 giorni | 180 giorni |
+
+Da questa tabella si nota subito il salto qualitativo dell'Archive rispetto agli altri tre: i livelli online (Hot, Cool, Cold) garantiscono accesso ai dati nell'ordine dei millisecondi, mentre l'Archive richiede ore. Inoltre la durata minima di archiviazione cresce mano a mano che il livello diventa più freddo (30, 90, 180 giorni): spostare un dato in un livello e rimuoverlo prima della soglia comporta costi aggiuntivi, quindi la scelta del tier va sempre allineata al ciclo di vita reale del dato.
+
+### 4.2.5 — Aggiungere regole di gestione del ciclo di vita
+
+Ogni insieme di dati ha un proprio ciclo di vita. Nelle prime fasi, gli utenti tendono ad accedere solo ad alcuni dei dati dell'insieme, non a tutti. Man mano che l'insieme di dati invecchia, l'accesso ai dati si riduce drasticamente: alcuni dati restano inattivi nel cloud e vengono consultati raramente, altri scadono dopo pochi giorni o mesi dalla creazione, altri ancora vengono letti e modificati attivamente per tutta la loro durata. Il punto importante da capire è che pagare il prezzo del livello Hot per dati che nessuno consulta più è uno spreco: serve un meccanismo che adatti automaticamente il livello di archiviazione all'effettivo utilizzo.
+
+**Azure Blob Storage** supporta proprio questo tipo di automazione tramite la *gestione del ciclo di vita* (lifecycle management). Si tratta di un sistema di criteri basati su regole, disponibile per gli account **General Purpose v2 (GPv2)** e per gli account Premium block blob. Anche i vecchi account Blob Storage sono supportati, ma per le nuove distribuzioni è consigliato GPv2. Con le regole di criterio del ciclo di vita puoi spostare i dati verso il livello di accesso più appropriato e impostare tempi di scadenza per la fine del ciclo di vita dell'insieme di dati.
+
+**Cosa sapere sulla gestione del ciclo di vita** _(stepTitle)_
+
+Le regole di criterio del ciclo di vita di **Azure Blob Storage** permettono di realizzare diversi obiettivi:
+
+- Spostare i blob verso un livello di archiviazione più "freddo" (da Hot a Cool, da Hot a Cold, da Hot a Archive, da Cool a Cold, da Cool a Archive, da Cold a Archive) per ottimizzare prestazioni e costi.
+- Eliminare le versioni correnti di un blob, le versioni precedenti o gli snapshot al termine del loro ciclo di vita.
+- Riportare automaticamente i blob da Cool a Hot quando vengono consultati. Questa impostazione ottimizza i modelli di accesso imprevedibili senza incorrere in addebiti per eliminazione anticipata.
+- Applicare le regole a un intero **Storage Account**, ad alcuni container selezionati oppure a un sottoinsieme di blob, usando come filtri i prefissi dei nomi o i tag dell'indice dei blob.
+
+**Scenario di business** _(stepTitle)_
+
+Per capire il valore pratico di queste regole, considera uno scenario in cui i dati vengono consultati di frequente nelle prime fasi del ciclo di vita, ma solo occasionalmente dopo due settimane; trascorso il primo mese, l'insieme di dati viene consultato raramente. In questo caso il livello **Hot** è la scelta migliore nelle fasi iniziali, il livello **Cool** è il più adatto per l'accesso occasionale e il livello **Archive** è l'opzione ottimale quando i dati superano il mese di età. Per ottenere queste transizioni in modo automatico, e senza dover intervenire manualmente, si usano le regole di gestione del ciclo di vita che spostano i dati che invecchiano verso livelli sempre più freddi.
+
+**Configurare le regole di criterio del ciclo di vita** _(stepTitle)_
+
+Nel portale di Azure le regole di criterio del ciclo di vita per lo **Storage Account** si creano specificando alcune impostazioni. Per ogni regola si definiscono blocchi di condizione **If - Then** (Se - Allora) che spostano o fanno scadere i dati in base ai criteri stabiliti. Mentre esamini questi dettagli, prova a immaginare come imposteresti le regole per i tuoi insiemi di dati.
+
+![Aggiungere una regola di criterio del ciclo di vita nel portale di Azure](img/blob-lifecycle-2854d812.png) _(dimensioni: 633×549 px)_
+*Figura 72: Aggiunta di una regola di criterio per la gestione del ciclo di vita dei dati blob nel portale di Azure.* _(caption)_
+
+Il funzionamento della regola si basa su due clausole complementari:
+
+- **If** (Se): la clausola **If** definisce la condizione di valutazione della regola. Quando la clausola **If** è vera, viene eseguita la clausola **Then**. La clausola **If** serve a impostare il periodo di tempo da applicare ai dati blob: la funzionalità di gestione del ciclo di vita verifica se i dati sono stati consultati o modificati secondo il tempo specificato.
+  - **More than (days ago)** (Più di N giorni fa): il numero di giorni da usare nella condizione di valutazione.
+- **Then** (Allora): la clausola **Then** definisce l'azione da eseguire. Quando la clausola **If** è vera, viene eseguita la clausola **Then**, che imposta l'azione di transizione per i dati blob. Le azioni disponibili sono:
+  - **Move to cool storage**: i dati blob vengono spostati nel livello **Cool**.
+  - **Move to cold storage**: i dati blob vengono spostati nel livello **Cold**.
+  - **Move to archive storage**: i dati blob vengono spostati nel livello **Archive**.
+  - **Delete the blob**: i dati blob vengono eliminati.
+
+Progettando le regole in modo da adeguare i livelli di archiviazione all'età dei dati, ottieni le opzioni di archiviazione meno costose per le tue esigenze, automatizzando completamente il passaggio dei dati verso livelli più economici man mano che invecchiano.
+
+> **Suggerimento**: per approfondire l'argomento puoi consultare il modulo di formazione "Manage the Azure Blob storage lifecycle" su Microsoft Learn.
+_(infoBox)_
+
+### 4.2.6 — Determinare la replica degli oggetti blob
+
+La replica degli oggetti (object replication) copia i blob presenti in un container in modo **asincrono**, seguendo le regole di una policy che configuri tu. A differenza della ridondanza incorporata in **Azure Storage** (come GRS, che replica l'intero account a livello di infrastruttura senza darti controllo granulare), la replica degli oggetti è uno strumento che decidi tu come orchestrare: scegli quali container replicare e dove. È pensata per portare i dati più vicino a chi li consuma o per distribuire copie tra regioni diverse in base alle esigenze applicative.
+
+La replica copia tre cose insieme: il **contenuto** del blob, le sue **proprietà di metadati** e le sue **versioni**. L'illustrazione seguente mostra un esempio di replica asincrona di container di blob tra regioni diverse.
+
+![Replica asincrona di container di blob tra regioni](img/blob-object-replication-21fd3c07.png) _(dimensioni: 540×338 px)_
+*Figura 73: Replica asincrona di container di blob tra due regioni Azure.* _(caption)_
+
+**Cose da sapere sulla replica degli oggetti blob** _(stepTitle)_
+
+Quando pianifichi la configurazione della replica degli oggetti blob, ci sono diversi vincoli e prerequisiti da tenere a mente. Capirli in anticipo evita di impostare una policy che poi non funziona o che non copia ciò che ti aspetti.
+
+- La replica degli oggetti richiede che il **versioning dei blob** (blob versioning) sia abilitato sia sull'account di origine sia su quello di destinazione. Il versioning è il meccanismo che consente di accedere alle versioni precedenti di un blob: è proprio questa capacità a permettere di recuperare dati modificati o eliminati, ed è anche ciò che rende possibile replicare la storia delle modifiche e non solo lo stato corrente.
+- La replica degli oggetti **non supporta gli snapshot dei blob**. Eventuali snapshot presenti su un blob nell'account di origine non vengono replicati nell'account di destinazione. Se il tuo modello di backup si basa sugli snapshot, devi tenerne conto: per la replica conta il versioning, non gli snapshot.
+- La replica degli oggetti è supportata quando gli account di origine e destinazione si trovano nei tier di accesso **Hot**, **Cool** o **Cold**. Origine e destinazione possono trovarsi anche in tier diversi tra loro: questo ti dà flessibilità, ad esempio per replicare da un account "caldo" verso uno più economico.
+- Quando configuri la replica degli oggetti, crei una **policy di replica** (replication policy) che specifica lo **Storage Account** di origine e quello di destinazione.
+- Una policy di replica include una o più **regole** (rules) che specificano un container di origine e un container di destinazione. Sono le regole a identificare quali blob del container di origine devono essere replicati.
+
+> **Importante**: senza il versioning abilitato su entrambi gli account, la replica degli oggetti non può funzionare. È il prerequisito non negoziabile da configurare per primo.
+_(infoBox)_
+
+**Cose da considerare nella configurazione della replica degli oggetti blob** _(stepTitle)_
+
+L'uso della replica degli oggetti blob porta numerosi vantaggi. Vale la pena ragionare sui seguenti scenari per capire come la replica può inserirsi nella tua strategia di **Azure Blob Storage**: in tutti i casi il filo conduttore è "avvicinare i dati al punto in cui servono" o "ottimizzare i costi del loro ciclo di vita".
+
+- **Considera la riduzione della latenza**. La replica degli oggetti permette di minimizzare la latenza delle richieste di lettura, consentendo ai client di consumare i dati da una regione fisicamente più vicina a loro.
+- **Considera l'efficienza per i carichi di lavoro di calcolo**. Con la replica, carichi di lavoro di calcolo (compute workloads) collocati in regioni diverse possono elaborare gli stessi insiemi di blob senza dover trasferire i dati a ogni esecuzione.
+- **Considera la distribuzione dei dati**. Puoi ottimizzare la configurazione per la distribuzione dei dati: elabori o analizzi i dati in un'unica posizione e poi replichi verso le altre regioni soltanto i risultati, anziché l'intero dataset grezzo.
+- **Considera i benefici sui costi**. La replica ti permette di gestire e ottimizzare le policy di storage. Una volta che i dati sono stati replicati, puoi ridurre i costi spostandoli nel tier **Archive** tramite le policy di gestione del ciclo di vita (lifecycle management).
+
+La tabella seguente riassume i quattro scenari principali e il beneficio che ciascuno offre.
+
+| **Scenario** | **Beneficio principale** |
+|---|---|
+| **Riduzione della latenza** | I client leggono i dati da una regione più vicina, riducendo i tempi di risposta. |
+| **Efficienza dei carichi di calcolo** | Più regioni elaborano gli stessi blob senza trasferimenti ripetuti dei dati. |
+| **Distribuzione dei dati** | Si elabora in un'unica posizione e si replicano solo i risultati altrove. |
+| **Ottimizzazione dei costi** | Dopo la replica, i dati possono passare al tier Archive tramite lifecycle management. |
+
+### 4.2.7 — Gestire i blob
+
+Un blob può contenere qualsiasi tipo di dato e file di qualsiasi dimensione. Questa flessibilità è uno dei punti di forza di **Azure Blob Storage**, ma proprio perché i casi d'uso sono molto diversi tra loro (file multimediali, log applicativi, dischi di macchine virtuali) **Azure Storage** non offre un unico tipo di blob: ne mette a disposizione tre, ciascuno ottimizzato per uno schema di accesso specifico. Scegliere il tipo giusto significa scegliere il profilo di prestazioni più adatto al proprio scenario.
+
+**I tre tipi di blob** _(stepTitle)_
+
+I tre tipi di blob disponibili sono *block blob*, *page blob* e *append blob*. Vediamo le caratteristiche di ciascuno e, soprattutto, perché esistono.
+
+| **Tipo di blob** | **Struttura e ottimizzazione** | **Scenari d'uso tipici** |
+|---|---|---|
+| **Block blob** | È composto da blocchi di dati che vengono assemblati per formare il blob. È il tipo predefinito: se durante la creazione di un nuovo blob non si specifica un tipo, viene creato come block blob. | È il tipo usato nella maggior parte degli scenari di Blob Storage. Ideale per archiviare testo e dati binari nel cloud, come file, immagini e video. |
+| **Append blob** | È simile al block blob perché anch'esso è composto da blocchi di dati, ma questi blocchi sono ottimizzati per le operazioni di *append* (aggiunta in coda). | Utile negli scenari di logging, dove la quantità di dati cresce man mano che l'operazione di registrazione prosegue. |
+| **Page blob** | Può raggiungere una dimensione massima di 8 TB. È più efficiente per operazioni di lettura/scrittura frequenti. | Usato da **Azure Virtual Machines** per i dischi del sistema operativo e i dischi dati. |
+
+La logica di fondo è semplice: il block blob privilegia il caricamento e lo streaming di file completi, l'append blob privilegia l'aggiunta continua di nuovi dati senza riscrivere ciò che è già presente, mentre il page blob privilegia l'accesso casuale e ripetuto a porzioni del file (esattamente ciò che serve a un disco virtuale).
+
+> **Nota**: dopo aver creato un blob non è più possibile cambiarne il tipo. La scelta del tipo va quindi fatta correttamente in fase di creazione, in base allo schema di accesso previsto.
+_(infoBox)_
+
+**Come caricare e gestire i blob** _(stepTitle)_
+
+Per caricare e gestire i blob è possibile usare il portale di Azure. Questa opzione è adatta quando i file sono pochi. Dopo aver individuato i file da caricare, si scelgono il tipo di blob e la dimensione del blocco (*block size*), oltre alla cartella del container. Si impostano inoltre il livello di accesso (*access tier*) e l'ambito di crittografia (*encryption scope*). In altre parole, il portale espone in un'unica schermata tutte le decisioni rilevanti sul singolo upload, ed è proprio per questo che risulta comodo solo su volumi ridotti: ripetere queste scelte manualmente per migliaia di file non è pratico.
+
+![Pagina di caricamento dei blob con tipo di autenticazione, tipi di blob e dimensione del blocco](img/upload-blobs-7ad73d30.png) _(dimensioni: 410×599 px)_
+*Figura 74: Pagina Upload Blob che mostra il tipo di autenticazione, i tipi di blob e la dimensione del blocco.* _(caption)_
+
+**Strumenti per grandi volumi di file** _(stepTitle)_
+
+Quando i file da gestire sono molti, conviene usare uno strumento dedicato anziché il portale. Di seguito le opzioni principali, con i rispettivi punti di forza, da valutare in base alle proprie esigenze di configurazione.
+
+- **Azure Storage Explorer**. Permette di caricare, scaricare e gestire blob, file, code (queue) e tabelle, oltre alle entità di **Azure Data Lake Storage** e ai dischi gestiti (managed disk). Consente inoltre di visualizzare, modificare e gestire le risorse, fare l'anteprima dei dati e configurare autorizzazioni e controlli di accesso allo storage. È un'applicazione con interfaccia grafica, quindi unisce la comodità visiva del portale alla capacità di lavorare su molte risorse.
+
+![Pagina di Storage Explorer](img/blob-storage-explorer.png) _(dimensioni: 639×341 px)_
+*Figura 75: Pagina di Storage Explorer.* _(caption)_
+
+- **AzCopy**. Uno strumento da riga di comando semplice da usare, disponibile per Windows e Linux. Consente di copiare dati da e verso Blob Storage, tra container diversi e tra account di storage diversi. È la scelta naturale per automatizzare i trasferimenti tramite script.
+- **Azure Data Box Disk**. Un servizio per trasferire dati on-premises verso Blob Storage quando i dataset sono troppo grandi o i vincoli di rete rendono poco realistico l'upload tramite connessione di rete. Con **Azure Data Box Disk** si possono richiedere a Microsoft dischi a stato solido (SSD): si copiano i propri dati su questi dischi e li si rispedisce a Microsoft, che li carica in Blob Storage. È quindi un trasferimento "fisico" pensato per i casi in cui la rete non basta.
+
+### 4.2.8 — Determinare i prezzi di Blob Storage
+
+Tenere sotto controllo i costi di **Azure Blob Storage** non significa semplicemente "scegliere il tier più economico": richiede di comprendere come i dati vengono effettivamente usati. Il segreto è correlare i propri schemi di accesso (quanto spesso si leggono e si scrivono i dati) con i requisiti di durabilità e disponibilità. Solo mettendo insieme questi due aspetti si riesce a capire quale combinazione di tier di prestazioni e opzione di ridondanza offre il miglior rapporto costo/beneficio per un determinato carico di lavoro.
+
+Lo strumento principale per stimare questi costi è l'**Azure Pricing Calculator**. Si tratta di un calcolatore basato sull'input del carico di lavoro: si indicano i parametri di utilizzo previsti (volume di dati, numero di operazioni, ridondanza) e lo strumento restituisce una stima. Il calcolatore può produrre tre tipi di stima:
+
+- Stima dei costi di **migrazione** dei dati.
+- Stima dei costi **mensili** ricorrenti.
+- Stima dei costi **futuri** in base alla crescita prevista del carico di lavoro.
+
+In linea generale, il costo dello storage di tipo block blob dipende da tre fattori fondamentali:
+
+- Il **volume di dati** archiviato ogni mese.
+- La **quantità e il tipo di operazioni** eseguite, insieme agli eventuali costi di trasferimento dati.
+- L'**opzione di ridondanza** dei dati selezionata.
+
+![Azure Pricing Calculator con la sezione storage evidenziata](img/blob-pricing.png) _(dimensioni: 580×310 px)_
+*Figura 76: Azure Pricing Calculator con la sezione dedicata allo storage evidenziata, dove si inseriscono i parametri del carico di lavoro per ottenere una stima dei costi.* _(caption)_
+
+> **Suggerimento**: utilizza l'Azure Pricing Calculator per simulare scenari diversi (ad esempio lo stesso volume di dati nel tier Hot rispetto al Cool) prima di prendere decisioni architetturali. Confrontare le stime ti permette di capire dove conviene davvero risparmiare.
+_(infoBox)_
+
+**Le voci che compongono la fattura** _(stepTitle)_
+
+Per uno **Storage Account** e per **Blob Storage**, la fatturazione non si riduce al solo spazio occupato: concorrono più voci, e capirle è essenziale per evitare sorprese. Di seguito le principali considerazioni di addebito.
+
+- **Tier di prestazioni (Performance tiers)**. Il tier di Blob Storage determina sia la quantità di dati archiviati sia il costo per archiviarli. La regola di fondo è che, man mano che il tier diventa "più freddo" (da Hot verso Cool, Cold e Archive), il costo per gigabyte di archiviazione diminuisce. Questo è il motivo per cui i tier freddi convengono per dati a cui si accede raramente.
+- **Costi di accesso ai dati (Data access costs)**. Specularmente al punto precedente, i costi di accesso ai dati aumentano man mano che il tier diventa più freddo. Per i dati nei tier Cool, Cold e Archive viene applicato un addebito di accesso per gigabyte sulle operazioni di lettura. È il rovescio della medaglia del risparmio sull'archiviazione: si paga di più ogni volta che si accede al dato.
+- **Costi di transazione (Transaction costs)**. Per tutti i tier è previsto un addebito per transazione. Anche in questo caso, l'importo cresce man mano che il tier diventa più freddo.
+- **Costi di trasferimento per la geo-replica (Geo-replication data transfer costs)**. Questo addebito si applica solo agli account che hanno la geo-replica configurata. Il trasferimento dei dati di geo-replica comporta un addebito per gigabyte.
+- **Costi di trasferimento dati in uscita (Outbound data transfer costs)**. I trasferimenti di dati in uscita generano un addebito per l'utilizzo di banda su base per-gigabyte. Questa modalità di fatturazione è coerente con quella degli Storage Account Azure general-purpose.
+
+**Perché conviene scegliere bene il tier fin dall'inizio** _(stepTitle)_
+
+Il tier non è una scelta a costo zero da modificare con leggerezza: cambiare il tier di archiviazione dell'account comporta un addebito una tantum legato allo spostamento dei dati. In particolare, per gli account GPv2:
+
+| **Operazione di cambio tier** | **Costo applicato** |
+|---|---|
+| Da **Cool** a **Hot** | Addebito equivalente alla lettura di tutti i dati esistenti nello Storage Account. |
+| Da **Hot** a **Cool** | Addebito equivalente alla scrittura di tutti i dati nel tier Cool. |
+
+> **Importante**: la modifica del tier di archiviazione a livello di account non è gratuita. Spostare un grande volume di dati da Cool a Hot (o viceversa) può generare un costo significativo, perché viene fatturato come se si leggessero o scrivessero tutti i dati presenti. Pianifica con attenzione il tier corretto per evitare cambi frequenti e onerosi.
+_(infoBox)_
+
+In sintesi, la logica economica di Blob Storage è un compromesso: i tier freddi abbassano il costo di archiviazione ma alzano quello di accesso e transazione. La scelta ottimale dipende quindi dalla frequenza con cui i dati vengono effettivamente utilizzati. Stimare in anticipo questi parametri con l'Azure Pricing Calculator e scegliere il tier giusto fin dall'inizio è il modo migliore per ottimizzare la spesa.
