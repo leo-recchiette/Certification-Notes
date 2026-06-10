@@ -1,6 +1,8 @@
 # AZ-104 — Note di Studio
 
-Note di studio per la certificazione **Microsoft AZ-104 (Azure Administrator)**, generate tramite script Node.js in formato Word (.docx).
+Note di studio per la certificazione **Microsoft AZ-104 (Azure Administrator)**, generate in formato Word (.docx) tramite uno script Node.js.
+
+Il contenuto risiede nei file `MODULE_*.md` (**unica fonte di verità**): lo script `create_az104.js` li legge e produce il documento. Per aggiornare il documento si modifica il `.md` e si rigenera — non serve toccare il codice JS.
 
 ---
 
@@ -8,9 +10,11 @@ Note di studio per la certificazione **Microsoft AZ-104 (Azure Administrator)**,
 
 ```
 az-104-appunti/
-├── create_az104.js        ← script di generazione del documento Word
-├── STYLE_GUIDE.md         ← font, colori, helper functions, note tecniche
-├── COVER_TOC.md           ← copertina e sommario
+├── create_az104.js        ← script di generazione (parser .md → .docx)
+├── package.json           ← dipendenza docx + script npm
+├── .gitignore             ← ignora node_modules/ e i .docx generati
+├── STYLE_GUIDE.md         ← stili + marcatori Markdown riconosciuti dal parser
+├── COVER_TOC.md           ← copertina (il sommario è auto-generato)
 ├── MODULE_1.md            ← Prerequisiti per gli amministratori di Azure
 ├── MODULE_2.md            ← Gestire identità e governance in Azure
 ├── MODULE_3.md            ← Configurare e gestire reti virtuali
@@ -72,9 +76,13 @@ Ogni modifica segue il pattern branch → PR → merge:
 
 ```bash
 git checkout -b feature/update-module-X
-# modifica MODULE_X.md e/o create_az104.js
+# modifica MODULE_X.md (il contenuto sta nei .md, non nel JS)
 git add .
 git commit -m "feat: update MODULE_X - descrizione modifica"
 git push origin feature/update-module-X
 # apri PR su GitHub e mergia in main
 ```
+
+Dopo le modifiche, rigenera il `.docx` (vedi sopra). Lo script `create_az104.js`
+va modificato solo per cambiare stile, marcatori o logica di parsing
+(vedi [STYLE_GUIDE.md](STYLE_GUIDE.md)).
