@@ -43,6 +43,10 @@ const imgs = {
   dns3PrivateZone:  loadImg('Module 3 - Configurare e gestire reti virtuali/3-create-private-dns-zone.png'),
   dns3VnetLink:     loadImg('Module 3 - Configurare e gestire reti virtuali/3-virtual-network-link-option.png'),
   dns3AddVnetLink:  loadImg('Module 3 - Configurare e gestire reti virtuali/3-add-virtual-network-link.png'),
+  peering4Types:    loadImg('Module 3 - Configurare e gestire reti virtuali/vnet-peering-types.png'),
+  peering4Gateway:  loadImg('Module 3 - Configurare e gestire reti virtuali/vnet-peering-gateway-transit.png'),
+  peering4Settings: loadImg('Module 3 - Configurare e gestire reti virtuali/vnet-peering-settings-portal.png'),
+  peering4Chains:   loadImg('Module 3 - Configurare e gestire reti virtuali/vnet-peering-service-chains.png'),
 };
 
 const noSpacing = {before:0,after:0};
@@ -760,6 +764,7 @@ function modulo3(imgs) { return [
     stepTitle('Tipi di peering'),
     bullet('Peering a livello di area — connette reti virtuali nella stessa area Azure (cloud pubblico, Azure Cina o Azure per enti pubblici).'),
     bullet('Peering globale — connette reti virtuali in aree diverse (solo cloud pubblico o Azure Cina; non consentito tra aree diverse di Azure per enti pubblici).'),
+    ...figImg(imgs.peering4Types,'png',779,156,'Figura 40 — I due tipi di peering di reti virtuali Azure: peering a livello di area (stessa area) e peering globale (aree diverse).'),
     stepTitle('Vantaggi'),
     makeTable(
       ['Vantaggio','Descrizione'],
@@ -788,6 +793,7 @@ function modulo3(imgs) { return [
     stepTitle('Scenario tipico'),
     bullet('Rete Hub — contiene la subnet del gateway e il Gateway VPN di Azure.'),
     bullet('Reti A e B — entrambe in peering con l\'Hub; la rete B usa il gateway remoto dell\'Hub per accedere a risorse esterne (on-premises o altre VNet).'),
+    ...figImg(imgs.peering4Gateway,'png',624,349,'Figura 41 — Peering a livello di area: la rete B usa il gateway VPN remoto dell\'hub per accedere a risorse esterne senza un proprio gateway.'),
     stepTitle('Impostazioni chiave nella configurazione del peering'),
     makeTable(
       ['Impostazione','Descrizione'],
@@ -798,6 +804,7 @@ function modulo3(imgs) { return [
         ['Gateway di rete virtuale remoto o Route Server','Permette a questa rete di usare il gateway VPN o il Route Server della rete remota.'],
       ]
     ),
+    ...figImg(imgs.peering4Settings,'png',1317,940,'Figura 42 — Opzioni di configurazione del peering nel portale Azure: traffico verso/da rete remota, gateway di rete virtuale e Route Server.'),
     stepTitle('Caratteristiche del Gateway VPN con peering'),
     bullet('Una rete virtuale puo\' avere un solo gateway VPN.'),
     bullet('Il transito e\' supportato sia per il peering a livello di area che globale.'),
@@ -836,6 +843,7 @@ function modulo3(imgs) { return [
     ),
     stepTitle('Topologia hub-spoke'),
     body('Nella topologia hub-spoke il traffico tra due reti spoke non scorre direttamente, ma transita sempre attraverso la rete hub dove risiedono le risorse condivise (NVA, firewall, gateway VPN). Questo centralizza il controllo e la sicurezza del traffico.'),
+    ...figImg(imgs.peering4Chains,'png',416,159,'Figura 43 — Rete hub-spoke con gateway VPN e NVA: le reti spoke raggiungono risorse esterne tramite route definite dall\'utente e concatenamento dei servizi.'),
     infoBox('Esempio:','La rete A vuole raggiungere la rete C. Entrambe sono in peering con l\'hub B. Senza UDR la comunicazione non e\' possibile. Con una UDR che instrada il traffico di A verso la NVA nell\'hub, il traffico transita per B e raggiunge C.'),
   ]; }
 

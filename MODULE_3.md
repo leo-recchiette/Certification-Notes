@@ -543,6 +543,10 @@ Il peering di reti virtuali è il modo più semplice e rapido per connettere due
 - **Peering a livello di area** — connette reti virtuali nella stessa area Azure (cloud pubblico, Azure Cina o Azure per enti pubblici).
 - **Peering globale** — connette reti virtuali in aree diverse (solo cloud pubblico o Azure Cina; non consentito tra aree diverse di Azure per enti pubblici).
 
+![Figura 40](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-types.png) _(dimensioni: 779×156 px)_
+
+*Figura 40 — I due tipi di peering di reti virtuali Azure: peering a livello di area (stessa area) e peering globale (aree diverse).* _(caption)_
+
 **Vantaggi** _(stepTitle)_
 
 | Vantaggio | Descrizione |
@@ -576,6 +580,10 @@ Il **Gateway VPN di Azure** può essere configurato come punto di transito in un
 - **Rete Hub** — contiene la subnet del gateway e il Gateway VPN di Azure.
 - **Reti A e B** — entrambe in peering con l'Hub; la rete B usa il gateway remoto dell'Hub per accedere a risorse esterne (on-premises o altre VNet).
 
+![Figura 41](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-gateway-transit.png) _(dimensioni: 624×349 px)_
+
+*Figura 41 — Peering a livello di area: la rete B usa il gateway VPN remoto dell'hub per accedere a risorse esterne senza un proprio gateway.* _(caption)_
+
 **Impostazioni chiave nella configurazione del peering** _(stepTitle)_
 
 | Impostazione | Descrizione |
@@ -584,6 +592,10 @@ Il **Gateway VPN di Azure** può essere configurato come punto di transito in un
 | **Traffico inoltrato dalla rete virtuale remota** | Controlla se accettare traffico inoltrato (non originato) dalla rete con peering. |
 | **Gateway di rete virtuale o Server di route** | Abilita il transito: consente alle reti con peering di usare il gateway VPN o il Route Server di questa rete. |
 | **Gateway di rete virtuale remoto o Route Server** | Permette a questa rete di usare il gateway VPN o il Route Server della rete remota. |
+
+![Figura 42](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-settings-portal.png) _(dimensioni: 1317×940 px)_
+
+*Figura 42 — Opzioni di configurazione del peering nel portale Azure: traffico verso/da rete remota, gateway di rete virtuale e Route Server.* _(caption)_
 
 **Caratteristiche del Gateway VPN con peering** _(stepTitle)_
 
@@ -641,6 +653,10 @@ Il peering di rete virtuale **non è transitivo**: se A è in peering con B e B 
 **Topologia hub-spoke** _(stepTitle)_
 
 Nella topologia hub-spoke il traffico tra due reti spoke non scorre direttamente, ma transita sempre attraverso la rete hub dove risiedono le risorse condivise (NVA, firewall, gateway VPN). Questo centralizza il controllo e la sicurezza del traffico.
+
+![Figura 43](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-service-chains.png) _(dimensioni: 416×159 px)_
+
+*Figura 43 — Rete hub-spoke con gateway VPN e NVA: le reti spoke raggiungono risorse esterne tramite route definite dall'utente e concatenamento dei servizi.* _(caption)_
 
 > **Esempio**: La rete A vuole raggiungere la rete C. Entrambe sono in peering con l'hub B. Senza UDR la comunicazione non è possibile. Con una UDR che instrada il traffico di A verso la NVA nell'hub, il traffico transita per B e raggiunge C.
 _(infoBox)_
