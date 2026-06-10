@@ -108,9 +108,10 @@ function spacer(n=1) {
 function figImg(data, ext, origW, origH, label) {
   // docx converte la transformation px->EMU a 9525 EMU/px (96 DPI). La colonna di testo
   // utile e' 11906 - 1440*2 = 9026 twip = 6.27in ~= 601 px: oltre, l'immagine sconfina nel
-  // margine destro. Clampiamo larghezza (e, in via difensiva, altezza) scalando in proporzione.
+  // margine destro. Clampiamo larghezza (e altezza) scalando in proporzione.
   const MAX_W_PX = 600;   // ~6.25in: resta dentro la colonna
-  const MAX_H_PX = 880;   // ~9.2in: resta dentro l'altezza utile della pagina
+  const MAX_H_PX = 420;   // ~4.4in: figure piu' basse -> meno spazio vuoto prima di una figura
+                          // alta che altrimenti non entra in fondo pagina (vedi "Caso 2").
   let w = origW, h = origH;
   if (w > MAX_W_PX) { h = Math.round(h * MAX_W_PX / w); w = MAX_W_PX; }
   if (h > MAX_H_PX) { w = Math.round(w * MAX_H_PX / h); h = MAX_H_PX; }
@@ -134,21 +135,28 @@ function tableCell(text, opts={}) {
       children:[new TextRun({text, font:'Calibri', size:20, bold,
         color:fill===C.headerBg?C.white:color})] })] });
 }
-function makeTable(headers, rows, colWidths) {
+function makeTable(headers, rows, colWidths, opts={}) {
+  // keepWithNext: l'ultima riga resta "incollata" al paragrafo seguente (la didascalia).
+  // Default true (le tabelle hanno quasi sempre una didascalia sotto). Il parser lo mette a
+  // false quando dopo la tabella c'e' un'immagine/intestazione: cosi' la tabella non trascina
+  // quel blocco a pagina nuova lasciando un buco sopra.
+  const keepWithNext = opts.keepWithNext !== false;
   const widths=colWidths||headers.map(()=>Math.floor(FULL_WIDTH/headers.length));
   const tblBorder={style:BorderStyle.SINGLE, size:1, color:C.border};
   const borders={top:tblBorder,bottom:tblBorder,left:tblBorder,right:tblBorder,insideH:tblBorder,insideV:tblBorder};
   // tableHeader: l'intestazione si ripete se la tabella e' costretta a spezzarsi.
-  // cantSplit (riga) + keepNext (celle): la tabella resta unita, header e righe insieme.
+  // cantSplit (riga) + keepNext (celle delle righe non finali): la tabella resta unita.
   const headerRow=new TableRow({ cantSplit:true, tableHeader:true,
     children:headers.map((h,i)=>tableCell(h,{fill:C.headerBg, bold:true, width:widths[i], keepNext:true})) });
+  const lastIdx=rows.length-1;
   const dataRows=rows.map((row,ri)=>{
     const fill=ri%2===0?C.rowEven:C.white;
+    const rowKeepNext = ri<lastIdx ? true : keepWithNext;   // ultima riga: solo se richiesto
     return new TableRow({ cantSplit:true,
       children:row.map((cell,ci)=>{
         if(typeof cell==='object'&&cell.text!==undefined)
-          return tableCell(cell.text,{fill, bold:cell.bold, width:widths[ci], keepNext:true});
-        return tableCell(cell,{fill, width:widths[ci], keepNext:true});
+          return tableCell(cell.text,{fill, bold:cell.bold, width:widths[ci], keepNext:rowKeepNext});
+        return tableCell(cell,{fill, width:widths[ci], keepNext:rowKeepNext});
       }) });
   });
   return new Table({ width:{size:FULL_WIDTH,type:WidthType.DXA}, columnWidths:widths, borders, rows:[headerRow,...dataRows] });
@@ -363,7 +371,8 @@ function parseModule(md) {
 
     // Immagine
     if ((m = line.match(/^!\[[^\]]*\]\(([^)]+)\)/))) {
-      flush(); glueLeadIn(['body', 'bullet']);
+      flush();   // niente glueLeadIn: il paragrafo introduttivo NON va saldato all'immagine,
+                 // altrimenti una figura alta trascina giu' anche testo che starebbe nella pagina prima.
       const imgPath = m[1].trim();
       const dim = line.match(/(\d+)\s*[×x]\s*(\d+)\s*px/);
       const w = dim ? parseInt(dim[1], 10) : 550;
@@ -381,7 +390,7 @@ function parseModule(md) {
 
     // Tabella generata da codice
     if ((m = line.match(/^\[TABELLA:\s*([A-Za-z0-9_]+)\]/))) {
-      flush(); glueLeadIn(['body', 'bullet']);
+      flush();   // niente glueLeadIn: vedi nota nel ramo immagini.
       const fn = TABLE_FUNCS[m[1]];
       if (fn) elements.push(fn()); else console.warn('  [WARN] Tabella sconosciuta: ' + m[1]);
       i++; continue;
@@ -393,13 +402,17 @@ function parseModule(md) {
       while (i < N && /^\s*\|.+\|/.test(L[i].trim())) { rows.push(L[i].trim()); i++; }
       const cells = (r) => r.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(c => c.trim());
       if (rows.length >= 2 && /^[\s|:-]+$/.test(rows[1]) && rows[1].includes('-')) {
-        flush(); glueLeadIn(['body', 'bullet']);
+        flush();   // niente glueLeadIn: vedi nota nel ramo immagini.
         const headers = cells(rows[0]).map(c => inlineText(c));
         const data = rows.slice(2).map(r => cells(r).map(c => {
           const b = c.match(/^\*\*(.+)\*\*$/);
           return b ? { text: inlineText(b[1]), bold: true } : inlineText(c);
         }));
-        elements.push(makeTable(headers, data));
+        // Aggancia l'ultima riga al paragrafo seguente solo se e' la didascalia della tabella.
+        const cap = peekNonBlank(i);
+        const capTxt = cap < N ? splitTag(L[cap].trim()) : null;
+        const nextIsCaption = !!capTxt && (capTxt.tag === 'caption' || /^\*.+\*$/.test(capTxt.text));
+        elements.push(makeTable(headers, data, undefined, { keepWithNext: nextIsCaption }));
       } else { for (const r of rows) buf.push(r); }
       continue;
     }
@@ -549,7 +562,9 @@ async function main() {
        style:{paragraph:{indent:{left:720,hanging:180}}}},
     ]}] },
     sections:[{
-      properties:{page:{size:{width:11906,height:16838}, margin:{top:1440,right:1440,bottom:1440,left:1440}}},
+      // margini sup/inf a 1008 twip (0,7"): piu' altezza utile -> le figure entrano piu' spesso
+      // e si riduce lo spazio vuoto. Dx/sx restano a 1440 (1") per non toccare la colonna utile.
+      properties:{page:{size:{width:11906,height:16838}, margin:{top:1008,right:1440,bottom:1008,left:1440}}},
       children,
     }],
   });
