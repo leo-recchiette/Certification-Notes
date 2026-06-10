@@ -895,9 +895,19 @@ Azure Load Balancer opera al **livello di trasporto (livello 4)** del modello OS
 
 È l'indirizzo a cui i client si connettono. Può essere pubblico o privato, e questa scelta determina il tipo di load balancer: un **IP pubblico** crea un load balancer pubblico (mapping IP pubblico:porta → IP privato:porta della VM), un **IP privato** crea un load balancer interno (accesso limitato alla rete virtuale, raggiungibile anche da risorse locali tramite VPN o ExpressRoute). Un load balancer può avere più indirizzi IP front-end.
 
+![Figura 49](img/Module 3 - Configurare e gestire reti virtuali/lb-types.png) _(dimensioni: 326×522 px)_
+
+*Figura 49 — Confronto tra load balancer pubblico e interno in Azure Load Balancer.* _(caption)_
+
 **Regole di bilanciamento del carico** _(stepTitle)_
 
-Una regola definisce come il traffico viene distribuito al pool back-end, mappando una combinazione di IP e porta front-end a un set di combinazioni di IP e porta back-end. Il traffico viene gestito con un **hash a cinque tuple**:
+Una regola definisce come il traffico viene distribuito al pool back-end, mappando una combinazione di IP e porta front-end a un set di combinazioni di IP e porta back-end.
+
+![Figura 50](img/Module 3 - Configurare e gestire reti virtuali/lb-rules.png) _(dimensioni: 550×161 px)_
+
+*Figura 50 — Funzionamento delle regole di bilanciamento del carico in Azure Load Balancer.* _(caption)_
+
+Il traffico viene gestito con un **hash a cinque tuple**:
 
 - **IP di origine** — indirizzo del client richiedente.
 - **Porta di origine** — porta del client richiedente.
@@ -935,13 +945,25 @@ Per impostazione predefinita il traffico è distribuito uniformemente e qualsias
 
 Una regola di bilanciamento configurata con `protocol = All` e `port = 0` è una *regola per porte a disponibilità elevata*: una singola regola bilancia tutti i flussi TCP e UDP che arrivano su tutte le porte di un load balancer Standard interno. È utile in scenari critici come la disponibilità elevata e il ridimensionamento delle appliance virtuali di rete (NVA), o quando occorre bilanciare un numero elevato di porte.
 
+![Figura 51](img/Module 3 - Configurare e gestire reti virtuali/lb-ha-ports.png) _(dimensioni: 420×275 px)_
+
+*Figura 51 — Funzionamento delle porte a disponibilità elevata in Azure Load Balancer.* _(caption)_
+
 **Regole NAT in ingresso** _(stepTitle)_
 
 Si combinano le regole di bilanciamento con le regole NAT (Network Address Translation). Ad esempio, si può applicare NAT dall'indirizzo pubblico del load balancer alla porta TCP 3389 di una VM specifica, consentendo l'accesso desktop remoto (RDP) dall'esterno di Azure.
 
+![Figura 52](img/Module 3 - Configurare e gestire reti virtuali/lb-inbound-nat.png) _(dimensioni: 550×160 px)_
+
+*Figura 52 — Funzionamento delle regole NAT in ingresso in Azure Load Balancer.* _(caption)_
+
 **Regole in uscita** _(stepTitle)_
 
 Una regola in uscita configura la **SNAT (Source Network Address Translation)** per le VM identificate dal pool back-end, consentendo alle istanze di comunicare verso Internet o verso altri endpoint pubblici.
+
+![Figura 53](img/Module 3 - Configurare e gestire reti virtuali/lb-outbound-rule.png) _(dimensioni: 550×161 px)_
+
+*Figura 53 — Funzionamento delle regole in uscita in Azure Load Balancer.* _(caption)_
 
 
 ### 3.6.4 — Quando usare Azure Load Balancer
