@@ -646,3 +646,261 @@ Il tier non è una scelta a costo zero da modificare con leggerezza: cambiare il
 _(infoBox)_
 
 In sintesi, la logica economica di Blob Storage è un compromesso: i tier freddi abbassano il costo di archiviazione ma alzano quello di accesso e transazione. La scelta ottimale dipende quindi dalla frequenza con cui i dati vengono effettivamente utilizzati. Stimare in anticipo questi parametri con l'Azure Pricing Calculator e scegliere il tier giusto fin dall'inizio è il modo migliore per ottimizzare la spesa.
+
+## 4.3 — Configurare la sicurezza di Azure Storage
+
+### 4.3.1 — Introduzione
+
+**Azure Storage** offre un insieme completo di funzionalità di sicurezza che lavorano insieme per consentire la creazione di applicazioni sicure. In questo scenario la tua azienda archivia dati sensibili in **Azure Storage**, comprese informazioni personali, che vengono utilizzati sia internamente sia da sviluppatori di applicazioni esterni. Sei responsabile di garantire che questi dati siano protetti per tutti gli utenti e hai il compito di individuare soluzioni di configurazione che concedano un accesso sicuro alle informazioni.
+
+In questa sezione imparerai a configurare una firma di accesso condiviso (**Shared Access Signature**, SAS), includendo l'identificatore di risorsa uniforme (URI) e i relativi parametri, a configurare la crittografia di **Azure Storage**, a implementare le chiavi gestite dal cliente (customer-managed keys) e a individuare opportunità per migliorare la sicurezza complessiva di **Azure Storage**.
+
+### 4.3.2 — Esaminare le strategie di sicurezza di Azure Storage
+
+Proteggere i dati non è mai una questione di un singolo controllo, ma di più livelli che si rafforzano a vicenda. Gli amministratori combinano strategie diverse — cifratura, autenticazione, autorizzazione e controllo degli accessi tramite credenziali, permessi sui file e firme private — in modo che, se un livello viene compromesso, gli altri continuino a proteggere i dati. **Azure Storage** mette a disposizione una suite di funzionalità di sicurezza costruita proprio su queste strategie comuni, così da non dover reinventare i meccanismi di protezione da zero.
+
+> **Nota**: il video di riferimento parla di Active Directory, che oggi è stato rinominato **Microsoft Entra ID**.
+_(infoBox)_
+
+**Caratteristiche della sicurezza di Azure Storage** _(stepTitle)_
+
+Il concetto chiave da tenere a mente mentre si studia questo modulo è la _difesa in profondità_ (defense in depth): invece di affidarsi a una sola barriera, si sovrappongono più funzionalità di sicurezza. La domanda da porsi per ogni funzionalità è: come contribuisce a questo schema a strati? L'immagine seguente mostra come le diverse funzionalità di **Azure Storage** si dispongono su livelli concentrici, dal perimetro di rete fino alla cifratura del dato.
+
+![Funzionalità di difesa in profondità di Azure Storage](img/storage-defense.png) _(dimensioni: 975×253 px)_
+*Figura 77: Le funzionalità di sicurezza di Azure Storage organizzate secondo il principio della difesa in profondità.* _(caption)_
+
+Vediamo le caratteristiche principali e, soprattutto, il motivo per cui esistono.
+
+- **Cifratura dei dati a riposo (Encryption at rest)**. La **Storage Service Encryption (SSE)** cifra automaticamente tutti i dati scritti su Azure Storage usando un cifrario AES (Advanced Encryption Standard) a 256 bit. In lettura, Azure Storage decifra i dati prima di restituirli. Il punto importante è che questo avviene in modo trasparente: non comporta costi aggiuntivi e non degrada le prestazioni, quindi non c'è motivo di disattivarla. La cifratura a riposo include anche i dischi rigidi virtuali (VHD) tramite **Azure Disk Encryption**, che si appoggia a BitLocker per le immagini Windows e a dm-crypt per quelle Linux.
+- **Cifratura dei dati in transito (Encryption in transit)**. Cifrare il dato a riposo non basta se può essere intercettato durante il trasferimento. Per questo si può configurare l'account di storage affinché accetti solo richieste su connessioni sicure, impostando la proprietà **Secure transfer required**. Gli account esistenti dovrebbero inoltre vietare esplicitamente TLS 1.0 e 1.1, ormai deprecati perché non più considerati sicuri.
+- **Modelli di cifratura (Encryption models)**. Azure supporta diversi modelli di cifratura, per adattarsi a chi vuole il massimo automatismo e a chi ha requisiti di compliance più stringenti: cifratura lato server con chiavi gestite dal servizio, chiavi gestite dal cliente in **Azure Key Vault**, oppure chiavi gestite dal cliente su hardware sotto il suo controllo. Con la cifratura lato client (client-side encryption) è invece possibile gestire e conservare le chiavi on-premises o in un'altra posizione sicura.
+- **Autorizzazione delle richieste (Authorize requests)**. Per la massima sicurezza, Microsoft raccomanda di usare **Microsoft Entra ID** con le identità gestite (managed identities) per autorizzare le richieste verso i dati di tipo blob, queue e table, ogni volta che è possibile. Questo approccio offre una sicurezza e una facilità d'uso superiori rispetto all'autorizzazione tramite chiave condivisa (Shared Key), perché evita di dover distribuire e custodire chiavi segrete.
+- **Controllo degli accessi basato sui ruoli (RBAC)**. Il **role-based access control (RBAC)** garantisce che le risorse dell'account di storage siano accessibili solo quando lo si desidera e solo agli utenti o alle applicazioni a cui si concede esplicitamente l'accesso. I ruoli RBAC vanno assegnati con ambito (scope) circoscritto all'account di storage Azure, seguendo il principio del privilegio minimo.
+- **Analisi dello storage (Storage analytics)**. La sicurezza non è solo prevenzione, ma anche capacità di osservare cosa accade. **Azure Storage Analytics** effettua il logging dell'account di storage: questi dati permettono di tracciare le richieste, analizzare le tendenze di utilizzo e diagnosticare i problemi dell'account.
+
+> **Suggerimento**: il [benchmark di sicurezza cloud per lo storage](/en-us/security/benchmark/azure/baselines/storage-security-baseline) di Microsoft fornisce raccomandazioni concrete su come mettere in sicurezza le soluzioni di storage in cloud.
+_(infoBox)_
+
+**Strategie di autorizzazione per Azure Storage** _(stepTitle)_
+
+L'autorizzazione è il momento in cui si decide _chi_ può fare _cosa_ sui dati. **Azure Storage** offre più strategie, ciascuna adatta a scenari diversi: dalla gestione granulare delle identità fino all'accesso anonimo per contenuti pubblici. La tabella seguente le mette a confronto per aiutare a scegliere quella più adatta al proprio caso d'uso.
+
+| **Strategia di autorizzazione** | **Descrizione** |
+| --- | --- |
+| **Microsoft Entra ID** | È il servizio cloud di gestione di identità e accessi di Microsoft. Permette di assegnare accessi granulari a utenti, gruppi o applicazioni tramite il controllo degli accessi basato sui ruoli (RBAC). È l'opzione raccomandata. |
+| **Shared Key** | L'accesso è autorizzato con una chiave di accesso dell'account (primaria o secondaria). Per imporre l'uso dell'autorizzazione con Entra ID, conviene disabilitare la Shared Key a livello di account di storage. |
+| **Shared access signatures (SAS)** | Una SAS delega l'accesso a una specifica risorsa dell'account di storage, con permessi definiti e per un intervallo di tempo limitato. Utile per concedere accessi temporanei e circoscritti. |
+| **Accesso anonimo a container e blob** | L'accesso pubblico anonimo è disabilitato per impostazione predefinita sui nuovi account di storage. Microsoft raccomanda di mantenerlo disabilitato per gli account che contengono dati sensibili. |
+
+### 4.3.3 — Creare firme di accesso condiviso (SAS)
+
+Una firma di accesso condiviso (Shared Access Signature, SAS) è un URI (Uniform Resource Identifier) che concede diritti di accesso limitati alle risorse di **Azure Storage**. Il punto di forza della SAS è semplice ma fondamentale: ti permette di condividere le tue risorse di archiviazione senza mai esporre le chiavi dell'account. Le chiavi dell'account, infatti, danno accesso completo a tutto lo **Storage Account**; consegnarle a un client equivarrebbe a dare le chiavi di casa a chi deve solo entrare in una stanza.
+
+Con una SAS, invece, generi un URI che porta già con sé i permessi e i vincoli temporali decisi da te, e lo distribuisci ai client che non devono (e non possono) conoscere la chiave dell'account. In questo modo concedi l'accesso a una risorsa solo per un periodo di tempo definito. Lo scenario tipico è un servizio in cui gli utenti leggono e scrivono i propri dati nel tuo Storage Account.
+
+**Tipi di SAS e livelli di controllo** _(stepTitle)_
+
+Esistono diverse forme di SAS, ciascuna pensata per un livello di accesso e uno scenario differente. Capire le differenze ti aiuta a scegliere quella che concede il minimo indispensabile per ogni caso d'uso.
+
+- **User delegation SAS**: è protetta da credenziali **Microsoft Entra** oltre che dai permessi specificati nella SAS stessa. Poiché si appoggia all'identità di Entra invece che alla chiave dell'account, è l'opzione più sicura. È supportata per **Azure Blob Storage** e **Azure Data Lake Storage**.
+- **Account-level SAS** (a livello di account): consente l'accesso a tutto ciò che permette una SAS a livello di servizio, e in più ad altre risorse e operazioni. Ad esempio, puoi usare una SAS a livello di account per abilitare la creazione di file system.
+- **Service-level SAS** (a livello di servizio): consente l'accesso a risorse specifiche all'interno di uno Storage Account. La useresti, per esempio, per permettere a un'app di recuperare l'elenco dei file in un file system, oppure di scaricare un file.
+- **Stored access policy** (criterio di accesso archiviato): fornisce un ulteriore livello di controllo quando usi una SAS a livello di servizio sul lato server. Permette di raggruppare più SAS e di applicare restrizioni aggiuntive in modo centralizzato.
+
+> **Nota**: il vantaggio chiave della stored access policy è la possibilità di revocare i permessi senza dover rigenerare le chiavi dell'account di archiviazione. È il modo più pulito per "spegnere" una SAS già distribuita.
+_(infoBox)_
+
+**Raccomandazioni per gestire i rischi** _(stepTitle)_
+
+Una SAS, una volta generata e distribuita, vive di vita propria: chiunque la possieda può usarla nei limiti che le hai dato. Per questo la sicurezza dipende da come la configuri e da come la distribuisci. La tabella seguente raccoglie le buone pratiche che aiutano a contenere i rischi.
+
+| **Raccomandazione** | **Descrizione** |
+| --- | --- |
+| **Usa sempre HTTPS per creazione e distribuzione** | Se una SAS transita su HTTP e viene intercettata, un malintenzionato può catturarla e usarla. Questi attacchi *man-in-the-middle* possono compromettere dati sensibili o consentire la corruzione dei dati da parte dell'attaccante. |
+| **Fai riferimento a stored access policy dove possibile** | Le stored access policy permettono di revocare i permessi senza dover rigenerare le chiavi dell'account. Imposta la data di scadenza della chiave dell'account molto in là nel tempo. |
+| **Imposta scadenze a breve termine per una SAS non pianificata** | Se una SAS viene compromessa, puoi limitare gli attacchi riducendone la validità a un tempo breve. È una pratica importante quando non puoi appoggiarti a una stored access policy. Scadenze ravvicinate limitano anche la quantità di dati scrivibili in un blob, perché riducono il tempo disponibile per il caricamento. |
+| **Richiedi ai client di rinnovare automaticamente la SAS** | Fai in modo che i client rinnovino la SAS ben prima della scadenza. Rinnovando in anticipo, lasci margine per eventuali tentativi ripetuti (retry) nel caso il servizio che fornisce la SAS non sia disponibile. |
+| **Pianifica con attenzione l'orario di inizio della SAS** | Se imposti l'orario di inizio a "adesso", a causa del *clock skew* (le differenze di orario tra macchine diverse) potresti osservare errori intermittenti nei primi minuti. In generale, imposta l'orario di inizio ad almeno 15 minuti nel passato, oppure non impostare alcun orario di inizio specifico, così la SAS è subito valida in ogni caso. Considerazioni analoghe valgono per l'orario di scadenza: puoi osservare fino a 15 minuti di scarto in entrambe le direzioni su qualsiasi richiesta. Per i client che usano una versione dell'API REST precedente alla 2012-02-12, la durata massima di una SAS che non fa riferimento a una stored access policy è di 1 ora; eventuali criteri con durata superiore falliscono. |
+| **Definisci permessi minimi di accesso alle risorse** | Una best practice di sicurezza è concedere all'utente i privilegi minimi necessari. Se a un utente serve solo l'accesso in lettura a una singola entità, concedi la lettura solo per quella entità, non lettura/scrittura/eliminazione su tutte. Questo limita anche i danni in caso di compromissione, perché la SAS ha meno potere nelle mani di un attaccante. |
+| **Convalida i dati scritti tramite SAS** | Quando un'applicazione client scrive dati nel tuo account di archiviazione, ricorda che quei dati potrebbero presentare problemi. Se la tua applicazione richiede dati validati o autorizzati, convalidali dopo la scrittura ma prima dell'uso. Questa pratica protegge anche da dati corrotti o malevoli scritti da un utente che ha legittimamente ottenuto la SAS o da chi sfrutta una SAS trapelata. |
+| **Non dare per scontato che la SAS sia sempre la scelta giusta** | In alcuni scenari i rischi di una determinata operazione superano i benefici della SAS. Per queste operazioni, crea un servizio di livello intermedio (middle-tier) che scrive sull'account solo dopo aver eseguito validazione delle regole di business, autenticazione e auditing. A volte, inoltre, è più semplice gestire l'accesso in altri modi: se vuoi rendere pubblicamente leggibili tutti i blob di un container, rendi il container Public anziché distribuire una SAS a ogni client. |
+
+### 4.3.4 — Identificare i parametri URI e SAS
+
+Quando crei una shared access signature (SAS), il risultato pratico è un indirizzo completo, sotto forma di **URI** (Uniform Resource Identifier), che il client utilizzerà per accedere alla risorsa. Capire come è composto questo URI è importante perché ti permette di leggere "a colpo d'occhio" cosa concede una SAS già esistente (quali permessi, su quale servizio, fino a quando è valida) e di costruirne una corretta quando devi delegare l'accesso a un'applicazione o a un partner.
+
+L'URI di una SAS è formato da due parti unite insieme:
+
+- l'**URI della risorsa** di **Azure Storage** (l'endpoint del tuo Storage Account, cioè l'indirizzo a cui si trova il servizio: blob, file, coda o tabella);
+- il **token SAS**, ovvero la stringa di parametri che descrive cosa è permesso fare, su cosa, per quanto tempo e da dove, più la firma crittografica che ne garantisce l'autenticità.
+
+In altre parole, l'endpoint dice *dove* si trova la risorsa, mentre il token SAS dice *cosa* è consentito fare su quella risorsa. La firma in fondo al token è ciò che impedisce a un utente di modificare i parametri (per esempio estendere la scadenza o ampliare i permessi): qualsiasi alterazione invaliderebbe la firma e la richiesta verrebbe rifiutata.
+
+**Esempio di URI SAS** _(stepTitle)_
+
+L'URI seguente è un esempio di SAS a livello di servizio (service-level SAS) che concede i permessi di lettura e scrittura su un blob. Esaminarne i singoli parametri aiuta a comprendere come configurare la SAS in base alle esigenze delle tue risorse di **Azure Storage**.
+
+```
+https://myaccount.blob.core.windows.net/?restype=service&comp=properties&sv=2015-04-05&ss=bf&st=2015-04-29T22%3A18%3A26Z&se=2015-04-30T02%3A23%3A26Z&sr=b&sp=rw&sip=168.1.5.60-168.1.5.70&spr=https&sig=F%6GRVAZ5Cdj2Pw4tgU7IlSTkWgn7bUkkAg8P6HESXwmf%4B
+```
+
+A prima vista è una stringa lunga e poco leggibile, ma in realtà è solo un elenco di coppie `parametro=valore` separate da `&`. Ogni parametro ha un significato preciso: una volta imparate le abbreviazioni (tutte iniziano con la lettera `s`, da *signature*) diventa facile interpretare qualunque SAS.
+
+**I parametri dell'URI spiegati uno per uno** _(stepTitle)_
+
+La tabella seguente scompone l'URI dell'esempio e descrive ciascun parametro, con il valore usato nell'esempio e il suo significato.
+
+| **Parametro** | **Esempio** | **Descrizione** |
+| --- | --- | --- |
+| **Resource URI** (URI della risorsa) | `https://myaccount.blob.core.windows.net/?restype=service&comp=properties` | Definisce l'endpoint di **Azure Storage** e altri parametri di base. In questo caso indica un endpoint per **Azure Blob Storage** e segnala che la SAS si applica a operazioni a livello di servizio (`restype=service`). Usato con `GET`, l'URI recupera le proprietà dello Storage; usato con `SET`, le configura. |
+| **Storage version** (`sv`) | `sv=2015-04-05` | Per le versioni di Azure Storage 2012-02-12 e successive, indica la versione del servizio da usare per elaborare la richiesta. L'esempio richiede la versione 2015-04-05 (5 aprile 2015). |
+| **Storage service** (`ss`) | `ss=bf` | Specifica a quali servizi di Azure Storage si applica la SAS. Nell'esempio `b` indica **Azure Blob Storage** e `f` indica **Azure Files**, quindi la SAS è valida per entrambi. |
+| **Start time** (`st`) | `st=2015-04-29T22%3A18%3A26Z` | (Facoltativo) Imposta l'orario di inizio validità della SAS, espresso in UTC. L'esempio fissa l'inizio al 29 aprile 2015 22:18:26 UTC. Se vuoi che la SAS sia valida immediatamente, ometti questo parametro. |
+| **Expiry time** (`se`) | `se=2015-04-30T02%3A23%3A26Z` | Imposta l'orario di scadenza della SAS, espresso in UTC. L'esempio fissa la scadenza al 30 aprile 2015 02:23:26 UTC. Dopo questo momento la SAS non è più utilizzabile. |
+| **Resource** (`sr`) | `sr=b` | Specifica a quali risorse si può accedere tramite la SAS. Nell'esempio `b` indica che la risorsa accessibile è un blob in **Azure Blob Storage**. |
+| **Permissions** (`sp`) | `sp=rw` | Elenca i permessi concessi. Nell'esempio `r` (read) e `w` (write) concedono l'accesso alle operazioni di lettura e scrittura. |
+| **IP range** (`sip`) | `sip=168.1.5.60-168.1.5.70` | Specifica l'intervallo di indirizzi IP da cui le richieste vengono accettate. L'esempio consente l'accesso solo dagli indirizzi compresi tra 168.1.5.60 e 168.1.5.70. |
+| **Protocol** (`spr`) | `spr=https` | Specifica i protocolli accettati da Azure Storage per la SAS. L'esempio accetta solo richieste effettuate tramite HTTPS, garantendo che il traffico sia cifrato. |
+| **Signature** (`sig`) | `sig=F%6GRVAZ5Cdj2Pw4tgU7IlSTkWgn7bUkkAg8P6HESXwmf%4B` | Indica che l'accesso alla risorsa è autenticato tramite una firma HMAC (Hash-Based Message Authentication Code). La firma è calcolata con una chiave usando l'algoritmo SHA256 e codificata in Base64. È l'elemento che garantisce integrità e autenticità del token. |
+
+> **Suggerimento**: per approfondire la creazione pratica delle SAS, prosegui con i moduli di formazione "Implement shared access signatures".
+_(infoBox)_
+
+### 4.3.5 — Determinare la crittografia di Azure Storage
+
+La crittografia di **Azure Storage** protegge i dati inattivi (data at rest), cioè i dati memorizzati su disco. Lo scopo è garantire il rispetto degli impegni di sicurezza e conformità della tua organizzazione senza alcuno sforzo aggiuntivo da parte tua. Il punto di forza di questo meccanismo è la sua trasparenza: i processi di cifratura e decifratura avvengono in modo automatico, quindi non devi modificare il codice delle applicazioni né adottare procedure particolari. I dati sono protetti per impostazione predefinita.
+
+**Chiavi di accesso e gestione con Key Vault** _(stepTitle)_
+
+Quando crei uno **Storage Account**, Azure genera automaticamente due chiavi di accesso a 512 bit per quell'account. Queste chiavi servono ad autorizzare l'accesso ai dati tramite l'autorizzazione con chiave condivisa (Shared Key) oppure tramite token SAS firmati con la chiave condivisa.
+
+È importante distinguere due piani: le chiavi di accesso (access keys) servono ad *autenticare* chi accede ai dati, mentre la crittografia di cui parliamo qui riguarda la *protezione fisica* dei dati su disco. Sono concetti complementari, ma distinti.
+
+Microsoft consiglia di usare **Azure Key Vault** per gestire le chiavi di accesso e di ruotarle e rigenerarle regolarmente. Il motivo è semplice: più a lungo una chiave resta in uso, maggiore è la finestra di esposizione in caso di compromissione. **Azure Key Vault** supporta criteri di rotazione automatica delle chiavi, con cui puoi definire pianificazioni (ad esempio ogni 90 giorni) che ruotano le chiavi senza intervento manuale. In alternativa, puoi ruotare le chiavi manualmente quando serve.
+
+**Cosa sapere sulla crittografia di Azure Storage** _(stepTitle)_
+
+Esamina le caratteristiche chiave del meccanismo di crittografia per capire perché è considerato robusto e affidabile.
+
+- I dati vengono cifrati automaticamente *prima* di essere scritti su Azure Storage.
+- I dati vengono decifrati automaticamente al momento del recupero.
+- La crittografia, la cifratura a riposo, la decifratura e la gestione delle chiavi sono completamente trasparenti per gli utenti.
+- Tutti i dati scritti su Azure Storage sono cifrati con lo standard **AES** (Advanced Encryption Standard) a 256 bit. AES è uno dei cifrari a blocchi più robusti disponibili.
+- La crittografia di Azure Storage è abilitata per tutti gli Storage Account, nuovi ed esistenti, e non può essere disabilitata.
+
+> **Importante**: poiché la crittografia è sempre attiva e non disattivabile, non esiste lo scenario di "dati non cifrati a riposo" in Azure Storage. La scelta che resta a te non è *se* cifrare, ma *come gestire le chiavi* di cifratura.
+_(infoBox)_
+
+**Configurare la crittografia di Azure Storage** _(stepTitle)_
+
+Nel portale di Azure, la crittografia di Azure Storage si configura specificando il *tipo di crittografia*, ovvero scegliendo chi gestisce le chiavi. Hai due possibilità di fondo: gestire tu stesso le chiavi oppure lasciarle gestire interamente a Microsoft. La figura seguente mostra le opzioni disponibili nel portale.
+
+![Crittografia di Azure Storage con chiavi gestite da Microsoft e dal cliente](img/secure-encryption-e3b68445.png) _(dimensioni: 703×481 px)_
+*Figura 78: Configurazione della crittografia di Azure Storage, con chiavi gestite da Microsoft e chiavi gestite dal cliente.* _(caption)_
+
+Le opzioni e i concetti principali da considerare sono i seguenti.
+
+- **Crittografia dell'infrastruttura (Infrastructure encryption)**: può essere abilitata per l'intero Storage Account oppure per un ambito di crittografia (encryption scope) all'interno di un account. Quando è attiva, i dati vengono cifrati *due volte* — una volta a livello di servizio e una volta a livello di infrastruttura — con due algoritmi di crittografia diversi e due chiavi diverse. Questa doppia cifratura aggiunge un ulteriore livello di protezione per gli scenari ad alta esigenza di conformità.
+- **Chiavi gestite dalla piattaforma (Platform-managed keys, PMK)**: sono chiavi generate, archiviate e gestite interamente da Azure. Il cliente non interagisce in alcun modo con le PMK. Per impostazione predefinita, le chiavi usate per la crittografia dei dati a riposo (Azure Data Encryption-at-Rest) sono PMK.
+- **Chiavi gestite dal cliente (Customer-managed keys, CMK)**: sono chiavi lette, create, eliminate, aggiornate e amministrate da uno o più clienti. Le chiavi archiviate in un key vault o in un modulo di sicurezza hardware (HSM) di proprietà del cliente sono CMK. Lo scenario **Bring Your Own Key (BYOK)** è un caso di CMK in cui il cliente importa (porta) chiavi da una posizione di archiviazione esterna.
+
+Per chiarire le differenze tra i due modelli di gestione delle chiavi, la tabella seguente riassume i punti essenziali.
+
+| **Caratteristica** | **Platform-managed keys (PMK)** | **Customer-managed keys (CMK)** |
+|---|---|---|
+| **Chi gestisce le chiavi** | Interamente Azure/Microsoft | Il cliente |
+| **Interazione del cliente** | Nessuna | Crea, legge, aggiorna, elimina e amministra le chiavi |
+| **Dove risiedono le chiavi** | Infrastruttura gestita da Azure | Key vault o HSM di proprietà del cliente |
+| **Configurazione predefinita** | Sì, opzione di default | No, va configurata esplicitamente |
+| **Scenario BYOK** | Non applicabile | Supportato (import di chiavi esterne) |
+
+> **Nota**: il tema delle chiavi gestite dal cliente (CMK) e dello scenario Bring Your Own Key (BYOK) viene approfondito nella sezione successiva.
+_(infoBox)_
+
+### 4.3.6 — Creare chiavi gestite dal cliente
+
+Nella crittografia di **Azure Storage**, i dati a riposo vengono sempre protetti automaticamente. La differenza la fa _chi controlla_ la chiave di crittografia. Per impostazione predefinita è Microsoft a gestire le chiavi, ma le organizzazioni con esigenze di sicurezza, conformità o governance più stringenti possono preferire di assumere il controllo diretto. È qui che entrano in gioco le chiavi gestite dal cliente (_customer-managed keys_): consentono di generare, conservare e governare le proprie chiavi tramite **Azure Key Vault**, ottenendo flessibilità e controllo molto maggiori senza dover gestire l'infrastruttura crittografica sottostante.
+
+Le API di **Azure Key Vault** possono essere usate per generare le chiavi di crittografia, oppure potete creare voi stessi una chiave e importarla nel key vault.
+
+**Caratteristiche delle chiavi gestite dal cliente** _(stepTitle)_
+
+Prima di adottare questo modello, è utile capire perché può convenire e quali vincoli comporta. Il vantaggio principale è il controllo: gestendo direttamente le chiavi diventate responsabili del loro ciclo di vita e potete soddisfare requisiti di audit e rotazione imposti da policy interne o normative.
+
+- Creando le vostre chiavi (le cosiddette chiavi _gestite dal cliente_) ottenete maggiore flessibilità e un controllo più granulare.
+- Potete creare, disabilitare, sottoporre ad audit, ruotare e definire i controlli di accesso per le vostre chiavi di crittografia.
+- Le chiavi gestite dal cliente possono essere usate con la crittografia di **Azure Storage**. Potete usare una chiave nuova oppure un key vault e una chiave già esistenti. Lo **Storage Account** e il **Azure Key Vault** devono trovarsi nella stessa region, ma possono appartenere a sottoscrizioni diverse.
+- Le chiavi gestite dal cliente vengono conservate in un **Azure Key Vault** di proprietà del cliente oppure in un **Azure Key Vault Managed HSM**. Il Managed HSM offre la validazione FIPS 140-2 Level 3, indicata per le organizzazioni con i requisiti di conformità più elevati.
+
+> **Nota**: il vincolo della stessa region riguarda solo la collocazione geografica; lo Storage Account e il key vault possono comunque risiedere in sottoscrizioni differenti, utile per separare la gestione delle chiavi dalle risorse che le consumano.
+_(infoBox)_
+
+**Configurare le chiavi gestite dal cliente** _(stepTitle)_
+
+Dal portale di Azure potete configurare le chiavi di crittografia gestite dal cliente. La scelta di fondo è una sola, ma determinante: lasciare la gestione a Microsoft oppure assumerla in prima persona usando **Azure Key Vault** per creare le vostre chiavi. La figura seguente mostra il pannello di configurazione.
+
+![Come creare una chiave gestita dal cliente](img/customer-keys-b24acc48.png) _(dimensioni: 1079×547 px)_
+*Figura 79: Pannello del portale di Azure per la creazione di una chiave di crittografia gestita dal cliente.* _(caption)_
+
+I due parametri da impostare sono:
+
+| **Parametro** | **Descrizione** |
+|---|---|
+| **Encryption type** (Tipo di crittografia) | Scegliete come viene gestita la chiave di crittografia: da Microsoft oppure da voi stessi (cliente). |
+| **Encryption key** (Chiave di crittografia) | Specificate una chiave di crittografia inserendo un URI, oppure selezionate una chiave da un key vault esistente. |
+
+In pratica, se optate per la gestione tramite cliente indicate al servizio dove trovare la chiave: o digitando direttamente l'URI della chiave nel key vault, o scegliendola da un **Azure Key Vault** già presente nella sottoscrizione. Da quel momento è la vostra chiave a proteggere i dati dello **Storage Account**, e siete voi a deciderne rotazione, revoca e accessi.
+
+### 4.3.7 — Applicare le procedure consigliate di sicurezza
+
+Proteggere un **Storage Account** non si esaurisce con la configurazione di chiavi, firme di accesso condiviso e autenticazione: la sicurezza è un processo continuo che richiede di osservare costantemente cosa accade ai dati. Per questo Azure mette a disposizione strumenti che permettono di sapere chi accede allo storage, come si comporta nel tempo e se sono in corso attività anomale o pericolose. Il principio di fondo è semplice: non si può proteggere ciò che non si vede. Avere visibilità sulle operazioni di storage è il primo passo per individuare problemi prima che diventino incidenti.
+
+In questa unità vediamo due strumenti complementari, **Storage Insights** e **Microsoft Defender for Storage**, e capiamo quando usare l'uno o l'altro (e perché spesso conviene usarli insieme).
+
+**Che cos'è Storage Insights** _(stepTitle)_
+
+**Storage Insights** offre un monitoraggio completo dei tuoi account di archiviazione di Azure. Fornisce una vista unificata di prestazioni, capacità e disponibilità dei servizi di **Azure Storage**, riunendo in un'unica schermata informazioni che altrimenti sarebbero sparse tra metriche, log e diagnostica.
+
+Il valore di questa vista unificata è pratico: invece di consultare strumenti diversi per capire se lo storage è sano, è performante e disponibile, hai un punto di osservazione centrale. Questo è essenziale per mantenere sia la sicurezza sia l'efficienza degli account di archiviazione.
+
+![Storage insights nel portale di Azure](img/storage-insights.png) _(dimensioni: 1248×635 px)_
+*Figura 80: La vista di Storage insights nel portale, con prestazioni, capacità e disponibilità degli account di archiviazione.* _(caption)_
+
+**Quali sono i vantaggi di Storage Insights** _(stepTitle)_
+
+- **Metriche e log dettagliati**. **Storage Insights** offre metriche, log e informazioni diagnostiche dettagliate che aumentano la visibilità sulle operazioni di archiviazione. Aiuta a monitorare indicatori chiave di prestazione (KPI) come latenza, throughput, utilizzo della capacità e transazioni. Questi dati servono a capire non solo se qualcosa non va, ma anche perché.
+- **Sicurezza e conformità migliorate**. Lo strumento fornisce informazioni e avvisi azionabili che aiutano a individuare e risolvere rapidamente i problemi di sicurezza. La rapidità nell'identificare un problema riduce la finestra di esposizione e quindi il rischio.
+- **Controllo degli accessi in base al ruolo (RBAC)**. **Storage Insights** si integra con le funzionalità di sicurezza di Azure, tra cui il controllo degli accessi in base al ruolo (RBAC), **Microsoft Entra ID**, le stringhe di connessione e le autorizzazioni tramite elenchi di controllo di accesso (ACL). RBAC garantisce un accesso sicuro a dati e risorse, perché concede a ciascuna identità solo i permessi necessari.
+- **Vista unificata**. Riunisce prestazioni, capacità e disponibilità dei servizi **Azure Storage** in un'unica vista, fondamentale per mantenere la sicurezza e l'efficienza degli account di archiviazione.
+
+**Quando usare Storage Insights** _(stepTitle)_
+
+- **Monitoraggio in tempo reale**. **Storage Insights** consente il monitoraggio in tempo reale degli account di archiviazione: puoi seguire le tendenze di utilizzo, monitorare le prestazioni e configurare avvisi per qualsiasi anomalia. Gli avvisi trasformano l'osservazione passiva in azione tempestiva.
+- **Controllo di sicurezza (auditing)**. Aiuta nell'auditing di sicurezza grazie al monitoraggio completo e ai log dettagliati, essenziali per garantire la conformità e individuare eventuali problemi di sicurezza. I log dettagliati sono spesso un requisito normativo, oltre che uno strumento d'indagine.
+- **Analisi dello stato e ottimizzazione**. Supporta l'analisi dello stato di salute e l'ottimizzazione degli account di archiviazione, garantendo sicurezza e prestazioni ottimali.
+
+**Quando usare Microsoft Defender for Storage** _(stepTitle)_
+
+Qui sta la distinzione concettuale più importante dell'unità. Mentre **Storage Insights** fornisce un monitoraggio passivo e un'analisi storica, **Microsoft Defender for Storage** offre il rilevamento proattivo delle minacce di sicurezza attive. In altre parole, il primo ti dice cosa è successo e come si stanno comportando i tuoi dati; il secondo interviene attivamente per scoprire attacchi e contenuti malevoli in corso.
+
+**Funzionalità principali**
+
+- **Scansione malware**. Analizza automaticamente i caricamenti di blob alla ricerca di malware e virus, evitando che file infetti vengano archiviati e poi distribuiti.
+- **Rilevamento di minacce sui dati sensibili**. Identifica quando informazioni di identificazione personale (PII) o credenziali vengono archiviate in modo inappropriato, segnalando esposizioni accidentali di dati riservati.
+- **Rilevamento delle minacce basato sulle attività**. Monitora schemi di accesso insoliti, volumi di download sospetti e analisi della reputazione degli hash, individuando comportamenti che tradiscono un possibile attacco.
+
+**Microsoft Defender for Storage** completa **Storage Insights** fornendo il rilevamento attivo delle minacce, anziché il solo monitoraggio reattivo e la reportistica storica. Per questo i due strumenti non sono alternativi ma complementari.
+
+**Confronto: Storage Insights e Microsoft Defender for Storage** _(stepTitle)_
+
+La tabella seguente riassume le differenze di approccio e aiuta a scegliere lo strumento adatto a ciascuna esigenza.
+
+| **Aspetto** | **Storage Insights** | **Microsoft Defender for Storage** |
+|---|---|---|
+| **Approccio** | Monitoraggio passivo e analisi storica | Rilevamento proattivo delle minacce attive |
+| **Obiettivo** | Visibilità su prestazioni, capacità e disponibilità | Protezione da malware, dati esposti e accessi sospetti |
+| **Tipologia di dati** | Metriche, log, diagnostica e KPI (latenza, throughput, capacità, transazioni) | Eventi di sicurezza (malware, PII/credenziali, attività anomale) |
+| **Casi d'uso tipici** | Monitoraggio in tempo reale, auditing, ottimizzazione dello stato | Scansione malware sui blob, rilevamento PII, analisi degli accessi anomali |
+
+> **Suggerimento**: i due strumenti sono complementari. Usa **Storage Insights** per la visibilità continua e l'analisi storica, e affianca **Microsoft Defender for Storage** per il rilevamento attivo delle minacce. Insieme coprono sia la dimensione reattiva sia quella proattiva della sicurezza dello storage.
+_(infoBox)_
