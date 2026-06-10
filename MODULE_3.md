@@ -1144,3 +1144,134 @@ Azure offre altre soluzioni, da scegliere in base al livello OSI e all'ambito (r
 
 > **In sintesi**: il gateway applicazione di Azure è un Application Delivery Controller di **livello 7**, regionale, ideale quando servono routing per nome host/percorso, WAF, offload TLS e affinità di sessione per le app Web. Per il bilanciamento globale si scelgono Front Door (livello 7) o Gestione traffico (DNS); per il livello 4 ad altissime prestazioni si usa Azure Load Balancer.
 _(infoBox)_
+
+
+## 3.8 — Introduzione ad Azure Network Watcher
+_(h2: Calibri 14pt grassetto #0078D4 keepNext)_
+
+
+### 3.8.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Adatum, il negozio online di droni industriali, esegue diverse applicazioni a tre livelli su macchine virtuali migrate dai data center locali ad Azure e ospitate in più reti virtuali; ha inoltre applicazioni **ibride** con livelli di calcolo sia locali sia nel cloud. Come responsabile della rete in un team DevOps, l'obiettivo è **rilevare e monitorare i problemi di prestazioni di rete** delle risorse IaaS (Infrastructure as a Service) in Azure.
+
+**Azure Network Watcher** è il servizio nativo che risponde a questa esigenza: offre una suite di strumenti per monitorare, diagnosticare e visualizzare lo stato della rete delle risorse IaaS.
+
+**Obiettivi di apprendimento** _(stepTitle)_
+
+- Conoscere Azure Network Watcher e le funzionalità che offre.
+- Determinare se Network Watcher soddisfa le esigenze dell'organizzazione.
+
+
+### 3.8.2 — Cos'è Azure Network Watcher?
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Azure Network Watcher offre una suite di strumenti per **monitorare, diagnosticare, visualizzare le metriche** e abilitare o disabilitare i **log** delle risorse IaaS di Azure (macchine virtuali, reti virtuali, gateway applicazione, load balancer e così via). Consente di monitorare e riparare lo stato di integrità della rete, ma **non** è destinato all'analisi Web né al monitoraggio dei servizi **PaaS**.
+
+Gli strumenti si raggruppano in tre insiemi principali: monitoraggio, diagnostica di rete e traffico.
+
+![Figura 59](img/Module 3 - Configurare e gestire reti virtuali/network-watcher-tools.png) _(dimensioni: 1200×438 px)_
+
+*Figura 59 — Gli strumenti di Azure Network Watcher, raggruppati in monitoraggio, diagnostica di rete e traffico.* _(caption)_
+
+**Monitoraggio** _(stepTitle)_
+
+- **Topologia** — visualizza l'intera rete e le relazioni tra le risorse, anche su più sottoscrizioni, gruppi di risorse e posizioni. Utile a inizio diagnosi per vedere tutti gli elementi coinvolti.
+- **Monitoraggio connessione** — monitora la connettività end-to-end tra endpoint di Azure e ibridi, misurandone le prestazioni nel tempo (ad esempio per verificare che due VM di un'app multilivello comunichino).
+
+**Diagnostica di rete** _(stepTitle)_
+
+- **Verifica flusso IP** — controlla se un pacchetto è consentito o negato verso/da un IP a livello di VM, e indica quale regola di sicurezza è responsabile.
+- **Diagnostica del gruppo di sicurezza di rete (NSG)** — come sopra a livello di VM, VMSS o gateway applicazione, valutando IP, prefissi IP o tag di servizio; può anche suggerire una nuova regola a priorità più alta.
+- **Hop successivo** — rileva problemi di routing mostrando tipo di hop successivo, IP e ID della tabella di route per una destinazione.
+- **Regole di sicurezza valide** — mostra le regole di sicurezza effettive applicate a una scheda di rete (NIC, subnet e loro aggregazione).
+- **Risoluzione dei problemi di connessione** — testa la connettività verso una VM, un FQDN, un URI o un IP in un dato istante.
+- **Acquisizione pacchetti** — registra da remoto tutto il traffico da/verso una VM o un VMSS.
+- **Risoluzione dei problemi relativi alla VPN** — diagnostica gateway di rete virtuale e relative connessioni.
+
+**Traffico** _(stepTitle)_
+
+- **Log dei flussi** — registrano il traffico IP che attraversa un NSG o una rete virtuale e lo archiviano in Archiviazione di Azure.
+- **Analisi del traffico** — fornisce visualizzazioni avanzate dei dati dei log di flusso.
+
+
+### 3.8.3 — Funzionamento di Azure Network Watcher
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Network Watcher diventa **automaticamente disponibile** quando si crea una rete virtuale in un'area di Azure nella sottoscrizione. Vi si accede dal portale di Azure digitando *Network Watcher* nella barra di ricerca.
+
+![Figura 60](img/Module 3 - Configurare e gestire reti virtuali/portal-search.png) _(dimensioni: 1160×736 px)_
+
+*Figura 60 — Ricerca di Network Watcher nella barra di ricerca del portale di Azure.* _(caption)_
+
+**Topologia** _(stepTitle)_
+
+Visualizza le risorse di una rete virtuale e le relazioni tra di esse: subnet, schede di rete, NSG, load balancer e relativi probe di integrità, IP pubblici, peering, gateway di rete virtuale, connessioni VPN, VM e VMSS. Ogni risorsa restituita ha **Nome**, **ID** (URI), **Località** e un elenco di **Associazioni** (tipo `Contains` o `Associated`, con nome e ResourceId dell'oggetto correlato).
+
+**Monitoraggio connessione** _(stepTitle)_
+
+Offre un monitoraggio della connettività end-to-end unificato per distribuzioni di Azure e ibride: misura la **latenza** tra risorse e rileva i cambiamenti che incidono sulla connettività (modifiche di configurazione di rete o regole NSG). Sonda le VM a intervalli regolari e spiega la causa del problema e i passi per risolverlo.
+
+![Figura 61](img/Module 3 - Configurare e gestire reti virtuali/connection-monitor-topology.png) _(dimensioni: 753×481 px)_
+
+*Figura 61 — Monitoraggio connessione: interazione tra VM di Azure, host non Azure, endpoint e posizioni di archiviazione dati.* _(caption)_
+
+> **Agenti di monitoraggio**: per usare Monitoraggio connessione occorre installare gli agenti sugli host monitorati. Sulle VM di Azure si installa l'**agente Network Watcher** (detto anche *estensione Network Watcher*).
+_(infoBox)_
+
+**Verifica flusso IP** _(stepTitle)_
+
+Usa un meccanismo basato su **5 tuple** per rilevare se i pacchetti in ingresso o in uscita di una VM sono consentiti o negati. Si specificano porta locale e remota, protocollo (TCP/UDP), IP locale, IP remoto, la VM e la sua scheda di rete.
+
+**Hop successivo** _(stepTitle)_
+
+Il traffico di una VM IaaS è instradato in base alle route valide della NIC. Hop successivo restituisce **tipo di hop successivo** e IP per una VM/NIC e una destinazione date, e la **tabella di route** associata (route definita dall'utente oppure `System Route`). Aiuta a scoprire route mal configurate che dirottano il traffico verso una posizione locale o un'appliance.
+
+**Regole di sicurezza valide** _(stepTitle)_
+
+Tenendo conto di tutte le regole di tutti gli NSG applicati a una risorsa, mostra perché il traffico viene consentito o negato.
+
+**Acquisizione pacchetti** _(stepTitle)_
+
+È un'estensione di VM avviata da remoto (portale, PowerShell, CLI o API REST) che automatizza l'acquisizione dei pacchetti su una VM. I filtri si basano sulle **5 tuple** (protocollo, IP locale/remoto, porta locale/remota); i dati si salvano su disco locale o in un BLOB di archiviazione.
+
+**Risoluzione dei problemi di connessione** _(stepTitle)_
+
+Verifica la connettività **TCP** tra un'origine e una VM di destinazione (FQDN, URI o IP). Se la connessione riesce restituisce latenza (ms), numero di pacchetti probe e numero di hop; se fallisce, indica il tipo di errore:
+
+| Errore | Causa |
+|---|---|
+| CPU / Memoria | Connessione fallita per utilizzo elevato di CPU o memoria. |
+| GuestFirewall | Un firewall esterno ad Azure ha bloccato la connessione. |
+| DNSResolution | Impossibile risolvere l'IP di destinazione. |
+| NetworkSecurityRule | Un NSG ha bloccato la connessione. |
+| UserDefinedRoute | Route utente non corretta in una tabella di routing. |
+
+**Risoluzione dei problemi relativi alla VPN** _(stepTitle)_
+
+Diagnostica l'integrità di gateway e connessioni (portale, PowerShell, CLI o API REST). È una transazione a lunga durata: restituisce ora di inizio/fine, un **codice** (`UnHealthy` in caso di errore) e una raccolta di **risultati** con riepilogo, dettaglio dell'errore e **azioni consigliate** (con testo e URI alla documentazione).
+
+
+### 3.8.4 — Quando usare Azure Network Watcher
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Network Watcher è utile per risolvere i problemi di rete legati ai prodotti **IaaS** di Azure. Scenari tipici:
+
+**Problemi di connettività delle VM IaaS** _(stepTitle)_
+
+Se gli sviluppatori non riescono ad aprire una sessione PowerShell remota verso una VM da un'altra VM nella stessa rete virtuale, si usa la **verifica flusso IP**: si indicano IP e porta della VM (ad esempio **TCP 5986**, usata da PowerShell over HTTPS), IP e porta della VM remota, il protocollo e la direzione. Se un NSG blocca il traffico, lo strumento segnala **quale regola** lo elimina.
+
+**Problemi delle connessioni VPN** _(stepTitle)_
+
+Per una VM raggiunta dagli host locali tramite VPN **da sito a sito**, lo strumento di **risoluzione dei problemi VPN** esegue la diagnostica sul gateway di rete virtuale, indica se la connessione funziona e, in caso contrario, suggerisce come risolvere.
+
+**Latenza di rete tra aree** _(stepTitle)_
+
+Si usano gli strumenti di Network Watcher per misurare la **latenza** tra risorse IaaS e scegliere l'area migliore in cui collocarle. Confrontando la latenza di un'app locale e di una in VM IaaS verso lo stesso endpoint di archiviazione si può motivare la migrazione di un'app ad Azure o lo spostamento di una VM in un'area a latenza inferiore.
+
+**Quando non usare Network Watcher** _(stepTitle)_
+
+Gli strumenti offrono un livello **intermedio** di diagnostica: per funzionalità avanzate può servire uno strumento di terze parti. Soprattutto, Network Watcher serve le risorse **IaaS** nelle reti virtuali: **non** diagnostica i problemi dei servizi **PaaS** né l'analisi Web — in quei casi si consulta lo **stato di Azure** o il dashboard di **integrità dei servizi**.
+
+> **In sintesi**: Azure Network Watcher è la suite nativa per monitorare e diagnosticare la rete delle risorse **IaaS** in Azure — topologia, monitoraggio connessione, verifica flusso IP, hop successivo, regole effettive, acquisizione pacchetti, diagnostica VPN, log dei flussi e analisi del traffico. Diventa disponibile in automatico con la prima rete virtuale dell'area e non copre i servizi PaaS né l'analisi Web.
+_(infoBox)_
