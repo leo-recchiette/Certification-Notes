@@ -65,32 +65,32 @@ const noSpacing = {before:0,after:0};
 const stdSpacing = {before:60,after:60};
 
 function body(text, opts={}, paraOpts={}) {
-  return new Paragraph({ spacing:stdSpacing, ...paraOpts,
+  return new Paragraph({ spacing:stdSpacing, keepLines:true, ...paraOpts,
     children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText, ...opts})] });
 }
 function h2(text) {
-  return new Paragraph({ spacing:{before:200,after:80}, keepNext:true,
+  return new Paragraph({ spacing:{before:200,after:80}, keepNext:true, keepLines:true,
     children:[new TextRun({text, font:'Calibri', size:28, bold:true, color:C.sectionBlue})] });
 }
 function h3(text) {
-  return new Paragraph({ spacing:{before:140,after:60}, keepNext:true,
+  return new Paragraph({ spacing:{before:140,after:60}, keepNext:true, keepLines:true,
     children:[new TextRun({text, font:'Calibri', size:24, bold:true, color:C.tocEntry})] });
 }
 function stepTitle(text) {
-  return new Paragraph({ spacing:{before:100,after:40}, keepNext:true,
+  return new Paragraph({ spacing:{before:100,after:40}, keepNext:true, keepLines:true,
     children:[new TextRun({text, font:'Calibri', size:22, bold:true, color:'000000'})] });
 }
-function bullet(text, level=0) {
-  return new Paragraph({ spacing:{before:40,after:40}, numbering:{reference:'bullets',level},
+function bullet(text, level=0, paraOpts={}) {
+  return new Paragraph({ spacing:{before:40,after:40}, keepLines:true, numbering:{reference:'bullets',level}, ...paraOpts,
     children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText})] });
 }
 function caption(text) {
-  return new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:40,after:80},
+  return new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:40,after:80}, keepLines:true,
     children:[new TextRun({text, font:'Calibri', size:18, italics:true, color:C.caption})] });
 }
 function codeBlock(lines) {
   const arr = Array.isArray(lines)?lines:[lines];
-  return arr.map(line => new Paragraph({ spacing:noSpacing,
+  return arr.map((line, idx) => new Paragraph({ spacing:noSpacing, keepLines:true, keepNext: idx < arr.length-1,
     shading:{fill:C.codeBg, type:ShadingType.CLEAR}, indent:{left:360,right:360},
     children:[new TextRun({text:line, font:'Courier New', size:18, color:C.codeText})] }));
 }
@@ -98,7 +98,7 @@ function infoBox(label, text) {
   const children = [];
   if(label) children.push(new TextRun({text:label+' ', font:'Calibri', size:22, bold:true, color:C.sectionBlue}));
   children.push(new TextRun({text, font:'Calibri', size:22, color:C.bodyText}));
-  return new Paragraph({ spacing:stdSpacing, indent:{left:360,right:360},
+  return new Paragraph({ spacing:stdSpacing, keepLines:true, indent:{left:360,right:360},
     border:{left:{style:BorderStyle.SINGLE, size:12, color:C.sectionBlue}},
     shading:{fill:C.infoBoxBg, type:ShadingType.CLEAR}, children });
 }
@@ -106,26 +106,31 @@ function spacer(n=1) {
   return Array.from({length:n}, ()=>new Paragraph({spacing:noSpacing, children:[new TextRun('')]}));
 }
 function figImg(data, ext, origW, origH, label) {
-  const MAX_W_EMU=6123000;
-  const origW_emu=origW*9144, origH_emu=origH*9144;
-  let dw=origW_emu, dh=origH_emu;
-  if(dw>MAX_W_EMU){dh=Math.round(dh*MAX_W_EMU/dw);dw=MAX_W_EMU;}
-  const items=[];
-  if(data) items.push(new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:80,after:0},
-    children:[new ImageRun({data, transformation:{width:Math.round(dw/9144), height:Math.round(dh/9144)}, type:ext})] }));
-  if(label) items.push(caption(label));
+  // docx converte la transformation px->EMU a 9525 EMU/px (96 DPI). La colonna di testo
+  // utile e' 11906 - 1440*2 = 9026 twip = 6.27in ~= 601 px: oltre, l'immagine sconfina nel
+  // margine destro. Clampiamo larghezza (e, in via difensiva, altezza) scalando in proporzione.
+  const MAX_W_PX = 600;   // ~6.25in: resta dentro la colonna
+  const MAX_H_PX = 880;   // ~9.2in: resta dentro l'altezza utile della pagina
+  let w = origW, h = origH;
+  if (w > MAX_W_PX) { h = Math.round(h * MAX_W_PX / w); w = MAX_W_PX; }
+  if (h > MAX_H_PX) { w = Math.round(w * MAX_H_PX / h); h = MAX_H_PX; }
+  const items = [];
+  // keepNext: l'immagine resta attaccata alla sua didascalia (e all'intestazione precedente).
+  if (data) items.push(new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:80,after:0}, keepNext:true,
+    children:[new ImageRun({data, transformation:{width:w, height:h}, type:ext})] }));
+  if (label) items.push(caption(label));
   return items;
 }
 
 const FULL_WIDTH=8640;
 function tableCell(text, opts={}) {
-  const {fill=C.white, bold=false, color=C.bodyText, width} = opts;
+  const {fill=C.white, bold=false, color=C.bodyText, width, keepNext=false} = opts;
   const tblBorder={style:BorderStyle.SINGLE, size:1, color:C.border};
   return new TableCell({ width:width?{size:width,type:WidthType.DXA}:undefined,
     shading:{fill, type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120},
     borders:{top:tblBorder,bottom:tblBorder,left:tblBorder,right:tblBorder},
     verticalAlign:VerticalAlign.CENTER,
-    children:[new Paragraph({ spacing:noSpacing,
+    children:[new Paragraph({ spacing:noSpacing, keepNext, keepLines:true,
       children:[new TextRun({text, font:'Calibri', size:20, bold,
         color:fill===C.headerBg?C.white:color})] })] });
 }
@@ -133,27 +138,29 @@ function makeTable(headers, rows, colWidths) {
   const widths=colWidths||headers.map(()=>Math.floor(FULL_WIDTH/headers.length));
   const tblBorder={style:BorderStyle.SINGLE, size:1, color:C.border};
   const borders={top:tblBorder,bottom:tblBorder,left:tblBorder,right:tblBorder,insideH:tblBorder,insideV:tblBorder};
-  const headerRow=new TableRow({ cantSplit:true,
-    children:headers.map((h,i)=>tableCell(h,{fill:C.headerBg, bold:true, width:widths[i]})) });
+  // tableHeader: l'intestazione si ripete se la tabella e' costretta a spezzarsi.
+  // cantSplit (riga) + keepNext (celle): la tabella resta unita, header e righe insieme.
+  const headerRow=new TableRow({ cantSplit:true, tableHeader:true,
+    children:headers.map((h,i)=>tableCell(h,{fill:C.headerBg, bold:true, width:widths[i], keepNext:true})) });
   const dataRows=rows.map((row,ri)=>{
     const fill=ri%2===0?C.rowEven:C.white;
     return new TableRow({ cantSplit:true,
       children:row.map((cell,ci)=>{
         if(typeof cell==='object'&&cell.text!==undefined)
-          return tableCell(cell.text,{fill, bold:cell.bold, width:widths[ci]});
-        return tableCell(cell,{fill, width:widths[ci]});
+          return tableCell(cell.text,{fill, bold:cell.bold, width:widths[ci], keepNext:true});
+        return tableCell(cell,{fill, width:widths[ci], keepNext:true});
       }) });
   });
   return new Table({ width:{size:FULL_WIDTH,type:WidthType.DXA}, columnWidths:widths, borders, rows:[headerRow,...dataRows] });
 }
 
 function moduloTitle(text) {
-  return new Paragraph({ spacing:{before:0,after:120}, pageBreakBefore:true,
+  return new Paragraph({ spacing:{before:0,after:120}, pageBreakBefore:true, keepNext:true, keepLines:true,
     border:{bottom:{style:BorderStyle.SINGLE, size:8, color:C.sectionBlue, space:4}},
     children:[new TextRun({text, font:'Calibri', size:48, bold:true, color:C.titleBlue})] });
 }
 function moduloIntro(text) {
-  return new Paragraph({ spacing:{before:80,after:120},
+  return new Paragraph({ spacing:{before:80,after:120}, keepNext:true, keepLines:true,
     children:[new TextRun({text, font:'Calibri', size:22, italics:true, color:C.bodyText})] });
 }
 
@@ -315,7 +322,19 @@ function parseModule(md) {
 
   // --- Corpo ---
   let buf = [];
-  const flush = () => { if (buf.length) { const t = inlineText(buf.join(' ')); if (t) elements.push(body(t)); buf = []; } };
+  let leadIn = null;   // ultimo body/bullet emesso: { idx, kind, make } per agganciarlo al blocco seguente
+  const flush = () => {
+    if (!buf.length) return;
+    const t = inlineText(buf.join(' '));
+    if (t) { elements.push(body(t)); leadIn = { idx: elements.length - 1, kind: 'body', make: () => body(t, {}, { keepNext: true }) }; }
+    buf = [];
+  };
+  // Aggancia (keepNext) l'ultimo body/bullet al blocco che segue, se e' ancora l'ultimo elemento
+  // emesso: cosi' la frase/voce introduttiva non resta separata dal blocco a fine pagina, anche
+  // quando nel sorgente c'e' una riga vuota in mezzo (le righe vuote non emettono paragrafi).
+  const glueLeadIn = (kinds) => {
+    if (leadIn && leadIn.idx === elements.length - 1 && kinds.includes(leadIn.kind)) elements[leadIn.idx] = leadIn.make();
+  };
   let skipManifest = false;
 
   while (i < N) {
@@ -344,7 +363,7 @@ function parseModule(md) {
 
     // Immagine
     if ((m = line.match(/^!\[[^\]]*\]\(([^)]+)\)/))) {
-      flush();
+      flush(); glueLeadIn(['body', 'bullet']);
       const imgPath = m[1].trim();
       const dim = line.match(/(\d+)\s*[×x]\s*(\d+)\s*px/);
       const w = dim ? parseInt(dim[1], 10) : 550;
@@ -362,7 +381,7 @@ function parseModule(md) {
 
     // Tabella generata da codice
     if ((m = line.match(/^\[TABELLA:\s*([A-Za-z0-9_]+)\]/))) {
-      flush();
+      flush(); glueLeadIn(['body', 'bullet']);
       const fn = TABLE_FUNCS[m[1]];
       if (fn) elements.push(fn()); else console.warn('  [WARN] Tabella sconosciuta: ' + m[1]);
       i++; continue;
@@ -374,7 +393,7 @@ function parseModule(md) {
       while (i < N && /^\s*\|.+\|/.test(L[i].trim())) { rows.push(L[i].trim()); i++; }
       const cells = (r) => r.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(c => c.trim());
       if (rows.length >= 2 && /^[\s|:-]+$/.test(rows[1]) && rows[1].includes('-')) {
-        flush();
+        flush(); glueLeadIn(['body', 'bullet']);
         const headers = cells(rows[0]).map(c => inlineText(c));
         const data = rows.slice(2).map(r => cells(r).map(c => {
           const b = c.match(/^\*\*(.+)\*\*$/);
@@ -387,7 +406,7 @@ function parseModule(md) {
 
     // Blockquote -> infoBox
     if (/^>\s?/.test(line)) {
-      flush();
+      flush(); glueLeadIn(['body', 'bullet']);
       const bq = [];
       while (i < N && /^\s*>\s?/.test(L[i])) { bq.push(L[i].replace(/^\s*>\s?/, '')); i++; }
       const j = peekNonBlank(i);
@@ -402,7 +421,7 @@ function parseModule(md) {
 
     // Codice fenced ```
     if (/^```/.test(line)) {
-      flush(); i++;
+      flush(); glueLeadIn(['body', 'bullet']); i++;
       const code = [];
       while (i < N && !/^```/.test(L[i].trim())) { code.push(L[i]); i++; }
       i++;
@@ -413,16 +432,18 @@ function parseModule(md) {
     // Elenco puntato/numerato (eventualmente indentato)
     if ((m = raw.match(/^(\s*)([-*]|\d+\.)\s+(.+)$/))) {
       flush();
+      glueLeadIn(['body']);   // un body introduttivo si aggancia al primo bullet (non bullet-a-bullet)
       const level = m[1].length >= 2 ? 1 : 0;
       let t = inlineText(splitTag(m[3]).text);
       if (/^\d+\.$/.test(m[2])) t = m[2] + ' ' + t;   // mantiene la numerazione
       elements.push(bullet(t, level));
+      leadIn = { idx: elements.length - 1, kind: 'bullet', make: () => bullet(t, level, { keepNext: true }) };
       i++; continue;
     }
 
     // Blocco di codice indentato (>=4 spazi, non elenco)
     if (/^ {4,}\S/.test(raw)) {
-      flush();
+      flush(); glueLeadIn(['body', 'bullet']);
       const code = [];
       while (i < N && (/^ {4,}\S/.test(L[i]) || (L[i].trim() === '' && i + 1 < N && /^ {4,}\S/.test(L[i + 1])))) {
         code.push(L[i]); i++;
