@@ -157,10 +157,12 @@ Le **dimensioni di visualizzazione** sono prese dal marcatore `_(dimensioni: L×
 | Figura 33 (M3) | nsg-effective-rules.png | 859×65 |
 | Figura 34 (M3) | asg-diagram.png | 547×468 |
 | Figura 35–39 (M3) | 3-create-dns-zone / 3-name-server / 3-create-private-dns-zone / 3-virtual-network-link-option / 3-add-virtual-network-link | varie |
-| Figura 40–48 (M3) | vnet-peering-* / route5-* | varie (vedi i `.md`) |
+| Figura 40–61 (M3) | vnet-peering-* / route5-* / lb-* / app-gateway / network-watcher | varie (vedi i `.md`) |
+| Figura 62–87 (M4) | storage-* / blob-* / *-redundant-storage / file-* / *-explorer ecc. | varie (vedi il manifest in `MODULE_4.md`) |
 
 > **Nota**: la numerazione delle figure è gestita nelle didascalie dentro i `MODULE_*.md`.
-> Modulo 2 e Modulo 3 hanno serie di numeri indipendenti.
+> Modulo 2 e Modulo 3 hanno serie di numeri parzialmente sovrapposte (eredità storica);
+> il Modulo 3 termina a Figura 61 e il Modulo 4 prosegue da Figura 62.
 
 ---
 
