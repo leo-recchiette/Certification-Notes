@@ -1,4 +1,4 @@
-﻿# Modulo 2 — Gestire identità e governance in Azure
+# Modulo 2 — Gestire identità e governance in Azure
 
 _Questo percorso affronta la gestione delle identità digitali e la governance dell'infrastruttura Azure.
 Una corretta configurazione di identità, accessi e policy è fondamentale per sicurezza e conformità._

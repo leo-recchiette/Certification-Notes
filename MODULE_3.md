@@ -473,6 +473,14 @@ Una zona DNS pubblica ospita i record DNS di un dominio rendendoli visibili su I
 
 - **Passo 5** — Configurare i record personalizzati: aggiungere record A (nome host + TTL + IP) e record CNAME (es. `www` → `wideworldimports.com`, TTL 600s).
 
+![Figura 35](img/3-create-dns-zone.png) _(dimensioni: 550×331 px)_
+
+*Figura 35 — Pagina Crea zona DNS nel portale Azure.* _(caption)_
+
+![Figura 36](img/3-name-server.png) _(dimensioni: 550×234 px)_
+
+*Figura 36 — Dettagli del server dei nomi nella zona DNS.* _(caption)_
+
 **Configurare una zona DNS privata** _(stepTitle)_
 
 Le zone DNS private risolvono i nomi solo all'interno delle VNet collegate, senza esporre i record su Internet e senza richiedere un registrar.
@@ -480,6 +488,18 @@ Le zone DNS private risolvono i nomi solo all'interno delle VNet collegate, senz
 - **Passo 1** — Creare la zona DNS privata: nel portale Azure cercare "Zone DNS private" e creare una nuova zona (es. `private.wideworldimports.com`).
 - **Passo 2** — Identificare le reti virtuali: individuare le VNet in cui risiedono le VM che devono risolvere i nomi privati.
 - **Passo 3** — Collegare la VNet alla zona privata: nella zona DNS privata selezionare **Collegamenti di rete virtuale → Aggiungi** e scegliere la VNet. Ripetere per ogni VNet.
+
+![Figura 37](img/3-create-private-dns-zone.png) _(dimensioni: 550×423 px)_
+
+*Figura 37 — Pagina Crea zona DNS privata nel portale Azure.* _(caption)_
+
+![Figura 38](img/3-virtual-network-link-option.png) _(dimensioni: 550×314 px)_
+
+*Figura 38 — Pagina dei collegamenti di rete virtuale in una zona DNS privata.* _(caption)_
+
+![Figura 39](img/3-add-virtual-network-link.png) _(dimensioni: 550×326 px)_
+
+*Figura 39 — Pagina Aggiungi collegamento alla rete virtuale.* _(caption)_
 
 > **Vantaggi delle zone private**: nessuna infrastruttura DNS dedicata, supporto per tutti i tipi di record (A, AAAA, CNAME, MX, TXT, SOA, PTR, SRV), aggiornamento automatico dei nomi host delle VM, supporto split-horizon DNS.
 _(infoBox)_

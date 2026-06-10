@@ -1,0 +1,9 @@
+# Dipendenze Node (installare con: npm install docx)
+node_modules/
+
+# Documenti Word generati (artefatti di build, rigenerabili con create_az104.js)
+*.docx
+
+# File temporanei
+_debug.js
+_section*_new.md
