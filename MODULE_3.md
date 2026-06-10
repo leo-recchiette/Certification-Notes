@@ -990,3 +990,157 @@ Azure offre altre soluzioni, da scegliere in base al livello OSI e all'ambito (r
 
 > **In sintesi**: Azure Load Balancer è un servizio di livello 4 a bassa latenza per tutti i protocolli TCP/UDP, con ridondanza di zona; per funzionalità di livello 7 (WAF, routing per contenuto, offload TLS) si scelgono Front Door o gateway applicazione, mentre Gestione traffico opera a livello DNS tra aree.
 _(infoBox)_
+
+
+## 3.7 — Introduzione ad Azure Application Gateway
+_(h2: Calibri 14pt grassetto #0078D4 keepNext)_
+
+
+### 3.7.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Adatum, il negozio online di droni industriali, ospita diverse applicazioni Web nei computer del proprio data center locale. Oggi un dispositivo hardware dedicato ma ormai obsoleto, collocato nella rete perimetrale, media il traffico verso queste applicazioni. L'obiettivo è dismettere quel dispositivo e affidare la mediazione del traffico a un servizio nativo di Azure: **Azure Application Gateway** (gateway applicazione di Azure).
+
+Perché la sostituzione sia efficace, il servizio deve replicare le funzionalità chiave dell'hardware esistente:
+
+- Rilevare quando un server diventa non disponibile, così da non indirizzargli più traffico.
+- **Terminazione TLS** per ridurre la capacità di CPU dedicata a crittografia e decrittografia sui server.
+- **Affinità di sessione**, perché lo stesso host del pool back-end gestisca sempre la connessione di un dato client.
+- **Filtro del traffico dannoso**, ad esempio attacchi SQL injection e cross-site scripting.
+
+A differenza di Azure Load Balancer (livello 4), il gateway applicazione opera al **livello 7 (applicazione)** del modello OSI: può quindi decidere l'instradamento in base al contenuto della richiesta HTTP (nome host e percorso dell'URL).
+
+**Obiettivi di apprendimento** _(stepTitle)_
+
+- Conoscere il gateway applicazione di Azure e le funzionalità che offre.
+- Determinare se il gateway applicazione soddisfa le esigenze dell'organizzazione.
+
+
+### 3.7.2 — Cos'è Azure Application Gateway?
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Il gateway applicazione di Azure gestisce le richieste inviate dalle applicazioni client alle app Web ospitate in un **pool di server Web**. Il pool può essere costituito da macchine virtuali di Azure, set di scalabilità di macchine virtuali (VMSS), app del **servizio app di Azure** o persino **server locali**.
+
+Oltre al bilanciamento del carico del traffico HTTP, offre un **Web Application Firewall (WAF)** e supporta la crittografia **TLS/SSL** del traffico sia tra gli utenti e il gateway, sia tra il gateway e i server applicazioni.
+
+![Figura 54](img/Module 3 - Configurare e gestire reti virtuali/application-gateway-topology.png) _(dimensioni: 624×206 px)_
+
+*Figura 54 — Topologia del gateway applicazione di Azure: i client raggiungono il gateway, che bilancia il traffico verso il pool di server Web back-end.* _(caption)_
+
+Il gateway usa una procedura **round robin** per distribuire le richieste ai server di ogni pool back-end. La **persistenza delle sessioni** garantisce che le richieste di uno stesso client nella stessa sessione siano indirizzate sempre allo stesso server: è essenziale per le applicazioni di e-commerce, dove una transazione non deve essere interrotta dal rimbalzo tra server diversi.
+
+**Funzionalità principali** _(stepTitle)_
+
+- Supporto per i protocolli **HTTP, HTTPS, HTTP/2 e WebSocket**.
+- **Web Application Firewall** per la protezione dalle vulnerabilità più comuni delle app Web.
+- **Crittografia end-to-end** delle richieste.
+- **Scalabilità automatica** per adeguare dinamicamente la capacità al variare del carico del traffico Web.
+- **Svuotamento delle connessioni** (connection draining) per rimuovere in modo controllato i membri del pool back-end durante gli aggiornamenti pianificati del servizio.
+
+
+### 3.7.3 — Funzionamento di Azure Application Gateway
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Il gateway applicazione combina una serie di componenti per instradare in modo sicuro e bilanciare il carico delle richieste verso il pool di server Web.
+
+![Figura 55](img/Module 3 - Configurare e gestire reti virtuali/application-gateway-components.png) _(dimensioni: 624×249 px)_
+
+*Figura 55 — Componenti del gateway applicazione di Azure: indirizzo IP front-end, listener, regole di gestione e pool back-end.* _(caption)_
+
+**Indirizzo IP front-end** _(stepTitle)_
+
+È l'indirizzo a cui arrivano le richieste dei client. Il gateway può avere un indirizzo IP pubblico, uno privato o entrambi, ma **non più di un IP pubblico e uno privato**.
+
+**Listener** _(stepTitle)_
+
+Uno o più listener ricevono le richieste in ingresso. Un listener accetta il traffico su una combinazione specifica di **protocollo, porta, host e indirizzo IP** e instrada le richieste a un pool back-end secondo le regole definite; gestisce inoltre i **certificati TLS/SSL**. Due tipi:
+
+- **Di base** — indirizza la richiesta solo in base al **percorso** dell'URL.
+- **Multisito** — può indirizzare anche in base al **nome host** dell'URL.
+
+**Regole di gestione** _(stepTitle)_
+
+Una regola associa un listener ai pool back-end: stabilisce come interpretare nome host e percorso dell'URL e a quale pool inoltrare la richiesta. A ogni regola è associato un set di **impostazioni HTTP** (protocollo, persistenza della sessione, svuotamento della connessione, timeout della richiesta, probe di integrità e modalità di crittografia verso i server back-end).
+
+**Bilanciamento del carico a livello 7** _(stepTitle)_
+
+Il gateway bilancia le richieste con un meccanismo **round robin**, ma — a differenza di Azure Load Balancer, che opera al livello 4 e distribuisce in base all'indirizzo IP di destinazione — lavora al **livello 7 OSI**: distribuisce il traffico in base ai parametri di routing (**nomi host e percorsi**) usati dalle regole. Se serve, si configura la **persistenza delle sessioni** per indirizzare tutte le richieste di un client allo stesso server back-end.
+
+**Web Application Firewall (WAF)** _(stepTitle)_
+
+Componente **opzionale** che ispeziona ogni richiesta in ingresso prima che raggiunga un listener, alla ricerca delle minacce più comuni secondo **OWASP**: SQL injection, cross-site scripting, command injection, richieste HTTP non valide, HTTP response splitting, remote file inclusion, bot/crawler/scanner e anomalie del protocollo HTTP.
+
+> **Core Rule Set (CRS)**: OWASP definisce set di regole generiche di rilevamento, riviste di continuo per stare al passo con l'evolvere degli attacchi. Il WAF supporta CRS 3.2, 3.1, 3.0 e 2.2.9 (predefinito **CRS 3.1**). Si possono attivare solo regole specifiche e personalizzare cosa esaminare e la dimensione massima dei messaggi, per evitare il sovraccarico dei server.
+_(infoBox)_
+
+**Pool back-end** _(stepTitle)_
+
+È la raccolta di server Web che risponde alle richieste: un set fisso di VM, un set di scalabilità (VMSS), un'app del servizio app di Azure o server locali. Tutti i server del pool vanno configurati allo stesso modo, anche per la sicurezza. Con TLS/SSL, l'impostazione HTTP del pool indica il certificato per autenticare i server e il gateway **ricifra** il traffico prima di inoltrarlo. Con il **servizio app di Azure** come back-end non serve installare certificati sul gateway: le comunicazioni sono cifrate automaticamente e i server, gestiti da Azure, sono considerati attendibili.
+
+**Routing del gateway** _(stepTitle)_
+
+Per scegliere il server di destinazione il gateway applica le regole configurate. Esistono due metodi principali di routing:
+
+- **Routing basato sul percorso** — invia le richieste a pool back-end diversi in base al percorso dell'URL (es. `/video/*` a un pool ottimizzato per lo streaming, `/images/*` a un pool per il recupero delle immagini).
+- **Routing multisito** — ospita più applicazioni Web sulla stessa istanza del gateway: si registrano più nomi di dominio (CNAME) sull'IP del gateway e listener separati instradano ciascun sito al proprio pool (es. `contoso.com` a un pool e `fabrikam.com` a un altro). Utile per applicazioni **multi-tenant**.
+
+![Figura 56](img/Module 3 - Configurare e gestire reti virtuali/path-based-routing.png) _(dimensioni: 534×354 px)_
+
+*Figura 56 — Routing basato sul percorso: percorsi URL diversi vengono indirizzati a pool back-end diversi.* _(caption)_
+
+![Figura 57](img/Module 3 - Configurare e gestire reti virtuali/multi-site-routing.png) _(dimensioni: 551×366 px)_
+
+*Figura 57 — Routing multisito: nomi host diversi vengono serviti da pool back-end diversi sulla stessa istanza del gateway.* _(caption)_
+
+Il routing offre anche **reindirizzamento** (verso un altro sito o da HTTP a HTTPS), **riscrittura delle intestazioni HTTP** e **pagine di errore personalizzate** con layout e marchio aziendali.
+
+**Terminazione TLS/SSL** _(stepTitle)_
+
+Terminando la connessione TLS/SSL sul gateway si esegue l'**offload** dai server del lavoro di crittografia e decrittografia, che usa in modo intensivo la CPU, e non occorre installare i certificati sui server. Per la **crittografia end-to-end** il gateway decifra il traffico con la chiave privata e lo ricifra con la chiave pubblica del servizio nel pool back-end.
+
+Il traffico entra dal listener attraverso una porta front-end; il listener è configurato per un nome host e una porta specifici su un dato indirizzo IP e può usare un certificato per decifrare il traffico in ingresso, prima di applicare la regola di instradamento. Esponendo il sito solo tramite il gateway (porta 80 o 443) i server Web **non sono direttamente accessibili da Internet**, riducendo la superficie di attacco.
+
+![Figura 58](img/Module 3 - Configurare e gestire reti virtuali/tls-ssl-termination.png) _(dimensioni: 624×198 px)_
+
+*Figura 58 — Terminazione TLS/SSL sul gateway applicazione: il listener decifra il traffico in ingresso e applica la regola di instradamento verso il pool back-end.* _(caption)_
+
+**Probe di integrità (health probe)** _(stepTitle)_
+
+Determinano quali server del pool sono disponibili per il bilanciamento. Il gateway invia una richiesta al server: se risponde con uno stato HTTP compreso tra **200 e 399** è considerato integro. Senza un probe configurato, il gateway ne crea uno predefinito che attende **30 secondi** prima di dichiarare un server non disponibile. I probe evitano che il traffico raggiunga endpoint back-end non reattivi o in errore.
+
+**Scalabilità automatica** _(stepTitle)_
+
+Il gateway supporta la scalabilità automatica, aumentando o riducendo le prestazioni al variare del carico ed eliminando la necessità di scegliere a priori una dimensione di distribuzione o un numero di istanze in fase di provisioning.
+
+**Traffico WebSocket e HTTP/2** _(stepTitle)_
+
+Il gateway supporta nativamente **WebSocket e HTTP/2**, che consentono comunicazione **full-duplex** bidirezionale su una connessione TCP a esecuzione prolungata, senza il polling richiesto da HTTP. Rispetto a HTTP hanno un sovraccarico ridotto e riusano la stessa connessione TCP per più richieste/risposte; operano sulle porte HTTP tradizionali **80 e 443**.
+
+
+### 3.7.4 — Quando usare Azure Application Gateway
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Il gateway applicazione di Azure soddisfa le esigenze di Adatum per diversi motivi:
+
+- Il **routing** indirizza il traffico da un endpoint in Azure a un pool back-end di server in esecuzione nel data center locale, e i **probe di integrità** evitano di inoltrarlo a server non disponibili.
+- La **terminazione TLS** riduce la capacità di CPU che i server back-end dedicano a crittografia e decrittografia.
+- Il **WAF** blocca cross-site scripting e SQL injection prima che raggiungano i server.
+- L'**affinità di sessione** è necessaria perché le applicazioni Web di Adatum conservano lo stato della sessione utente localmente sui singoli server del pool.
+
+**Quando non usare Azure Application Gateway** _(stepTitle)_
+
+Non è appropriato per un'applicazione Web che non richiede bilanciamento del carico: se il traffico è ridotto e l'infrastruttura esistente lo gestisce già, non serve distribuire un pool back-end di app Web o VM, né il gateway.
+
+**Soluzioni alternative di bilanciamento** _(stepTitle)_
+
+Azure offre altre soluzioni, da scegliere in base al livello OSI e all'ambito (regionale o globale):
+
+| Soluzione | Livello | Ambito | Quando usarla |
+|---|---|---|---|
+| **Gateway applicazione (Application Gateway)** | 7 | Regionale | Bilanciamento HTTP(S) con routing per contenuto, WAF, offload TLS e affinità di sessione per le app Web. |
+| **Azure Front Door** | 7 | Globale | App Web distribuite su più aree; offload TLS/SSL, routing per percorso, failover rapido, WAF e caching. |
+| **Gestione traffico (Traffic Manager)** | DNS | Globale | Distribuzione del traffico tra aree globali a livello di DNS; failover più lento per via di cache DNS e TTL. |
+| **Azure Load Balancer** | 4 (TCP/UDP) | Regionale (ridondanza di zona) | Bilanciamento in ingresso/uscita ad alte prestazioni e bassa latenza, milioni di richieste al secondo. |
+
+> **In sintesi**: il gateway applicazione di Azure è un Application Delivery Controller di **livello 7**, regionale, ideale quando servono routing per nome host/percorso, WAF, offload TLS e affinità di sessione per le app Web. Per il bilanciamento globale si scelgono Front Door (livello 7) o Gestione traffico (DNS); per il livello 4 ad altissime prestazioni si usa Azure Load Balancer.
+_(infoBox)_
