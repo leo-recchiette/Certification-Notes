@@ -904,3 +904,274 @@ La tabella seguente riassume le differenze di approccio e aiuta a scegliere lo s
 
 > **Suggerimento**: i due strumenti sono complementari. Usa **Storage Insights** per la visibilità continua e l'analisi storica, e affianca **Microsoft Defender for Storage** per il rilevamento attivo delle minacce. Insieme coprono sia la dimensione reattiva sia quella proattiva della sicurezza dello storage.
 _(infoBox)_
+
+## 4.4 — Configurare Azure Files
+
+### 4.4.1 — Introduzione
+
+**Azure Files** offre condivisioni di file completamente gestite nel cloud, accessibili tramite protocolli standard del settore. **Azure File Sync** è invece un servizio che consente di memorizzare nella cache più condivisioni di **Azure Files** su un server Windows Server locale o su una macchina virtuale nel cloud, portando i file più vicini agli utenti che ne hanno bisogno.
+
+Lo scenario di questa sezione immagina un'azienda con un ampio repository di documenti organizzativi e uffici distribuiti in regioni geografiche diverse, dove gli utenti hanno bisogno di accedere sempre alle versioni più aggiornate dei documenti. L'obiettivo è capire come implementare le condivisioni di **Azure Files** per fornire una posizione centrale per questi documenti. In questa sezione imparerai a identificare lo storage adatto alle condivisioni di file, a confrontare le condivisioni di file con il **Blob Storage**, a configurare le condivisioni di **Azure Files**, gli snapshot delle condivisioni e l'eliminazione temporanea (soft delete), e infine a usare **Azure Storage Explorer** per accedere alle tue condivisioni.
+
+### 4.4.2 — Confrontare l'archiviazione per condivisioni file e dati blob
+
+**Azure Files** mette a disposizione condivisioni file completamente gestite nel cloud. Il suo punto di forza è che si comporta come un file server tradizionale, ma senza che tu debba gestire alcuna infrastruttura: si accede alle condivisioni tramite i protocolli SMB (Server Message Block), NFS (Network File System) e HTTP, e i client possono connettersi da dispositivi Windows, Linux e macOS. Questo lo rende il punto di arrivo naturale quando vuoi spostare nel cloud carichi di lavoro che si aspettano una classica condivisione file di rete.
+
+**Caratteristiche di Azure Files** _(stepTitle)_
+
+Per capire quando ha senso usare Azure Files conviene tenere a mente le sue proprietà principali. Il filo conduttore è uno: ottieni l'esperienza di un file server aziendale, ma con i vantaggi operativi del PaaS (Platform as a Service).
+
+- **Distribuzione serverless**. Una condivisione file di Azure è un'offerta PaaS completamente gestita: non richiede alcuna infrastruttura. Non devi occuparti di macchine virtuali, sistemi operativi o aggiornamenti, perché tutto questo è a carico della piattaforma.
+- **Archiviazione quasi illimitata**. Una singola condivisione file di Azure può memorizzare fino a 100 tebibyte (TiB) di file, e un singolo file può raggiungere i 4 TiB. I file sono organizzati in una struttura gerarchica di cartelle, esattamente come su un file server on-premises: questo è ciò che permette il "lift and shift" senza riprogettare le applicazioni.
+- **Crittografia dei dati**. I dati su una condivisione file di Azure sono crittografati sia a riposo (at rest) all'interno del datacenter di Azure, sia in transito sulla rete. La protezione è quindi attiva in entrambi gli stati, senza configurazioni aggiuntive da parte tua.
+- **Accesso da qualsiasi luogo**. Per impostazione predefinita i client possono accedere alle condivisioni file di Azure da qualunque posizione, purché dispongano di connettività Internet.
+- **Integrazione nell'ambiente esistente**. Puoi controllare l'accesso alle condivisioni file usando identità **Microsoft Entra ID** oppure identità AD DS (Active Directory Domain Services) sincronizzate con Microsoft Entra ID. In questo modo gli utenti hanno la stessa esperienza che avrebbero accedendo a un file server on-premises, senza dover imparare meccanismi nuovi.
+- **Versioni precedenti e backup**. Puoi creare snapshot della condivisione file che si integrano con la funzionalità "Versioni precedenti" di Esplora file. Puoi inoltre usare **Azure Backup** per eseguire il backup delle condivisioni file di Azure.
+- **Ridondanza dei dati**. I dati di una condivisione file di Azure vengono replicati in più posizioni, all'interno dello stesso datacenter di Azure oppure tra datacenter diversi. È l'impostazione di replica dello **Storage Account** che contiene la condivisione a determinare il livello di ridondanza.
+
+**Scenari d'uso tipici di Azure Files** _(stepTitle)_
+
+Esistono molti scenari comuni in cui Azure Files risolve problemi concreti. Mentre li scorri, prova a immaginare come potrebbero applicarsi alla tua organizzazione: il denominatore comune è la necessità di un punto di archiviazione condiviso e accessibile da più sistemi.
+
+- **Sostituzione e affiancamento**. Sostituisci o affianca i file server on-premises tradizionali o i dispositivi NAS (Network Attached Storage) usando Azure Files.
+- **Accesso globale**. Accedi direttamente alle condivisioni file dalla maggior parte dei sistemi operativi (Windows, macOS, Linux) da qualsiasi parte del mondo.
+- **Supporto al lift and shift**. Sposta nel cloud (lift and shift) le applicazioni che si aspettano una condivisione file per memorizzare dati applicativi o dati utente, senza doverne riscrivere la logica di accesso ai file.
+- **Applicazioni condivise**. Memorizza in Azure Files le impostazioni condivise delle applicazioni, come i file di configurazione, in modo che siano accessibili a tutte le istanze.
+- **Dati diagnostici**. Usa Azure Files per archiviare dati diagnostici (log, metriche, crash dump) in una posizione condivisa.
+- **Strumenti e utilità**. Azure Files è una buona scelta per conservare strumenti e utilità necessari allo sviluppo o all'amministrazione di macchine virtuali di Azure o di servizi cloud.
+
+> **Suggerimento**: la replica delle condivisioni file su Windows Server tramite **Azure File Sync** permette di mantenere copie on-premises o in altre sedi cloud, utili per le prestazioni e per la cache distribuita dei dati nel punto in cui vengono effettivamente usati. Approfondiremo Azure File Sync in un'unità successiva.
+_(infoBox)_
+
+**Confronto tra Azure Files e Azure Blob Storage** _(stepTitle)_
+
+La domanda chiave non è "quale dei due è migliore", ma "quale modello dati serve al mio scenario". La differenza di fondo è strutturale: **Azure Files** espone un vero file system gerarchico (cartelle e file), mentre **Azure Blob Storage** espone uno spazio dei nomi piatto pensato per archiviare enormi quantità di dati non strutturati. Capire questa distinzione ti guida nella scelta corretta. La tabella seguente mette a confronto le funzionalità e gli scenari d'uso tipici dei due servizi.
+
+| **Azure Files (condivisioni file)** | **Azure Blob Storage (blob)** |
+| --- | --- |
+| Fornisce i protocolli SMB e NFS, librerie client e un'interfaccia REST che consente l'accesso ai file archiviati da qualsiasi luogo. | Fornisce librerie client e un'interfaccia REST che consentono di archiviare e accedere a dati non strutturati su scala massiva sotto forma di block blob. |
+| - I file in una condivisione di Azure Files sono veri oggetti di tipo directory.<br>- Ai dati di Azure Files si accede tramite condivisioni file (file share) da più macchine virtuali. | - I blob in Azure Blob Storage vivono in uno spazio dei nomi piatto (flat namespace).<br>- Ai dati blob si accede tramite un contenitore (container). |
+| Ideale per il lift and shift di un'applicazione che usa già le API native del file system, e per condividere dati tra l'app e altre applicazioni in esecuzione in Azure. È una buona opzione anche per archiviare strumenti di sviluppo e debug che devono essere raggiungibili da molte macchine virtuali. | Ideale per applicazioni che devono supportare scenari di streaming e di accesso casuale (random-access). È una buona opzione quando vuoi poter accedere ai dati dell'applicazione da qualsiasi luogo. |
+
+In sintesi: scegli **Azure Files** quando il carico di lavoro ragiona in termini di file e cartelle e ti aspetti il comportamento di una condivisione di rete montabile su più VM; scegli **Azure Blob Storage** quando devi gestire grandi volumi di oggetti non strutturati con accesso programmatico tramite contenitori.
+
+### 4.4.3 — Gestire le condivisioni file di Azure
+
+**Azure Files** mette a disposizione due protocolli di file system standard del settore per montare le condivisioni file di Azure: il protocollo **SMB** (Server Message Block) e il protocollo **NFS** (Network File System). La singola condivisione non può però parlare entrambi i protocolli contemporaneamente: una condivisione è o SMB o NFS. La buona notizia è che, all'interno dello stesso **Storage Account**, puoi tranquillamente convivere con condivisioni SMB e condivisioni NFS fianco a fianco. Questa flessibilità ti permette di centralizzare la gestione (un solo account) pur servendo client eterogenei, ad esempio macchine Windows che preferiscono SMB e macchine Linux che usano nativamente NFS.
+
+**Tipi di condivisioni file di Azure** _(stepTitle)_
+
+Azure Files offre due livelli di archiviazione (storage tier): premium e standard. La scelta non è puramente economica: cambia la tecnologia hardware sottostante, il modello di fatturazione e, di conseguenza, i carichi di lavoro per cui ciascun livello è adatto.
+
+- Le condivisioni **standard** vengono create in **Storage Account** general purpose (GPv2). Si basano su dischi HDD e seguono un modello di pagamento a consumo (pay-as-you-go).
+- Le condivisioni **premium** vengono create in **Storage Account** di tipo FileStorage. Si basano su dischi SSD e seguono un modello a capacità provisionata: paghi la capacità che riservi, non quella che usi.
+
+Il livello standard si articola a sua volta in tre profili (Transaction Optimized, Hot, Cool) che condividono lo stesso hardware HDD ma applicano strutture tariffarie diverse, ognuna ottimizzata per uno specifico pattern di accesso ai dati. Il senso è semplice: più frequentemente accedi ai dati, più conviene un profilo che premia le transazioni; più i dati sono "freddi" e raramente toccati, più conviene un profilo che premia la sola archiviazione. La tabella seguente riassume gli attributi dei vari livelli.
+
+| **Livello di archiviazione** | **Prestazioni** | **Tipo di Storage Account** | **Opzioni di ridondanza** | **Modello di fatturazione** | **Casi d'uso** |
+| --- | --- | --- | --- | --- | --- |
+| **Premium** | Basato su SSD, latenza bassa e costante | FileStorage | LRS, ZRS | Provisionato (paghi la capacità riservata) | Carichi ad alte prestazioni che richiedono bassa latenza |
+| **Transaction Optimized** | Basato su HDD, prestazioni standard | General-purpose v2 (GPv2) | LRS, GRS, RA-GRS, ZRS, GZRS, RA-GZRS | Pagamento a consumo | Carichi ad alto numero di transazioni, dati a cui si accede di frequente |
+| **Hot** | Basato su HDD, prestazioni standard | General-purpose v2 (GPv2) | LRS, GRS, RA-GRS, ZRS, GZRS, RA-GZRS | Pagamento a consumo | Condivisioni di team general purpose e carichi collaborativi |
+| **Cool** | Basato su HDD, prestazioni standard | General-purpose v2 (GPv2) | LRS, GRS, RA-GRS, ZRS, GZRS, RA-GZRS | Pagamento a consumo | Archiviazione online e backup a costo contenuto |
+
+> **Nota**: Transaction Optimized, Hot e Cool sono tutti livelli Standard (basati su HDD) con strutture di prezzo diverse ottimizzate per specifici pattern di accesso. Il livello Premium usa archiviazione SSD con fatturazione provisionata (paghi la capacità che riservi), mentre i livelli Standard usano la fatturazione a consumo.
+_(infoBox)_
+
+Nota anche la differenza nelle opzioni di ridondanza: il livello Premium oggi supporta solo LRS e ZRS (ridondanza locale o di zona), mentre i livelli Standard estendono la protezione fino alla replica geografica (GRS, RA-GRS, GZRS, RA-GZRS). Questo è un fattore da considerare quando i requisiti di continuità operativa impongono che i dati sopravvivano alla perdita di un'intera area geografica.
+
+**Tipi di autenticazione** _(stepTitle)_
+
+Avere una condivisione file non basta: occorre controllare chi può accedervi e con quali diritti. Azure Files supporta tre metodi principali di autenticazione, che si collocano su livelli di sicurezza molto diversi tra loro.
+
+| **Metodo di autenticazione** | **Descrizione** |
+| --- | --- |
+| **Autenticazione basata su identità tramite SMB** | È l'approccio consigliato. Supporta tre sorgenti Active Directory: AD DS on-premises, **Microsoft Entra Domain Services** e **Microsoft Entra Kerberos**. Una volta selezionata la sorgente, assegni i ruoli RBAC di Azure agli utenti che devono accedere alla condivisione, ottenendo un controllo granulare degli accessi. |
+| **Chiave di accesso (Access key)** | Opzione più datata e meno flessibile. Ogni **Storage Account** ha due chiavi di accesso utilizzabili nelle richieste, comprese quelle verso Azure Files. Le chiavi sono statiche e concedono il controllo completo: aggirano qualsiasi restrizione di accesso. Vanno quindi custodite con cura e non condivise con gli utenti. La best practice è evitare di distribuire le chiavi dell'account e privilegiare sempre l'autenticazione basata su identità. |
+| **Token SAS (Shared Access Signature)** | Un SAS è un URI (Uniform Resource Identifier) generato dinamicamente a partire dalla chiave di accesso dell'account. Concede diritti di accesso limitati: puoi vincolare le autorizzazioni consentite, l'orario di inizio e di scadenza, gli indirizzi IP da cui sono ammesse le richieste e i protocolli consentiti. Con Azure Files, il token SAS serve unicamente a fornire accesso tramite API REST dal codice. |
+
+> **Importante**: le chiavi di accesso bypassano tutti i controlli di accesso e forniscono il controllo completo dello **Storage Account**. Privilegia sempre l'autenticazione basata su identità con assegnazione dei ruoli RBAC e ricorri alle chiavi solo quando strettamente necessario.
+_(infoBox)_
+
+**Creazione di condivisioni file SMB di Azure (classiche)** _(stepTitle)_
+
+Le condivisioni file "classiche" vivono all'interno di uno **Storage Account** e perciò ne ereditano i limiti: le caratteristiche e i vincoli dell'account si riflettono sulle condivisioni che contiene. In fase di creazione puoi scegliere tra due livelli di archiviazione, SSD (premium) e HDD (standard).
+
+- Le condivisioni su **SSD** sono la scelta giusta quando ti serve una prestazione veloce e costante con bassa latenza, tipicamente nell'ordine di pochi millisecondi a cifra singola.
+- Le condivisioni su **HDD** sono più convenienti dal punto di vista economico e si prestano bene all'archiviazione general purpose.
+
+Se ti serve l'accesso tramite SMB, assicurati di creare la condivisione file dentro uno **Storage Account**. Le condivisioni file SMB ti permettono di scegliere tra diversi livelli di accesso, tra cui transaction optimized, hot e cool.
+
+![Creazione di una condivisione file con la scelta del livello di accesso](img/configure-classic-files.png) _(dimensioni: 623×511 px)_
+*Figura 81: Schermata di creazione di una condivisione file che mostra le scelte del livello di accesso.* _(caption)_
+
+> **Nota**: quando ci si connette tramite SMB, il traffico utilizza la porta 445. Molti provider Internet (ISP) bloccano la porta 445 in uscita: è il problema di connettività più comune quando si monta una condivisione file di Azure da un ambiente on-premises.
+_(infoBox)_
+
+> **Importante**: le condivisioni file (anteprima) che non richiedono uno **Storage Account** di Azure sono ora in disponibilità generale. Questa opzione offre una gestione semplificata negli scenari in cui servono solo condivisioni file senza gli altri servizi di archiviazione.
+_(infoBox)_
+
+### 4.4.4 — Creare snapshot delle condivisioni file
+
+**Azure Files** offre la possibilità di acquisire snapshot (istantanee) delle condivisioni file. Uno snapshot è una copia point-in-time, cioè una "fotografia" della condivisione in un preciso istante: serve a proteggere i dati da cancellazioni accidentali e a consentire il ripristino in caso di errori applicativi. In altre parole, prima di un'operazione rischiosa puoi salvare lo stato attuale e, se qualcosa va storto, tornare indietro a quel momento.
+
+![Snapshot di una condivisione file con nome e data di creazione](img/file-share-snapshot-cbda2136.png) _(dimensioni: 709×406 px)_
+*Figura 82: Snapshot di una condivisione file che mostra il nome dello snapshot e la data in cui è stato creato.* _(caption)_
+
+**Cosa sapere sugli snapshot** _(stepTitle)_
+
+Per capire come usarli correttamente è utile conoscerne le caratteristiche tecniche principali:
+
+- Gli snapshot sono copie point-in-time incrementali e di sola lettura, acquisite a livello dell'intera condivisione.
+- Per ridurre tempi e costi, ogni snapshot cattura soltanto le modifiche avvenute rispetto allo snapshot precedente (natura incrementale): non si duplica ogni volta l'intero contenuto.
+- L'esperienza è identica per le condivisioni SMB e NFS, in tutte le aree pubbliche di Azure.
+- Ogni snapshot aggiunge un timestamp univoco all'URI della condivisione, che lo identifica in modo non ambiguo.
+- Gli snapshot utilizzano le stesse impostazioni di ridondanza della condivisione di origine: ereditano cioè il livello di replica configurato sullo Storage Account.
+- Puoi creare fino a 200 snapshot per condivisione file, così da disporre di numerosi punti di ripristino con RPO basso (cioè con perdita di dati minima tra un punto e l'altro).
+- Gli snapshot persistono finché non vengono eliminati esplicitamente. Attenzione: eliminando la condivisione si eliminano automaticamente anche tutti i suoi snapshot.
+- **Azure Backup** può applicare un lease (blocco) agli snapshot per contribuire a prevenirne l'eliminazione accidentale.
+- È possibile ripristinare un singolo file, una cartella oppure l'intera condivisione; per un ripristino completo è sufficiente l'ultimo snapshot, grazie alla natura incrementale che ricostruisce comunque lo stato completo.
+
+> **Nota**: l'RPO (Recovery Point Objective) indica quanti dati, in termini di tempo, si è disposti a perdere in caso di guasto. Più snapshot frequenti significano un RPO più basso e quindi meno dati persi.
+_(infoBox)_
+
+**Quando e perché usare gli snapshot** _(stepTitle)_
+
+Gli snapshot aiutano a proteggere e recuperare i dati, ma è importante capire in quali scenari conviene inserirli all'interno della propria configurazione di Azure Files. La tabella seguente riassume i principali vantaggi e i casi d'uso corrispondenti.
+
+| **Vantaggio** | **Descrizione** |
+| --- | --- |
+| **Protezione da errori applicativi e corruzione dei dati** | I carichi di lavoro su condivisioni file leggono e scrivono dati di continuo. Se una configurazione errata, una distribuzione difettosa o un bug del software sovrascrive o danneggia i dati, uno snapshot consente di riportare la condivisione a un punto noto e integro. Buona pratica: acquisire uno snapshot prima di rilasciare nuovo codice, così da avere un punto di ripristino pulito se qualcosa va storto. |
+| **Protezione da eliminazioni accidentali o modifiche indesiderate** | Se un file viene modificato per errore, gli snapshot offrono un modo rapido per ripristinare una versione precedente, tornando all'ultima copia valida quando accade qualcosa di inatteso. |
+| **Supporto a backup e ripristino** | Creando snapshot in modo pianificato si costruisce una cronologia di backup della condivisione. Conservare le versioni precedenti semplifica il rispetto dei requisiti di audit e il recupero dei dati dopo un errore o un'interruzione più ampia. |
+
+**Automazione tramite PowerShell e Azure CLI** _(stepTitle)_
+
+Per la creazione automatica degli snapshot o l'integrazione con script esistenti, **PowerShell** e **Azure CLI** offrono accesso programmatico alle operazioni sugli snapshot. Entrambi gli strumenti permettono di aggiungere metadati agli snapshot e possono essere pianificati tramite **Azure Automation**, **GitHub Actions** o qualsiasi sistema di integrazione continua (CI). Questo è il modo tipico per implementare una pianificazione regolare e mantenere una cronologia di backup senza intervento manuale.
+
+### 4.4.5 — Implementare l'eliminazione reversibile (soft delete) per Azure Files
+
+**Azure Files** mette a disposizione la funzionalità di *soft delete* (eliminazione reversibile) per le condivisioni file. L'idea di fondo è semplice ma molto importante in produzione: quando un file o un'intera condivisione viene eliminato, il dato non scompare subito e in modo definitivo, ma viene posto in uno stato "eliminato reversibilmente" che ne consente il recupero entro un certo periodo. Questo trasforma un'eliminazione accidentale o malevola da un evento irreversibile a un semplice ripristino, offrendo una rete di sicurezza paragonabile a un "cestino" applicato alle condivisioni file.
+
+Il motivo per cui questa funzionalità è così rilevante è che gli errori umani e gli attacchi (ad esempio ransomware) sono tra le cause più frequenti di perdita di dati. Senza soft delete, un comando di eliminazione equivale a una cancellazione immediata; con soft delete, hai una finestra temporale per accorgerti del problema e recuperare il contenuto.
+
+L'immagine seguente illustra come abilitare il soft delete su una condivisione file di Azure.
+
+![Come abilitare il soft delete su una condivisione file di Azure](img/files-enable-soft-delete-new-ui.png) _(dimensioni: 1200×890 px)_
+*Figura 83: Procedura per abilitare l'eliminazione reversibile (soft delete) su una condivisione file di Azure.* _(caption)_
+
+**Caratteristiche del soft delete per Azure Files** _(stepTitle)_
+
+Vediamo le caratteristiche principali del soft delete per Azure Files, ovvero come funziona e quali limiti impone.
+
+- Il soft delete per le condivisioni file si abilita a livello di **Storage Account**, non sulla singola condivisione: una volta attivato, la protezione si applica al contesto dell'account di archiviazione.
+- Il soft delete fa transitare il contenuto in uno stato di "eliminato reversibilmente" invece di cancellarlo in modo permanente. Il dato rimane quindi recuperabile finché non scade il periodo di conservazione.
+- Il soft delete consente di configurare il *periodo di conservazione* (retention period), cioè l'intervallo di tempo durante il quale le condivisioni file eliminate reversibilmente restano archiviate e disponibili per il recupero.
+- Il periodo di conservazione può essere impostato tra 1 e 365 giorni, lasciando libertà di bilanciare protezione e costi (più giorni di conservazione significano più tempo per recuperare, ma anche dati mantenuti più a lungo).
+- Il soft delete può essere abilitato sia su condivisioni file nuove sia su condivisioni file già esistenti, quindi non è necessario ricreare nulla per proteggere dati già in uso.
+
+> **Nota**: il soft delete riguarda le condivisioni file (file share) ed è gestito a livello di account di archiviazione. La pianificazione del periodo di conservazione va fatta in base ai requisiti di ripristino e di conformità della tua organizzazione.
+_(infoBox)_
+
+**Scenari d'uso del soft delete per Azure Files** _(stepTitle)_
+
+Il soft delete porta numerosi vantaggi. Di seguito alcuni scenari tipici in cui questa funzionalità fa la differenza: ti aiutano a capire non solo *cosa* fa il soft delete, ma soprattutto *perché* vale la pena abilitarlo.
+
+- **Recupero da perdita accidentale di dati**: puoi recuperare dati eliminati o danneggiati grazie al soft delete, annullando di fatto un'eliminazione fatta per errore.
+- **Scenari di aggiornamento (upgrade)**: usa il soft delete per ripristinare uno stato noto e funzionante dopo un tentativo di aggiornamento fallito, riducendo il rischio operativo di interventi sui dati.
+- **Protezione da ransomware**: usa il soft delete per recuperare i dati senza dover pagare un riscatto ai criminali informatici, mantenendo una copia recuperabile del contenuto cifrato o cancellato dall'attacco.
+- **Conservazione a lungo termine**: usa il soft delete per rispettare i requisiti di conservazione dei dati imposti da normative o policy interne.
+- **Continuità operativa (business continuity)**: usa il soft delete per predisporre l'infrastruttura a una elevata disponibilità per i carichi di lavoro critici, riducendo l'impatto degli incidenti che coinvolgono i dati.
+
+### 4.4.6 — Usare Azure Storage Explorer
+
+**Azure Storage Explorer** è un'applicazione desktop autonoma che semplifica il lavoro con i dati di **Azure Storage** su Windows, macOS e Linux. Il suo valore sta nel fornire un'interfaccia grafica unica con cui gestire più account di storage e più sottoscrizioni contemporaneamente, senza dover passare ogni volta dal portale Azure o ricorrere a comandi da riga di comando. È lo strumento ideale quando si vuole sfogliare, caricare, scaricare o organizzare il contenuto di uno **Storage Account** come se fosse un normale file system.
+
+![Azure Storage Explorer con l'account dell'emulatore aperto](img/storage-explorer.png) _(dimensioni: 753×322 px)_
+*Figura 84: Azure Storage Explorer mostra l'account di storage dell'emulatore con una cartella e diversi documenti, con visibile l'informazione sul livello di accesso.* _(caption)_
+
+**Cosa sapere su Azure Storage Explorer** _(stepTitle)_
+
+Per capire come Storage Explorer si inserisce nel modello di sicurezza di Azure, è importante distinguere i due piani di accesso che richiede.
+
+- Storage Explorer richiede sia i permessi a livello di gestione (**Azure Resource Manager**) sia quelli a livello di dati per consentire l'accesso completo alle risorse. In pratica servono permessi **Microsoft Entra ID** per accedere allo Storage Account, ai container al suo interno e ai dati contenuti nei container. Questa separazione esiste perché poter "vedere" l'account (piano di gestione) non implica automaticamente poterne leggere o scrivere il contenuto (piano dati): occorrono entrambi.
+- Storage Explorer consente di connettersi a diversi tipi di Storage Account, coprendo casi d'uso differenti:
+  - Connessione agli Storage Account associati alle proprie sottoscrizioni Azure.
+  - Connessione a Storage Account e servizi condivisi da altre sottoscrizioni Azure.
+  - Connessione e gestione dello storage locale tramite l'**Azure Storage Emulator**, utile in fase di sviluppo per lavorare senza consumare risorse cloud.
+
+![Pagina Manage Accounts di Azure Storage Explorer](img/connection-options-1df9c8f7.png) _(dimensioni: 567×579 px)_
+*Figura 85: La pagina Manage Accounts di Azure Storage Explorer, da cui si gestiscono le diverse modalità di connessione.* _(caption)_
+
+**Scenari di utilizzo da considerare** _(stepTitle)_
+
+Storage Explorer supporta numerosi scenari di lavoro con gli Storage Account. Nel valutarli, conviene chiedersi quale si applica alla propria implementazione: la scelta dipende soprattutto da chi possiede l'account a cui ci si vuole connettere e da quale tipo di credenziale si ha a disposizione.
+
+| **Scenario** | **Descrizione** |
+| --- | --- |
+| **Connect to an Azure subscription** | Gestire le risorse di storage che appartengono alla propria sottoscrizione Azure. |
+| **Work with local development storage** | Gestire lo storage locale tramite l'**Azure Storage Emulator**. |
+| **Attach to external storage** | Gestire risorse di storage che appartengono a un'altra sottoscrizione Azure o che si trovano in cloud Azure nazionali, usando nome dell'account, chiave ed endpoint. Questo scenario è approfondito nella sezione seguente. |
+| **Attach a storage account with a SAS** | Gestire risorse di storage che appartengono a un'altra sottoscrizione Azure tramite una firma di accesso condiviso (**SAS**, shared access signature). |
+| **Attach a service with a SAS** | Gestire uno specifico servizio di Azure Storage (container blob, coda o tabella) appartenente a un'altra sottoscrizione Azure tramite una **SAS**. |
+
+**Collegarsi a uno Storage Account esterno** _(stepTitle)_
+
+Storage Explorer permette di collegarsi a Storage Account esterni, in modo che gli account possano essere condivisi facilmente tra team o sottoscrizioni diverse. Questo è particolarmente utile quando si deve accedere a uno storage che non è registrato nella propria sottoscrizione.
+
+Per creare la connessione servono il nome dell'account esterno (**Account name**) e la relativa chiave (**Account key**). Nel portale Azure, questa chiave corrisponde a **key1**.
+
+![Procedura guidata per collegarsi a uno Storage Account esterno](img/attach-name-key-13fe3ba3.png) _(dimensioni: 412×354 px)_
+*Figura 86: La procedura guidata di Azure Storage Explorer per connettersi a uno Storage Account esterno.* _(caption)_
+
+Per usare nome e chiave di un account proveniente da un cloud Azure nazionale, si utilizza il menu a discesa **Storage endpoints domain** selezionando **Other**, per poi inserire il dominio dell'endpoint personalizzato dello Storage Account.
+
+**Chiavi di accesso (access keys)** _(stepTitle)_
+
+Le chiavi di accesso forniscono l'accesso all'intero Storage Account. Azure ne fornisce due proprio per garantire continuità operativa: si può mantenere attive le connessioni usando una chiave mentre si rigenera l'altra, evitando interruzioni del servizio durante la rotazione delle credenziali.
+
+> **Importante**: archivia le chiavi di accesso in modo sicuro e rigenerale regolarmente. Quando rigeneri una chiave devi aggiornare tutte le risorse e applicazioni Azure che accedono a questo Storage Account affinché usino la nuova chiave; questa operazione, tuttavia, non interrompe l'accesso ai dischi delle macchine virtuali.
+_(infoBox)_
+
+### 4.4.7 — Considerare Azure File Sync
+
+Immagina di avere file server tradizionali sparsi tra la sede centrale e diverse filiali: ogni server ha i suoi dischi, le sue copie di backup e i suoi limiti di capacità. **Azure File Sync** nasce per risolvere questo scenario. Permette di mantenere una copia in cache di una o più condivisioni di **Azure Files** su un Windows Server on-premises (oppure su una macchina virtuale in cloud), spostando di fatto il "centro di gravità" dei dati in Azure senza rinunciare alle prestazioni, alla compatibilità e alla flessibilità di un file server locale.
+
+Il vantaggio chiave è questo: gli utenti continuano ad accedere ai file dal server locale come hanno sempre fatto, ma la copia autorevole e completa dei dati vive in **Azure Files**. Centralizzi quindi le condivisioni dell'organizzazione nel cloud, mentre il server locale resta una cache veloce e vicina agli utenti.
+
+![Come Azure File Sync mette in cache le condivisioni di un'organizzazione in Azure Files](img/file-sync-1d3fd2e7.png) _(dimensioni: 2402×1544 px)_
+*Figura 87: Come Azure File Sync mette in cache le condivisioni file di un'organizzazione in Azure Files.* _(caption)_
+
+**I cinque componenti di Azure File Sync** _(stepTitle)_
+
+Azure File Sync è composto da cinque elementi principali che collaborano per sincronizzare i file tra i Windows Server on-premises e le condivisioni di Azure Files. Capire il ruolo di ciascuno aiuta a progettare correttamente la topologia di sincronizzazione e a non sbattere contro i limiti del servizio.
+
+- **Storage Sync Service**: è la risorsa Azure primaria, responsabile della gestione della sincronizzazione dei file. È il "cervello" del sistema. Opera all'interno di una singola area (region) di Azure, può contenere fino a 100 sync group e consente la registrazione di un massimo di 99 Windows Server.
+- **Sync group** (gruppo di sincronizzazione): definisce la topologia di sincronizzazione. Ogni sync group contiene un cloud endpoint (la condivisione di Azure Files) e fino a 50 server endpoint. È il sync group a stabilire "chi si sincronizza con chi": tutti gli endpoint al suo interno restano allineati tra loro.
+- **Cloud endpoint**: è la condivisione di Azure Files che partecipa al sync group e rappresenta la copia in cloud dei dati. È ammesso un solo cloud endpoint per ogni sync group.
+- **Server endpoint**: è un percorso su un Windows Server registrato che si sincronizza con il cloud endpoint. Il percorso deve risiedere su un volume formattato in NTFS e non può essere il volume di sistema.
+- **Azure File Sync Agent**: è l'agente installato su ciascun Windows Server. Si tratta di un servizio Windows in background che esegue le operazioni di sincronizzazione e le attività di gestione, fungendo da ponte tra il server locale e lo Storage Sync Service.
+
+> **Nota**: i server endpoint sono percorsi NTFS specifici sui Windows Server registrati, ma non possono trovarsi sul volume di sistema e su di essi non è supportato il cloud tiering quando si trovano su tale volume. Scegli quindi un volume dati dedicato per i percorsi sincronizzati.
+_(infoBox)_
+
+**Cosa sapere su Azure File Sync** _(stepTitle)_
+
+Vediamo le caratteristiche distintive del servizio, utili per capire cosa puoi aspettarti in produzione.
+
+- Azure File Sync trasforma un Windows Server in una cache veloce delle tue condivisioni di **Azure Files**: il server locale serve i dati "caldi" con bassa latenza, mentre il resto vive in cloud.
+- Puoi accedere ai dati in locale con qualunque protocollo disponibile su Windows Server, inclusi SMB, NFS e FTPS. Questo è importante perché non sei vincolato al solo SMB di Azure Files: l'accesso locale sfrutta lo stack completo del sistema operativo.
+- Azure File Sync supporta tutte le cache di cui hai bisogno, distribuite ovunque nel mondo: puoi avere più server endpoint in sedi geografiche diverse, tutti allineati alla stessa condivisione in cloud.
+- I limiti da ricordare sono un massimo di 100 sync group per ogni Storage Sync Service e un massimo di 50 server endpoint per ogni sync group.
+
+**Quando conviene usare Azure File Sync** _(stepTitle)_
+
+Azure File Sync porta numerosi vantaggi. Considera i seguenti scenari tipici e valuta come applicarlo alle tue condivisioni di **Azure Files**.
+
+- **Lift and shift delle applicazioni**: usa Azure File Sync per spostare applicazioni che devono accedere ai dati sia da Azure sia da sistemi on-premises. Garantisci l'accesso in scrittura agli stessi dati sia dai Windows Server sia da Azure Files, evitando di dover riscrivere l'applicazione.
+- **Supporto alle filiali (branch office)**: dai alle tue sedi periferiche un modo semplice per eseguire il backup dei file. Con Azure File Sync configuri un nuovo server che si collega allo storage di Azure, centralizzando i dati delle filiali senza infrastrutture di backup locali complesse.
+- **Backup e disaster recovery**: una volta implementato Azure File Sync, **Azure Backup** può eseguire il backup dei dati on-premises. In caso di disastro puoi ripristinare immediatamente i metadati dei file e richiamare (recall) i dati man mano che servono, ottenendo un ripristino rapido senza dover riscaricare subito l'intero volume.
+- **Archiviazione dei file con cloud tiering**: Azure File Sync mantiene sul server locale solo i dati a cui si è acceduto di recente. Attivando il cloud tiering, i dati più vecchi e usati di rado vengono spostati automaticamente in Azure Files, liberando spazio prezioso sui dischi locali pur mantenendoli accessibili al volo.
+
+> **Suggerimento**: il cloud tiering è la funzionalità che rende Azure File Sync particolarmente economico. Sul server locale resta un "segnaposto" leggero per i file tierizzati; al primo accesso il contenuto viene richiamato da Azure in modo trasparente per l'utente.
+_(infoBox)_
