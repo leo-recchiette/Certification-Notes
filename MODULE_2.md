@@ -1,4 +1,4 @@
-# Modulo 2 — Gestire identità e governance in Azure
+﻿# Modulo 2 — Gestire identità e governance in Azure
 
 _Questo percorso affronta la gestione delle identità digitali e la governance dell'infrastruttura Azure.
 Una corretta configurazione di identità, accessi e policy è fondamentale per sicurezza e conformità._
@@ -305,32 +305,165 @@ Non tutti i sistemi HR espongono un endpoint SCIM nativo. Da marzo 2024 Microsof
 ## 2.3 — Descrivere i componenti architetturali principali di Azure
 _(h2: Calibri 14pt grassetto #0078D4 keepNext)_
 
+I componenti principali dell'architettura di Azure si suddividono in due raggruppamenti fondamentali: l'**infrastruttura fisica** (data center, aree, zone di disponibilità, coppie di aree) e l'**infrastruttura di gestione** (risorse, gruppi di risorse, sottoscrizioni, gruppi di gestione). Comprendere questa gerarchia è fondamentale per progettare architetture resilienti, scalabili e conformi agli standard organizzativi.
+
 
 ### 2.3.1 — Introduzione
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
-Azure è la piattaforma cloud Microsoft in continua espansione che offre centinaia di servizi per creare, eseguire e gestire applicazioni su una rete globale di data center. I componenti principali dell'architettura di Azure si suddividono in due raggruppamenti: l'**infrastruttura fisica** (data center, aree, zone di disponibilità) e l'**infrastruttura di gestione** (risorse, gruppi di risorse, sottoscrizioni, gruppi di gestione).
+In questo modulo vengono presentati i componenti principali dell'architettura di Azure: il layout fisico globale e la struttura di gestione logica. Insieme definiscono come Azure organizza, distribuisce e governa i servizi cloud su scala mondiale.
 
 **Obiettivi di apprendimento** _(stepTitle)_
 
+Al termine di questa sezione sarà possibile:
+
 - Descrivere le aree di Azure, le coppie di aree e le aree sovrane.
 - Descrivere le zone di disponibilità e le tre categorie di servizi che le supportano.
-- Descrivere i data center di Azure e come vengono raggruppati.
+- Descrivere i data center di Azure e come vengono raggruppati in aree e zone.
 - Descrivere le risorse Azure e i gruppi di risorse.
-- Descrivere le sottoscrizioni e i loro due confini principali.
-- Descrivere i gruppi di gestione e la gerarchia completa.
+- Descrivere le sottoscrizioni e i loro due confini principali (fatturazione e controllo accessi).
+- Descrivere i gruppi di gestione e la gerarchia completa di governance.
+- Descrivere la relazione tra gruppi di risorse, sottoscrizioni e gruppi di gestione.
 
 
-### 2.3.2 — Che cos'è Microsoft Azure
+### 2.3.2 — Introduzione agli account Azure
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Per creare e usare i servizi Azure è necessaria una **sottoscrizione di Azure**. Quando si crea un account Azure viene generata automaticamente una sottoscrizione. È possibile creare sottoscrizioni aggiuntive in seguito — ad esempio sottoscrizioni separate per sviluppo, test e produzione. Dopo aver creato una sottoscrizione, è possibile iniziare a creare le risorse all'interno di ogni sottoscrizione.
+
+**Gerarchia degli ambiti di un account Azure** _(stepTitle)_
+
+![Figura 13](img/Figura_13_Azure_Account_Scope_Levels.jpg) _(dimensioni: 460×298 px)_
+
+*Figura 13 — Quattro livelli di ambito di un account Azure: un account si connette a più sottoscrizioni (Sviluppo/Test, Produzione, Sandbox), ognuna contenente gruppi di risorse (Web, Dati, App, Rete) che a loro volta contengono le singole risorse come Servizio app, VM, SQL DB, Cosmos DB, Funzioni, API, VNet e NSG.* _(caption)_
+
+La struttura gerarchica di un account Azure è:
+
+1. **Account Azure** — identità in Microsoft Entra ID a cui appartengono le sottoscrizioni.
+2. **Sottoscrizioni** — unità di fatturazione e controllo degli accessi; ogni account può averne più.
+3. **Gruppi di risorse** — contenitori logici che organizzano le risorse di una sottoscrizione.
+4. **Risorse** — i singoli servizi creati (VM, database, reti virtuali, ecc.).
+
+**Come acquistare l'accesso ad Azure** _(stepTitle)_
+
+Esistono tre modalità per acquistare l'accesso ad Azure:
+
+- **Direttamente da Microsoft** — iscrivendosi nel sito Web di Azure.
+- **Tramite un rappresentante Microsoft** — per accordi enterprise e volumi elevati.
+- **Tramite un partner Cloud Solution Provider (CSP)** — i partner CSP offrono soluzioni cloud gestite complete, compreso il supporto e la fatturazione centralizzata.
+
+**Account gratuito Azure** _(stepTitle)_
+
+L'account gratuito Azure è il punto di partenza ideale per esplorare la piattaforma senza costi iniziali:
+
+- Accesso gratuito ai prodotti Azure più diffusi per **12 mesi**.
+- **Credito** da usare nei primi 30 giorni su qualsiasi servizio.
+- Accesso a più di **65 servizi sempre gratuiti** (senza scadenza).
+- Richiede: numero di telefono, carta di credito (solo per verifica identità, non viene addebitata) e un account Microsoft o GitHub.
+
+> **Monitorare l'utilizzo**: Se si esercitano le competenze creando risorse, è fondamentale monitorare l'utilizzo e rimuovere le risorse non più necessarie per evitare costi imprevisti al termine del periodo gratuito.
+_(infoBox)_
+
+**Account gratuito Azure per studenti** _(stepTitle)_
+
+L'offerta per studenti è pensata per chi studia senza dover fornire una carta di credito:
+
+- **100 $ di credito** da usare nei primi 12 mesi.
+- Accesso gratuito a determinati servizi Azure e strumenti di sviluppo software per 12 mesi.
+- Non richiede carta di credito per la registrazione — basta verificare lo status studentesco.
+
+**Sandbox di Microsoft Learn** _(stepTitle)_
+
+Per chi segue i percorsi di formazione su Microsoft Learn, la sandbox Learn è un ambiente Azure temporaneo e gratuito attivato direttamente dai moduli interattivi. Permette di eseguire esercizi pratici senza creare un account proprio, senza costi e senza rischi di spesa accidentale.
+
+
+### 2.3.3 — Descrivere l'infrastruttura fisica di Azure
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+L'infrastruttura fisica di Azure parte dai **data center** e si organizza gerarchicamente in aree e zone di disponibilità per garantire resilienza e affidabilità globale. Non si interagisce mai direttamente con i singoli data center: sono sempre raggruppati in strutture di livello superiore che offrono ridondanza automatica.
+
+![Figura 14](img/Figura_14_Azure_Physical_Infrastructure.jpg) _(dimensioni: 580×212 px)_
+
+*Figura 14 — Gerarchia dell'infrastruttura fisica di Azure dall'area geografica (Geography) all'area (Region) alla zona di disponibilità (Availability Zone) al data center.* _(caption)_
+
+**Data Center** _(stepTitle)_
+
+I data center Azure sono strutture fisiche con server disposti in rack, dotate di infrastruttura dedicata di alimentazione, raffreddamento e rete — simili a un data center aziendale on-premise, ma su scala globale. In qualità di provider di servizi cloud globale, Azure ha data center in tutto il mondo. Il sito Infrastruttura globale di Azure (https://infrastructuremap.microsoft.com/) offre la possibilità di esplorare interattivamente la distribuzione geografica dei data center.
+
+**Aree (Regions)** _(stepTitle)_
+
+Un'area è una zona geografica del mondo che contiene almeno uno, ma tipicamente più data center in stretta vicinanza, collegati tramite rete a bassa latenza. Azure assegna e controlla in modo intelligente le risorse in ogni area per garantire il bilanciamento dei carichi di lavoro.
+
+Quando si distribuisce una risorsa in Azure è quasi sempre necessario scegliere l'area di destinazione. Alcuni servizi globali non richiedono la selezione di un'area specifica — ad esempio Microsoft Entra ID, Gestione traffico di Azure e DNS di Azure.
+
+> **Disponibilità regionale**: Alcuni tipi di VM o funzionalità di archiviazione sono disponibili solo in determinate aree. Prima di progettare un'architettura, verificare sempre la disponibilità dei servizi richiesti nell'area target.
+_(infoBox)_
+
+**Zone di disponibilità (Availability Zones)** _(stepTitle)_
+
+Le zone di disponibilità sono data center fisicamente separati all'interno della stessa area di Azure. Ogni zona è composta da uno o più data center con impianti indipendenti di alimentazione, raffreddamento e rete — configurati come limite di isolamento. Se una zona diventa inattiva, le altre continuano a funzionare. Le zone sono connesse tramite reti in fibra ottica private ad alta velocità.
+
+![Figura 15](img/Figura_15_Availability_Zones_in_a_Region.jpg) _(dimensioni: 460×233 px)_
+
+*Figura 15 — Tre zone di disponibilità fisicamente separate all'interno di un'area di Azure, ciascuna con alimentazione, raffreddamento e rete indipendenti, connesse tra loro tramite collegamenti in fibra ottica.* _(caption)_
+
+> **Requisito minimo**: Per garantire la resilienza, nelle aree abilitate per le zone di disponibilità sono sempre presenti almeno tre zone separate. Non tutte le aree di Azure supportano le zone di disponibilità.
+_(infoBox)_
+
+**Usare le zone di disponibilità per i carichi di lavoro** _(stepTitle)_
+
+Quando si gestisce un'infrastruttura on-premise, la ridondanza implica l'acquisto e la gestione di hardware duplicato. Con Azure è possibile proteggere i carichi di lavoro distribuendoli tra zone di disponibilità all'interno di un'area. VM, archiviazione, database e altre risorse vengono posizionate in una zona e replicate in altre zone della stessa area. Tenere presente che potrebbe esserci un costo aggiuntivo per duplicare i servizi e trasferire dati tra zone.
+
+**Tre categorie di servizi Azure rispetto alle zone di disponibilità** _(stepTitle)_
+
+![Figura 16](img/Figura_16_Azure_Service_Categories_for_AZ.jpg) _(dimensioni: 460×219 px)_
+
+*Figura 16 — Le tre categorie di servizi delle zone di disponibilità di Azure: Zonale (Zonal), A ridondanza di zona (Zone-redundant) e Non a livello di area (Non-regional).* _(caption)_
+
+- **Servizi di zona (Zonal)** — la risorsa viene associata a una zona specifica scelta dal cliente, che gestisce anche la replica tra zone. Esempi: macchine virtuali, dischi gestiti, indirizzi IP.
+- **Servizi a ridondanza di zona (Zone-redundant)** — la piattaforma replica automaticamente i dati e le operazioni tra le zone, senza intervento del cliente. Esempi: archiviazione con ridondanza di zona (ZRS), Azure SQL Database.
+- **Servizi non a livello di area (Non-regional)** — sempre disponibili nelle aree geografiche di Azure, resilienti sia alle interruzioni a livello di zona sia a quelle a livello di area. Esempi: Microsoft Entra ID, Gestione traffico Azure, DNS di Azure.
+
+**Coppie di aree (Region Pairs)** _(stepTitle)_
+
+La maggior parte delle aree Azure è abbinata a un'altra area nella stessa collocazione geografica (es. USA, Europa, Asia) ad almeno **480 km di distanza**. Questo approccio consente la replica delle risorse tra due aree geografiche distinte, riducendo il rischio di interruzioni causate da calamità naturali, agitazioni sociali, interruzioni di corrente o guasti di rete su larga scala.
+
+![Figura 17](img/Figura_17_Azure_Region_Pairs.jpg) _(dimensioni: 460×241 px)_
+
+*Figura 17 — Due aree di Azure abbinate all'interno della stessa area geografica, con replica di failover bidirezionale e vantaggi di continuità operativa.* _(caption)_
+
+Esempi di coppie: **Stati Uniti occidentali ↔ Stati Uniti orientali**, **Asia sud-orientale ↔ Asia orientale**, **Europa occidentale ↔ Europa settentrionale**.
+
+Vantaggi aggiuntivi delle coppie di aree:
+
+- In caso di un'interruzione Azure di vaste proporzioni, viene assegnata priorità a un'area di ogni coppia per assicurarsi che almeno una venga ripristinata il più rapidamente possibile per le applicazioni ospitate.
+- Gli aggiornamenti pianificati di Azure vengono implementati nelle coppie un'area alla volta, riducendo al minimo i tempi di inattività e il rischio di interruzione delle applicazioni.
+- I dati continuano a risiedere nella stessa area geografica della coppia per scopi di residenza e conformità (eccezione: Brasile meridionale, abbinato a Stati Uniti centro-meridionali, fuori dalla propria area geografica).
+
+> **Replica non automatica**: Non tutti i servizi Azure replicano automaticamente i dati o eseguono il failback dall'area problematica verso quella abbinata. In questi scenari il ripristino e la replica devono essere configurati esplicitamente dal cliente.
+_(infoBox)_
+
+> **Coppie bidirezionali e unidirezionali**: La maggior parte delle aree è abbinata bidirezionalmente (es. Stati Uniti occidentali e orientali si supportano a vicenda). Alcune aree come il Brasile meridionale sono abbinate in una sola direzione: l'area primaria non è il backup della sua secondaria. Alcune aree più recenti (Italia settentrionale, Polonia centrale, Israele centrale) non hanno coppie tradizionali e si basano sulle zone di disponibilità e sull'archiviazione con ridondanza geografica per la resilienza.
+_(infoBox)_
+
+**Aree sovrane** _(stepTitle)_
+
+Le aree sovrane sono istanze di Azure isolate dall'istanza principale per requisiti legali o di conformità. Non sono accessibili ai clienti generali:
+
+- **Azure Government** (US DoD Central, US Gov Virginia, US Gov Arizona, ecc.) — istanze fisiche e logiche isolate per enti pubblici e partner statunitensi. I data center sono gestiti da cittadini statunitensi selezionati e includono certificazioni di conformità aggiuntive (FedRAMP, DoD IL2/IL4/IL5).
+- **Azure China** (Cina orientale, Cina settentrionale, ecc.) — disponibili nel contesto di una partnership esclusiva tra Microsoft e 21Vianet; i data center non sono gestiti direttamente da Microsoft ma dalla società cinese 21Vianet.
+
+
+### 2.3.4 — Che cos'è Microsoft Azure
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Azure è un set di servizi cloud in continua espansione che consente di soddisfare le sfide IT attuali e future. Offre la libertà di creare, gestire e distribuire applicazioni in una rete globale di grandi dimensioni usando gli strumenti e i framework preferiti.
 
-**Tre pilastri dell'offerta Azure** _(stepTitle)_
+**Cosa offre Azure** _(stepTitle)_
 
-- **Innovazione illimitata** — creare app e soluzioni intelligenti con tecnologia, strumenti e servizi avanzati: AI generativa, IoT, Machine Learning e molto altro.
-- **Unificazione senza problemi** — gestire in modo efficiente tutta l'infrastruttura, i dati, le analisi e i servizi di intelligenza artificiale in una piattaforma integrata.
-- **Innovazione sulla fiducia** — affidarsi alla tecnologia di un partner dedicato alla sicurezza, conformità e responsabilità.
+- **Innovazione illimitata** — creare app e soluzioni intelligenti con tecnologia, strumenti e servizi avanzati (AI generativa, IoT, Machine Learning). La piattaforma consente di portare le idee alla vita e migliorare le funzionalità del team con servizi leader del settore.
+- **Unificazione senza problemi** — gestire in modo efficiente tutte le soluzioni di infrastruttura, dati, analisi e intelligenza artificiale in una piattaforma integrata, semplificando la gestione e riducendo la complessità operativa.
+- **Innovazione sulla fiducia** — affidarsi alla tecnologia di un partner dedicato alla sicurezza, conformità e responsabilità, con investimenti costanti in cybersecurity e certificazioni globali.
 
 **Le categorie di servizi di Azure** _(stepTitle)_
 
@@ -351,190 +484,96 @@ Azure offre centinaia di servizi raggruppati in dieci categorie principali:
 - **Analisi** — Azure Synapse Analytics, HDInsight, Stream Analytics.
 - **Integrazione** — App Service Logic, Service Bus, Event Grid.
 
+**Cosa è possibile fare con Azure** _(stepTitle)_
+
+Azure offre centinaia di servizi che consentono di eseguire tutto: dall'esecuzione di applicazioni esistenti in VM all'esplorazione di nuovi paradigmi come bot intelligenti e AI generativa. Alcuni scenari concreti:
+
+- Ospitare app web con scalabilità automatica in base al traffico, pagando solo per le risorse effettivamente consumate.
+- Archiviare dati di qualsiasi tipo e dimensione con servizi di storage distribuiti e ridondanti.
+- Aggiungere funzionalità di AI (riconoscimento vocale, visione, linguaggio naturale) a qualsiasi applicazione tramite Azure AI Services e Azure OpenAI Service.
+- Gestire dispositivi IoT su scala globale raccogliendo e analizzando telemetria in tempo reale.
+
 **Percorso di maturità cloud** _(stepTitle)_
 
-Molte organizzazioni iniziano spostando le applicazioni esistenti in macchine virtuali (VM) su Azure. È un punto di partenza valido, ma il cloud offre molto di più. Man mano che le competenze maturano, è possibile modernizzare i carichi di lavoro uno alla volta: da server gestiti manualmente a database gestiti, da app monolitiche a microservizi con ridimensionamento automatico, da carichi di lavoro statici a architetture event-driven e serverless.
+Molte organizzazioni iniziano spostando le applicazioni esistenti in macchine virtuali (VM) su Azure — è un punto di partenza valido. Man mano che le competenze crescono, è possibile modernizzare i carichi di lavoro un passo alla volta:
 
-> **Portale Azure**: Il portale Azure (portal.azure.com) è l'interfaccia grafica web per creare, gestire e monitorare tutte le risorse cloud. È disponibile 24/7 e viene aggiornato continuamente senza downtime programmati. Accessibile anche tramite Azure CLI, Azure PowerShell e REST API.
+- Da **server gestiti manualmente** a database gestiti e scalabili automaticamente.
+- Da **app monolitiche** a microservizi con deployment indipendenti e scalabilità granulare.
+- Da **carichi di lavoro statici** ad architetture event-driven e serverless che reagiscono alla domanda in tempo reale.
+
+**Esempio pratico** _(stepTitle)_
+
+Un'organizzazione con picchi di domanda stagionali può ospitare l'applicazione in servizi app gestiti, archiviare i dati in database gestiti e monitorare l'integrità da un dashboard centralizzato. Con l'aumentare della domanda è possibile aumentare le risorse; quando la domanda cala si ridimensiona, pagando solo per ciò che si usa effettivamente — nessun acquisto di hardware preventivo per gestire il picco annuale.
+
+> **Portale Azure**: Il portale Azure (portal.azure.com) è l'interfaccia grafica web per creare, gestire e monitorare tutte le risorse cloud. È disponibile 24/7, aggiornato continuamente senza downtime programmati. Accessibile anche tramite Azure CLI, Azure PowerShell e REST API per scenari di automazione e integrazione.
 _(infoBox)_
-
-
-### 2.3.3 — Introduzione agli account Azure
-_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
-
-Per creare e usare i servizi Azure è necessaria una **sottoscrizione di Azure**. Quando si crea un account Azure viene generata automaticamente una sottoscrizione. È possibile creare sottoscrizioni aggiuntive in seguito — ad esempio sottoscrizioni separate per sviluppo, test e produzione.
-
-**Gerarchia degli ambiti di un account Azure** _(stepTitle)_
-
-![Figura 13](img/Figura_13_Azure_Account_Scope_Levels.jpg) _(dimensioni: 460×298 px)_
-
-*Figura 13 — Quattro livelli di ambito di un account Azure: un account si connette a più sottoscrizioni (Sviluppo/Test, Produzione, Sandbox), ognuna contenente gruppi di risorse che a loro volta contengono le singole risorse.* _(caption)_
-
-La struttura gerarchica di un account Azure è:
-
-1. **Account Azure** — identità in Microsoft Entra ID a cui appartengono le sottoscrizioni.
-2. **Sottoscrizioni** — unità di fatturazione e di controllo degli accessi; ogni account può averne più.
-3. **Gruppi di risorse** — contenitori logici che organizzano le risorse di una sottoscrizione.
-4. **Risorse** — i singoli servizi creati (VM, database, reti virtuali, ecc.).
-
-**Come acquistare l'accesso ad Azure** _(stepTitle)_
-
-- Direttamente da Microsoft sul sito web Azure.
-- Tramite un rappresentante Microsoft.
-- Tramite un partner Cloud Solution Provider (CSP), che offre soluzioni cloud gestite complete.
-
-**Account gratuito Azure** _(stepTitle)_
-
-L'account gratuito Azure è il punto di partenza ideale per esplorare la piattaforma senza costi iniziali:
-
-- Accesso gratuito ai prodotti Azure più diffusi per **12 mesi**.
-- **200 $ di credito** da usare nei primi 30 giorni su qualsiasi servizio.
-- Accesso a più di **65 servizi sempre gratuiti** (senza scadenza).
-- Richiede: numero di telefono, carta di credito (solo per verifica identità, non viene addebitata), e un account Microsoft o GitHub.
-
-> **Monitorare l'utilizzo**: Se si esercitano le competenze creando risorse, è fondamentale monitorare l'utilizzo e rimuovere le risorse non più necessarie per evitare costi imprevisti al termine del periodo gratuito.
-_(infoBox)_
-
-**Account gratuito Azure per studenti** _(stepTitle)_
-
-- **100 $ di credito** da usare nei primi 12 mesi.
-- Accesso gratuito a determinati servizi Azure e strumenti di sviluppo software per 12 mesi.
-- Non richiede carta di credito per la registrazione.
-
-
-### 2.3.4 — Descrivere l'infrastruttura fisica di Azure
-_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
-
-L'infrastruttura fisica di Azure parte dai **data center** e si organizza gerarchicamente in aree e zone di disponibilità per garantire resilienza e affidabilità globale.
-
-![Figura 14](img/Figura_14_Azure_Physical_Infrastructure.jpg) _(dimensioni: 580×212 px)_
-
-*Figura 14 — Gerarchia dell'infrastruttura fisica di Azure dall'area geografica (Geography) all'area (Region) alla zona di disponibilità (Availability Zone) al data center.* _(caption)_
-
-**Data Center** _(stepTitle)_
-
-I data center Azure sono strutture fisiche con server disposti in rack, dotate di infrastruttura dedicata di alimentazione, raffreddamento e rete — simili a un data center aziendale on-premise, ma su scala globale. Non si interagisce mai direttamente con i singoli data center: sono sempre raggruppati in aree e zone.
-
-**Aree (Regions)** _(stepTitle)_
-
-Un'area è una zona geografica del mondo che contiene almeno uno, ma tipicamente più data center in stretta vicinanza, collegati tramite rete a bassa latenza. Azure assegna e controlla in modo intelligente le risorse in ogni area per garantire il bilanciamento dei carichi di lavoro.
-
-Quando si distribuisce una risorsa in Azure è quasi sempre necessario scegliere l'area di destinazione. Alcuni servizi globali non richiedono la selezione di un'area specifica (es. Microsoft Entra ID, Gestione traffico di Azure, DNS di Azure).
-
-> **Disponibilità regionale**: Alcuni tipi di VM o funzionalità di archiviazione sono disponibili solo in determinate aree. Prima di progettare un'architettura, verificare sempre la disponibilità dei servizi richiesti nell'area target.
-_(infoBox)_
-
-**Zone di disponibilità (Availability Zones)** _(stepTitle)_
-
-Le zone di disponibilità sono data center fisicamente separati all'interno della stessa area di Azure. Ogni zona è composta da uno o più data center con impianti indipendenti di alimentazione, raffreddamento e rete — configurati come limite di isolamento. Se una zona diventa inattiva, le altre continuano a funzionare. Le zone sono connesse tramite reti in fibra ottica private ad alta velocità.
-
-![Figura 15](img/Figura_15_Availability_Zones_in_a_Region.jpg) _(dimensioni: 460×233 px)_
-
-*Figura 15 — Tre zone di disponibilità fisicamente separate all'interno di un'area di Azure, ciascuna con alimentazione, raffreddamento e rete indipendenti, connessa dalle altre tramite collegamenti in fibra ottica.* _(caption)_
-
-> **Requisito minimo**: Per garantire la resilienza, nelle aree abilitate per le zone di disponibilità sono sempre presenti almeno tre zone separate. Non tutte le aree di Azure supportano le zone di disponibilità.
-_(infoBox)_
-
-**Tre categorie di servizi Azure rispetto alle zone di disponibilità** _(stepTitle)_
-
-![Figura 16](img/Figura_16_Azure_Service_Categories_for_AZ.jpg) _(dimensioni: 460×219 px)_
-
-*Figura 16 — Le tre categorie di servizi delle zone di disponibilità di Azure: Zonale, A ridondanza di zona e Non a livello di area.* _(caption)_
-
-- **Servizi di zona (Zonal)** — la risorsa viene associata a una zona specifica. Esempi: macchine virtuali, dischi gestiti, indirizzi IP. Il cliente sceglie la zona e gestisce la replica tra zone.
-- **Servizi a ridondanza di zona (Zone-redundant)** — la piattaforma replica automaticamente i dati e le operazioni tra le zone, senza intervento del cliente. Esempi: archiviazione con ridondanza di zona (ZRS), Azure SQL Database.
-- **Servizi non a livello di area (Non-regional)** — sempre disponibili nelle aree geografiche di Azure, resilienti sia alle interruzioni a livello di zona sia a quelle a livello di area. Esempi: Microsoft Entra ID, Gestione traffico Azure.
-
-**Coppie di aree (Region Pairs)** _(stepTitle)_
-
-La maggior parte delle aree Azure è abbinata a un'altra area nella stessa collocazione geografica (es. USA, Europa, Asia) ad almeno **480 km di distanza**. Questo consente la replica delle risorse tra aree geografiche distinte, riducendo il rischio di interruzioni causate da calamità naturali, eventi di rete o interruzioni di corrente su larga scala.
-
-![Figura 17](img/Figura_17_Azure_Region_Pairs.jpg) _(dimensioni: 460×241 px)_
-
-*Figura 17 — Due aree di Azure abbinate all'interno della stessa area geografica, con replica di failover bidirezionale e vantaggi di continuità operativa.* _(caption)_
-
-Esempi di coppie: **Stati Uniti occidentali ↔ Stati Uniti orientali**, **Asia sud-orientale ↔ Asia orientale**, **Europa occidentale ↔ Europa settentrionale**.
-
-Vantaggi aggiuntivi delle coppie di aree:
-
-- In caso di un'interruzione Azure di vaste proporzioni, viene assegnata priorità a un'area di ogni coppia per assicurarsi che almeno una venga ripristinata il più rapidamente possibile.
-- Gli aggiornamenti pianificati di Azure vengono implementati nelle coppie un'area alla volta, riducendo al minimo i tempi di inattività.
-- I dati continuano a risiedere nella stessa area geografica della coppia per scopi di residenza e conformità (eccezione: Brasile meridionale).
-
-> **Replica non automatica**: Non tutti i servizi Azure replicano automaticamente i dati o eseguono il failover verso l'area abbinata. In questi scenari, il ripristino e la replica devono essere configurati esplicitamente dal cliente.
-_(infoBox)_
-
-> **Coppie unidirezionali**: La maggior parte delle aree è abbinata in modo bidirezionale. Alcune aree (come Brasile meridionale) sono abbinate in una sola direzione: l'area primaria non è il backup della sua secondaria. Alcune aree più recenti (Italia settentrionale, Polonia centrale, Israele centrale) non hanno coppie tradizionali e si basano sulle zone di disponibilità e sull'archiviazione con ridondanza geografica.
-_(infoBox)_
-
-**Aree sovrane** _(stepTitle)_
-
-Le aree sovrane sono istanze di Azure isolate dall'istanza principale per requisiti legali o di conformità:
-
-- **Azure Government** (US DoD Central, US Gov Virginia, US Gov Arizona, ecc.) — istanze fisiche e logiche isolate per enti pubblici e partner statunitensi. Gestite da cittadini USA selezionati con certificazioni di conformità aggiuntive.
-- **Azure China** (Cina orientale, Cina settentrionale, ecc.) — disponibili nel contesto di una partnership esclusiva tra Microsoft e 21Vianet; i data center non sono gestiti direttamente da Microsoft.
 
 
 ### 2.3.5 — Descrivere l'infrastruttura di gestione di Azure
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
-L'infrastruttura di gestione comprende le risorse, i gruppi di risorse, le sottoscrizioni e i gruppi di gestione. Comprendere questa gerarchia consente di organizzare le risorse, controllare gli accessi e gestire i costi in modo scalabile.
+L'infrastruttura di gestione comprende le risorse, i gruppi di risorse, le sottoscrizioni e i gruppi di gestione. Comprendere questa gerarchia consente di organizzare le risorse, controllare chi può accedere a cosa e gestire i costi man mano che cresce l'utilizzo di Azure.
 
 **Risorse e gruppi di risorse** _(stepTitle)_
 
-Una **risorsa** è l'elemento costitutivo di base di Azure: tutto ciò che si crea, fornisce o distribuisce è una risorsa. VM, reti virtuali, database, account di archiviazione e servizi AI sono tutti esempi di risorse.
+Una **risorsa** è l'elemento costitutivo di base di Azure: tutto ciò che si crea, fornisce o distribuisce è una risorsa. Macchine virtuali, reti virtuali, database, account di archiviazione e servizi AI sono tutti esempi di risorse.
 
-I **gruppi di risorse** sono contenitori logici che raggruppano risorse correlate. Regole fondamentali:
+I **gruppi di risorse** sono contenitori logici che raggruppano risorse correlate per semplificarne la gestione. Regole fondamentali:
 
 ![Figura 18](img/Figura_18_Resource_Group_Rules.jpg) _(dimensioni: 460×180 px)_
 
 *Figura 18 — Le tre regole del gruppo di risorse: una risorsa appartiene a un solo gruppo alla volta (con possibilità di spostamento), i gruppi non possono essere annidati né rinominati, e l'eliminazione di un gruppo elimina tutte le risorse al suo interno.* _(caption)_
 
-- Ogni risorsa deve appartenere a **esattamente un** gruppo di risorse.
-- È possibile spostare alcune risorse tra gruppi, ma una risorsa è in un solo gruppo alla volta.
+- Ogni risorsa deve appartenere a **esattamente un** gruppo di risorse alla volta.
+- È possibile spostare alcune risorse tra gruppi, ma una risorsa è associata a un solo gruppo in ogni momento.
 - I gruppi di risorse **non possono essere annidati** e **non possono essere rinominati** dopo la creazione — scegliere una convenzione di denominazione chiara fin dall'inizio.
-- Le azioni applicate a un gruppo si propagano a tutte le risorse al suo interno: eliminare il gruppo elimina tutte le risorse; concedere o negare l'accesso si applica a tutto il contenuto.
+- Le azioni applicate a un gruppo si propagano a tutte le risorse al suo interno: eliminare il gruppo elimina tutti i contenuti; concedere o negare l'accesso si applica a tutto il contenuto.
+
+Non esistono regole rigide per strutturare i gruppi di risorse — scegliere l'approccio più adatto alla propria situazione.
 
 Esempi pratici di organizzazione in gruppi di risorse:
 
-- Un ambiente di sviluppo temporaneo: raggruppare tutte le risorse dello stesso ambiente consente di eliminarle tutte in un'unica operazione al termine del progetto.
-- Più progetti in parallelo: un gruppo separato per ogni progetto permette a ogni team di vedere e gestire solo le proprie risorse.
+- **Ambiente temporaneo**: raggruppare tutte le risorse di un ambiente di sviluppo consente di eliminarlo intero in un'unica operazione al termine del progetto, senza dover individuare e cancellare le risorse una per una.
+- **Più progetti in parallelo**: un gruppo separato per ogni progetto permette a ogni team di vedere e gestire solo le proprie risorse, con visibilità e governance isolate.
 
 **Sottoscrizioni Azure** _(stepTitle)_
 
-Le sottoscrizioni sono l'unità di gestione, fatturazione e scalabilità in Azure. Ogni sottoscrizione è collegata a un account Azure (identità in Microsoft Entra ID) e ha due confini principali:
+Le sottoscrizioni sono un'unità di **gestione, fatturazione e scalabilità** in Azure. Una sottoscrizione Azure è collegata a un account Azure (identità in Microsoft Entra ID) e funge da unità di fatturazione. Un account può avere più sottoscrizioni, ma ne è necessaria almeno una.
 
 ![Figura 20](img/Figura_20_Azure_Subscription_Boundaries.jpg) _(dimensioni: 460×204 px)_
 
 *Figura 20 — I due tipi di confini di sottoscrizione: limite di fatturazione (ogni sottoscrizione genera fattura separata) e limite di controllo degli accessi (criteri di accesso e limiti di spesa diversi per sviluppo e produzione).* _(caption)_
 
-- **Limite di fatturazione** — ogni sottoscrizione genera report di fatturazione e fatture separati. Utile per separare i costi per reparto, progetto o cliente.
-- **Limite di controllo degli accessi** — Azure applica i criteri di gestione degli accessi a livello di sottoscrizione. È possibile creare una sottoscrizione per lo sviluppo e una per la produzione, ognuna con limiti di spesa e regole di accesso diverse.
+Ogni sottoscrizione ha due confini principali:
 
-Un account può avere più sottoscrizioni, ma ne è necessaria almeno una. Le ragioni più comuni per creare sottoscrizioni aggiuntive sono:
+- **Limite di fatturazione** — ogni sottoscrizione genera report di fatturazione e fatture separati. Azure genera report separati per ogni sottoscrizione, utile per separare i costi per reparto, progetto o cliente.
+- **Limite di controllo degli accessi** — Azure applica i criteri di gestione degli accessi a livello di sottoscrizione. È possibile creare una sottoscrizione per lo sviluppo e una per la produzione, ognuna con limiti di spesa e regole di accesso completamente distinti.
 
-- **Ambienti** — sottoscrizioni separate per sandbox, sviluppo, test e produzione. Il controllo degli accessi si applica a livello di sottoscrizione, rendendola un confine naturale.
-- **Separazione team/carichi di lavoro** — ogni progetto o team con la propria sottoscrizione semplifica il tracciamento dei costi e l'isolamento degli ambienti.
-- **Fatturazione granulare** — una sottoscrizione per i carichi di lavoro di produzione e una per sviluppo/test permette di monitorare e ottimizzare i costi separatamente.
+Le ragioni più comuni per creare sottoscrizioni aggiuntive sono:
+
+- **Ambienti** — sottoscrizioni separate per sandbox, sviluppo, test e produzione. Il controllo degli accessi si applica a livello di sottoscrizione, rendendola un confine naturale e sicuro per isolare gli ambienti.
+- **Separazione team/carichi di lavoro** — ogni progetto o team con la propria sottoscrizione semplifica il tracciamento dei costi e l'isolamento degli ambienti; è possibile separare i carichi di lavoro in sandbox isolate dall'ambiente di produzione.
+- **Fatturazione granulare** — una sottoscrizione per i carichi di lavoro di produzione e una per sviluppo/test permette di monitorare e ottimizzare i costi separatamente con visibilità dedicata.
 
 **Gruppi di gestione (Management Groups)** _(stepTitle)_
 
-Per ambienti con molte sottoscrizioni distribuite su più team o aree geografiche è necessario un livello di governance superiore: i **gruppi di gestione**. I gruppi di gestione si trovano sopra le sottoscrizioni e consentono di applicare policy di accesso e regole di conformità a un intero insieme di sottoscrizioni in una sola operazione.
+Per ambienti con molte sottoscrizioni distribuite su più team o aree geografiche è necessario un livello di governance superiore: i **gruppi di gestione**. I gruppi di gestione si trovano sopra le sottoscrizioni e consentono di applicare condizioni di governance (policy di accesso, regole di conformità) a un intero insieme di sottoscrizioni in una sola operazione. Tutte le sottoscrizioni in un gruppo di gestione ereditano automaticamente tali condizioni, esattamente come le risorse ereditano le impostazioni dal proprio gruppo di risorse.
 
-- Tutte le sottoscrizioni in un gruppo di gestione ereditano automaticamente le condizioni di governance applicate al gruppo.
+Caratteristiche fondamentali dei gruppi di gestione:
+
 - I gruppi di gestione possono essere **annidati fino a sei livelli** di profondità (esclusi il livello radice e il livello sottoscrizione).
-- Ogni tenant Microsoft Entra ha un solo **gruppo radice del tenant** di primo livello; tutti gli altri gruppi e sottoscrizioni vi sono raggruppati sotto.
+- Ogni tenant Microsoft Entra ha un solo **gruppo radice del tenant** di primo livello; tutti gli altri gruppi e sottoscrizioni vi sono raggruppati sotto — questo consente di applicare i criteri di governance a livello globale.
 - Una singola directory supporta fino a **10.000 gruppi di gestione**.
 - Ogni gruppo di gestione e sottoscrizione può avere un **solo elemento padre**.
 
 ![Figura 19](img/Figura_19_Management_Group_Hierarchy.jpg) _(dimensioni: 460×277 px)_
 
-*Figura 19 — Gerarchia di gruppi di gestione dal gruppo radice del tenant verso il basso tramite gruppi (Marketing, IT) a sottoscrizioni, gruppi di risorse e singole risorse, con policy e accessi che ereditano verso il basso.* _(caption)_
+*Figura 19 — Gerarchia di gruppi di gestione dal gruppo radice del tenant verso il basso tramite gruppi (Marketing, IT) a sottoscrizioni (Web, Mobile, App, Server), gruppi di risorse e singole risorse, con policy e accessi che ereditano verso il basso.* _(caption)_
 
 Esempi di utilizzo dei gruppi di gestione:
 
-- **Applicare una policy tra sottoscrizioni** — limitare le posizioni delle VM all'area West Europe in un gruppo chiamato "Produzione": il criterio viene ereditato da tutte le sottoscrizioni nel gruppo. Il proprietario della risorsa non può eseguirne l'override.
-- **Concedere l'accesso a più sottoscrizioni contemporaneamente** — un'unica assegnazione Azure RBAC al livello del gruppo di gestione si propaga automaticamente a tutte le sottoscrizioni, gruppi di risorse e risorse sottostanti.
+- **Applicare una policy tra sottoscrizioni** — limitare le posizioni delle VM all'area West Europe in un gruppo chiamato "Produzione": il criterio viene ereditato da tutte le sottoscrizioni nel gruppo e si applica a tutte le VM. Il proprietario della risorsa o della sottoscrizione non può eseguirne l'override, rafforzando la governance centralizzata.
+- **Concedere l'accesso a più sottoscrizioni contemporaneamente** — un'unica assegnazione Azure RBAC al livello del gruppo di gestione si propaga automaticamente a tutti i gruppi di sottogestione, sottoscrizioni, gruppi di risorse e risorse sottostanti, senza dover creare script di controllo degli accessi per ogni singola sottoscrizione.
 
 **Gerarchia completa di gestione Azure** _(stepTitle)_
 
@@ -546,21 +585,23 @@ La gerarchia completa dall'alto verso il basso è:
             └── Gruppi di risorse
                 └── Risorse
 
-> **Ereditarietà a cascata**: Policy e assegnazioni RBAC applicate a un livello superiore si propagano automaticamente a tutti i livelli inferiori. Questo modello permette di applicare standard di governance a tutta l'organizzazione con un minimo di configurazione, mantenendo al contempo la flessibilità di applicare impostazioni specifiche a singoli livelli.
+> **Ereditarietà a cascata**: Policy e assegnazioni RBAC applicate a un livello superiore si propagano automaticamente a tutti i livelli inferiori. Questo modello permette di applicare standard di governance a tutta l'organizzazione con un minimo di configurazione, mantenendo al contempo la flessibilità di applicare impostazioni specifiche a singoli livelli della gerarchia.
 _(infoBox)_
 
 
 ### Riepilogo 2.3
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
-- Azure offre centinaia di servizi organizzati in dieci categorie principali, accessibili tramite portale, CLI, PowerShell e API.
+- Per usare Azure è necessaria una sottoscrizione, collegata a un account Azure (identità in Entra ID). Le sottoscrizioni hanno due confini: **fatturazione** (fatture separate per sottoscrizione) e **controllo degli accessi** (policy distinte per ambiente).
+- L'account gratuito Azure offre 12 mesi di servizi popolari, credito per i primi 30 giorni e 65+ servizi sempre gratuiti. L'account per studenti offre 100 $ di credito senza carta di credito.
+- Azure offre centinaia di servizi organizzati in dieci categorie principali (Calcolo, Rete, Archiviazione, Database, AI+ML, Identità+Sicurezza, DevOps+Gestione, IoT, Analisi, Integrazione), accessibili tramite portale, CLI, PowerShell e REST API.
 - L'infrastruttura fisica è organizzata gerarchicamente: Geography → Region → Availability Zone → Datacenter. I data center non sono accessibili direttamente.
-- Le zone di disponibilità garantiscono isolamento fisico all'interno di una regione (min. 3 zone per area abilitata); i servizi Azure si dividono in Zonali, A ridondanza di zona e Non a livello di area.
-- Le Region Pairs abbinano aree distanti almeno 480 km per garantire resilienza a eventi su larga scala, con priorità di ripristino e aggiornamenti scaglionati.
-- Le aree sovrane (Azure Government, Azure China) sono istanze isolate per requisiti legali e di conformità.
+- Le zone di disponibilità garantiscono isolamento fisico all'interno di una regione (min. 3 zone per area abilitata). I servizi Azure si dividono in: **Zonali** (risorsa in zona specifica), **A ridondanza di zona** (replica automatica tra zone) e **Non a livello di area** (globali e resilienti per default).
+- Le Region Pairs abbinano aree distanti almeno 480 km per resilienza a eventi su larga scala: priorità di ripristino garantita, aggiornamenti scaglionati, data residency mantenuta. Non tutti i servizi replicano automaticamente.
+- Le aree sovrane (Azure Government, Azure China) sono istanze fisicamente e logicamente isolate per requisiti legali e di conformità.
 - La gerarchia di gestione (Tenant Root Group → Gruppi di gestione → Sottoscrizioni → Gruppi di risorse → Risorse) consente di applicare policy e controllo accessi in modo scalabile con ereditarietà automatica verso il basso.
 - Ogni risorsa appartiene a un solo gruppo di risorse; i gruppi non sono annidabili e non rinominabili; eliminarli elimina tutto il loro contenuto.
-- Le sottoscrizioni hanno due confini: fatturazione e controllo degli accessi. I gruppi di gestione aggiungono un livello di governance sopra le sottoscrizioni, annidabili fino a 6 livelli.
+- I gruppi di gestione sono annidabili fino a 6 livelli; una directory ne supporta al massimo 10.000; ogni gruppo/sottoscrizione ha un solo elemento padre.
 
 ---
 
