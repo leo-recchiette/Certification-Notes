@@ -1065,3 +1065,336 @@ Le due modalità coprono scenari differenti. La tabella seguente riassume quando
 
 > **Suggerimento**: se il carico della tua applicazione è prevedibile e vuoi il pieno controllo sui criteri di scalabilità, l'autoscale basato su regole è la scelta migliore; se invece il traffico è imprevedibile e preferisci delegare le decisioni alla piattaforma, la scalabilità automatica (sui tier Premium V2/V3) riduce notevolmente l'onere di configurazione.
 _(infoBox)_
+
+## 5.4 — Configurare Azure App Service
+
+### 5.4.1 — Introduzione
+
+Gli amministratori Azure cercano spesso soluzioni che semplifichino la distribuzione e la gestione delle applicazioni web, mobili e delle API, possibilmente già pronte per scenari di intelligenza artificiale. Si pensi a un'azienda che gestisce internamente i propri server on-premises, dai web server ai database: con il passare del tempo l'hardware invecchia e fatica a sostenere i nuovi carichi di lavoro, come le moderne applicazioni di analisi dati. Invece di affrontare un costoso aggiornamento dell'infrastruttura fisica, una scelta sempre più frequente è quella di spostare il carico su **Azure App Service**, la piattaforma gestita (PaaS) di Azure per l'hosting di applicazioni.
+
+In questa sezione imparerai a configurare e gestire **Azure App Service**. Vedrai come individuare le funzionalità e i casi d'uso del servizio, come creare un'app, e come intervenire sulle impostazioni di configurazione, sugli slot di distribuzione (deployment slot) e sui nomi di dominio personalizzati. Affronterai inoltre gli aspetti relativi alla sicurezza dell'app, al backup e ripristino, e al monitoraggio tramite **Azure Application Insights**, così da acquisire le conoscenze e le competenze necessarie per utilizzare in modo efficace il servizio.
+
+### 5.4.2 — Implementare Azure App Service
+
+**Azure App Service** è una piattaforma gestita (PaaS) che riunisce tutto ciò che serve per creare e pubblicare siti web, backend per applicazioni mobili e Web API, indipendentemente dalla piattaforma o dal dispositivo di destinazione. Il vantaggio principale è che le applicazioni vengono eseguite e scalano con facilità sia in ambienti basati su Windows sia su Linux, senza che tu debba preoccuparti di gestire l'infrastruttura sottostante (sistema operativo, patch, bilanciamento). Tu ti concentri sul codice, mentre la piattaforma si occupa di hosting e scalabilità.
+
+Per accelerare l'avvio, **App Service** mette a disposizione delle Quickstart per i principali linguaggi di programmazione: ASP.NET, Java, Node.js, Python e PHP. Questo significa che puoi partire da uno scenario preconfigurato per il tuo stack senza dover assemblare manualmente l'ambiente di esecuzione.
+
+**Perché scegliere App Service** _(stepTitle)_
+
+Usare **App Service** per sviluppare e distribuire le tue app web, mobili e API offre numerosi vantaggi. La tabella seguente riassume i benefici principali: leggila ragionando su quali funzionalità possono aiutarti concretamente a ospitare le tue istanze di App Service. L'idea di fondo è che molte esigenze trasversali (sicurezza, scalabilità, integrazione con gli strumenti di sviluppo) sono già risolte dalla piattaforma, riducendo il lavoro che dovresti altrimenti fare a mano.
+
+| **Vantaggio** | **Descrizione** |
+| --- | --- |
+| **Linguaggi e framework multipli** | App Service offre supporto di prima classe per ASP.NET, Java, Node.js, PHP e Python. Puoi inoltre eseguire PowerShell e altri script o eseguibili come servizi in background. |
+| **Ottimizzazione DevOps** | App Service supporta l'integrazione e la distribuzione continue (CI/CD) con Azure DevOps, GitHub, BitBucket, Docker Hub e Azure Container Registry. Puoi promuovere gli aggiornamenti attraverso ambienti di test e staging. Le app in App Service si gestiscono tramite Azure PowerShell o l'interfaccia a riga di comando (CLI) multipiattaforma. |
+| **Scala globale con alta disponibilità** | App Service ti permette di scalare in verticale (scale up) o in orizzontale (scale out) in modo manuale o automatico. Puoi ospitare le app in qualsiasi punto dell'infrastruttura globale dei datacenter Microsoft e lo SLA di App Service garantisce l'alta disponibilità. |
+| **Sicurezza e conformità** | App Service è conforme agli standard ISO, SOC e PCI. Puoi autenticare gli utenti con Microsoft Entra ID oppure con accessi social tramite Google, Facebook, X o Microsoft. Puoi inoltre creare restrizioni basate su indirizzo IP e gestire le identità del servizio. |
+| **Modelli di applicazione** | Puoi scegliere da un ampio elenco di modelli applicativi disponibili in Azure Marketplace, ad esempio WordPress, Joomla e Drupal. |
+| **Integrazione con Visual Studio** | App Service mette a disposizione strumenti dedicati in Visual Studio per semplificare le attività di creazione, distribuzione e debug. |
+| **Funzionalità API e mobile** | App Service fornisce supporto CORS pronto all'uso per gli scenari di API RESTful. Per le app mobili puoi semplificare gli scenari abilitando autenticazione, sincronizzazione offline dei dati, notifiche push e altro ancora. |
+
+> **Nota**: la distinzione tra scale up e scale out è centrale in App Service. Lo scale up aumenta le risorse (CPU, memoria) della singola istanza passando a un piano tariffario superiore, mentre lo scale out aggiunge più istanze identiche che lavorano in parallelo. Entrambi possono essere attivati manualmente o in automatico in base al carico.
+_(infoBox)_
+
+### 5.4.3 — Creare un'app con App Service
+
+Con **Azure App Service** puoi creare le tue applicazioni direttamente dal portale di Azure, sfruttando le funzionalità Web Apps, Mobile Apps o API Apps. Prima di procedere alla creazione conviene capire quali sono le impostazioni di configurazione di base che devi definire: comprenderle a monte ti evita di fare scelte difficili o costose da modificare in seguito (come il sistema operativo o lo stack di runtime, che non sono sempre cambiabili dopo la creazione).
+
+**Le impostazioni di configurazione iniziali** _(stepTitle)_
+
+Quando crei un'app devi indicare alcuni parametri fondamentali. Ognuno di essi determina dove e come l'app verrà eseguita, e quindi influisce su prestazioni, costi e funzionalità disponibili.
+
+- **Name** (Nome): il nome della tua app deve essere univoco, perché serve sia a identificarla sia a localizzarla all'interno di Azure. Da questo nome deriva l'URL pubblico predefinito, ad esempio `webappces1.azurewebsites.net`. Se preferisci, in un secondo momento puoi mappare un nome di dominio personalizzato al posto dell'indirizzo standard.
+- **Publish** (Pubblicazione): App Service può ospitare (pubblicare) la tua app in due modi, come codice oppure come Docker Container. La scelta dipende da come hai impacchettato l'applicazione: il codice si appoggia agli stack runtime gestiti da Azure, mentre il container ti dà il controllo completo dell'ambiente di esecuzione.
+- **Runtime stack** (Stack di runtime): è lo stack software che esegue la tua app, comprensivo del linguaggio e delle versioni dell'SDK. Le opzioni disponibili includono .NET Core, .NET Framework, Node.js, PHP e Python, con diverse versioni per Linux e Windows. Per le app Linux e per le app container personalizzate puoi anche specificare un comando o un file di avvio opzionale.
+- **Operating system** (Sistema operativo): il sistema operativo su cui gira il tuo stack di runtime può essere Linux o Windows. Questa scelta è importante perché condiziona sia le funzionalità disponibili sia, indirettamente, i piani tariffari a cui potrai accedere.
+- **Region** (Area geografica): la region che scegli per la tua app determina quali App Service plan sono disponibili. Selezionare la region più vicina ai tuoi utenti riduce la latenza, ma incide anche sull'offerta di piani e quindi sui costi.
+- **Pricing plans** (Piani tariffari): ogni app deve essere associata a un Azure App Service plan, che ne stabilisce le risorse, le funzionalità e la capacità. Puoi scegliere tra i piani tariffari disponibili per la region che hai selezionato.
+
+**Le impostazioni disponibili dopo la creazione** _(stepTitle)_
+
+Una volta che l'app è stata creata, nel portale di Azure compare la sezione **Configuration**, che mette a disposizione ulteriori impostazioni, tra cui le opzioni di distribuzione dell'app e il mapping dei percorsi (path mapping). In altre parole, alcune scelte si fanno al momento della creazione, mentre altre si affinano in seguito man mano che l'app entra in esercizio.
+
+![Opzioni di configurazione di un'app App Service nel portale di Azure](img/web-app-configuration-27facdc5.png) _(dimensioni: 881×471 px)_
+*Figura 102: Le opzioni di configurazione di un'app App Service nel portale di Azure.* _(caption)_
+
+Alcune di queste impostazioni aggiuntive possono essere incluse direttamente nel codice dello sviluppatore, mentre altre si configurano a livello di app dal portale. Ecco alcune delle impostazioni applicative più rilevanti:
+
+- **Always On**: mantiene la tua app sempre caricata in memoria anche quando non c'è traffico. Per impostazione predefinita un'app inattiva viene scaricata per risparmiare risorse, ma questo introduce una latenza alla prima richiesta successiva. Always On evita questo comportamento ed è inoltre necessario per i WebJob continui o per i WebJob attivati tramite un'espressione CRON.
+- **Session affinity** (Affinità di sessione): in una distribuzione multi-istanza, garantisce che il client della tua app venga instradato sempre verso la stessa istanza per tutta la durata della sessione. È utile quando l'app conserva lo stato in locale sulla singola istanza.
+- **HTTPS Only** (Solo HTTPS): quando è attivo, tutto il traffico HTTP viene reindirizzato automaticamente a HTTPS, garantendo che le comunicazioni avvengano sempre su connessione cifrata.
+
+> **Suggerimento**: per esercitarti in autonomia puoi seguire l'esercizio «Create a web app in the Azure portal», che mette a disposizione un ambiente sandbox dove provare la creazione di una web app senza impatti sul tuo abbonamento.
+_(infoBox)_
+
+### 5.4.4 — Esplorare l'integrazione e la distribuzione continua (CI/CD)
+
+Quando si sviluppa un'applicazione web, il vero problema non è scrivere il codice una volta, ma riportare in produzione, in modo rapido e affidabile, ogni nuova funzionalità o correzione. Senza automazione, ogni rilascio diventa un'operazione manuale, lenta e soggetta a errori. **App Service** affronta questo problema offrendo, direttamente dal portale di Azure, meccanismi di integrazione e distribuzione continua già pronti all'uso.
+
+Il portale di Azure mette a disposizione una integrazione e distribuzione continua immediata con **Azure DevOps**, **GitHub**, **Bitbucket**, **FTP** oppure un repository **Git** locale presente sulla macchina di sviluppo. È sufficiente collegare la propria app web a una di queste sorgenti e App Service si occupa del resto: il codice viene sincronizzato automaticamente e ogni modifica futura viene riportata nell'app web senza intervento manuale.
+
+Con **Azure DevOps** è inoltre possibile definire un proprio processo di build e di rilascio: a ogni commit del codice, il sistema compila i sorgenti, esegue i test, costruisce il pacchetto e distribuisce la release nell'app web. Tutte queste operazioni avvengono in modo implicito, senza necessità di amministrazione umana. Questo è il cuore del valore di CI/CD: ridurre il lavoro ripetitivo e gli errori, accelerando il ciclo di rilascio.
+
+![Due sviluppatori condividono un'unica sorgente GitHub per produrre un sito web con App Service](img/continuous-development-a0dfd350.png) _(dimensioni: 582×260 px)_
+*Figura 103: Due sviluppatori condividono un'unica sorgente GitHub per generare un sito web realizzato con Azure App Service.* _(caption)_
+
+**Distribuzione continua e distribuzione manuale** _(stepTitle)_
+
+Quando si crea un'app web con App Service è possibile scegliere tra distribuzione continua e distribuzione manuale. Nel valutare queste opzioni conviene ragionare su quale metodo di distribuzione adottare per le proprie app di App Service. Entrambe le modalità si configurano dal **Deployment Center** (Centro distribuzione).
+
+![Opzioni di impostazione del Deployment Center](img/deployment-center.png) _(dimensioni: 926×442 px)_
+*Figura 104: Le opzioni di configurazione disponibili nel Deployment Center.* _(caption)_
+
+**Distribuzione continua (CI/CD)** _(stepTitle)_
+
+La distribuzione continua (CI/CD) è un processo usato per rilasciare nuove funzionalità e correzioni di bug in modo rapido e ripetitivo, con un impatto minimo sugli utenti finali. È particolarmente indicata quando si vuole un flusso di rilascio frequente e automatizzato. Azure supporta la distribuzione automatizzata direttamente da diverse sorgenti:
+
+- **GitHub**: Azure supporta la distribuzione automatizzata direttamente da GitHub tramite due provider di build. Quando si collega il repository GitHub ad Azure si può scegliere tra **GitHub Actions** (opzione predefinita) e **App Service Build Service**.
+- **Bitbucket**: data la somiglianza con GitHub, è possibile configurare una distribuzione automatizzata anche con Bitbucket.
+- **Git locale (Local Git)**: la funzionalità Web Apps di App Service offre un URL locale che può essere aggiunto come repository.
+- **Azure Repos**: è un insieme di strumenti di controllo delle versioni per gestire il codice. Sia che il progetto software sia grande o piccolo, è una buona idea adottare il controllo delle versioni il prima possibile.
+
+**Distribuzione manuale** _(stepTitle)_
+
+La distribuzione manuale consente di inviare (push) il proprio codice ad Azure manualmente. È utile quando si preferisce mantenere il pieno controllo sul momento del rilascio, senza automatismi legati ai commit.
+
+- **Git remoto (Remote Git)**: la funzionalità Web Apps di App Service offre un URL Git che può essere aggiunto come repository remoto. Eseguendo il push verso il repository remoto si distribuisce l'app.
+
+> **Nota**: la differenza chiave è il fattore scatenante del rilascio. Nella distribuzione continua è il commit/push verso la sorgente collegata ad attivare automaticamente il deploy; nella distribuzione manuale è l'utente a decidere quando effettuare il push verso Azure.
+_(infoBox)_
+
+### 5.4.5 — Creare slot di distribuzione
+
+Quando distribuisci la tua applicazione web, web app su Linux, backend mobile o API app su **App Service**, non sei obbligato a pubblicare direttamente nello slot di produzione predefinito. Puoi invece usare uno *slot di distribuzione* separato: in pratica una copia parallela e funzionante dell'app, con un proprio indirizzo, su cui pubblicare e collaudare le modifiche prima di portarle online. Questo approccio è il cuore di una distribuzione sicura e senza interruzioni: la versione che gli utenti vedono resta intatta finché non decidi tu di promuovere quella nuova.
+
+**Caratteristiche degli slot di distribuzione** _(stepTitle)_
+
+Prima di sfruttarli, conviene capire come si comportano questi slot e quali vincoli hanno. Le loro caratteristiche principali sono:
+
+- Gli slot di distribuzione sono app realmente attive («live») e hanno un proprio hostname dedicato. Questo significa che puoi raggiungere e testare lo slot di staging tramite un URL distinto da quello di produzione.
+- Gli slot di distribuzione sono disponibili solo nei piani tariffari **Standard**, **Premium** e **Isolated v2** di App Service. Per usarli, la tua app deve essere in esecuzione in uno di questi tier.
+- I tier Standard, Premium e Isolated offrono un numero diverso di slot disponibili: scegliendo un piano superiore ottieni più slot con cui lavorare.
+- Sia il contenuto dell'app sia gli elementi di configurazione possono essere scambiati («swap») tra due slot, incluso quello di produzione. È proprio questo scambio a permettere di mandare in produzione una nuova versione senza ridistribuirla da zero.
+
+![Gestione degli slot di distribuzione nel portale di Azure](img/deployment-slots-5b3660cc.png) _(dimensioni: 570×302 px)_
+*Figura 105: La gestione degli slot di distribuzione nel portale di Azure.* _(caption)_
+
+> **Nota**: lo scambio non è una semplice copia di file. Quando esegui uno swap, App Service riavvia i processi nello slot di destinazione e attende che le istanze siano «riscaldate» (warmed up) prima di reindirizzare il traffico, garantendo continuità di servizio.
+_(infoBox)_
+
+**Vantaggi nell'uso degli slot di distribuzione** _(stepTitle)_
+
+L'utilizzo degli slot porta diversi benefici concreti alla gestione della tua app in App Service. Vale la pena ragionare su come ciascuno di essi possa supportare il tuo scenario di distribuzione.
+
+- **Validazione delle modifiche**. Puoi convalidare le modifiche all'app in uno slot di staging prima di scambiarle con il contenuto dello slot di produzione. In questo modo collaudi la nuova versione in un ambiente reale, ma senza esporre subito gli utenti a eventuali errori.
+- **Riduzione dei tempi di inattività**. Distribuendo prima in uno slot e poi eseguendo lo swap verso la produzione, ti assicuri che tutte le istanze siano già pronte. Questo elimina i tempi di inattività durante la distribuzione: il reindirizzamento del traffico è trasparente e nessuna richiesta viene scartata a causa dell'operazione di scambio. L'intero flusso di lavoro può essere automatizzato configurando lo scambio automatico (**Auto swap**) quando non serve una validazione manuale prima dello swap.
+- **Ripristino dell'ultima versione funzionante**. Dopo uno scambio, lo slot che prima ospitava la versione di staging contiene ora la precedente versione di produzione. Se le modifiche portate in produzione non si comportano come previsto, puoi rieseguire immediatamente lo stesso swap per tornare al tuo «last known good site», cioè all'ultima versione nota come funzionante. Lo slot diventa così una rete di sicurezza per il rollback rapido.
+- **Scambio automatico (Auto swap)**. L'Auto swap semplifica gli scenari basati su Azure Pipelines in cui vuoi distribuire l'app in modo continuo, con zero avvii a freddo (cold start) e zero tempi di inattività per i clienti. Quando l'Auto swap è abilitato da uno slot verso la produzione, ogni volta che invii le tue modifiche di codice a quello slot, App Service esegue automaticamente lo scambio in produzione dopo che l'app si è riscaldata nello slot di origine.
+
+> **Suggerimento**: usa l'Auto swap nelle pipeline di distribuzione continua, mentre preferisci lo swap manuale quando hai bisogno di una fase di validazione esplicita («preswap») prima di rendere pubblica la nuova versione.
+_(infoBox)_
+
+### 5.4.6 — Aggiungere slot di distribuzione
+
+Gli slot di distribuzione (deployment slot) si configurano nel portale di Azure. Una volta creati, permettono di scambiare ("swap") il contenuto dell'applicazione e i relativi elementi di configurazione tra uno slot e l'altro, compreso lo slot di produzione. Questa è la chiave del valore degli slot: invece di pubblicare direttamente in produzione, distribuisci e collaudi una nuova versione in uno slot separato (ad esempio uno slot di staging) e poi la "promuovi" in produzione con un'operazione di swap, che è di fatto istantanea e reversibile.
+
+**Aspetti da conoscere sulla creazione degli slot** _(stepTitle)_
+
+Quando crei uno slot in **App Service**, è utile capire da dove parte la sua configurazione e come si comportano le impostazioni durante lo swap.
+
+- Un nuovo slot di distribuzione può essere creato vuoto (empty) oppure clonato (cloned) da uno slot esistente. Clonare è comodo perché eviti di riconfigurare manualmente tutte le impostazioni: parti da una copia di uno slot già funzionante.
+- Le impostazioni di uno slot ricadono in tre categorie:
+  - Impostazioni dell'app e stringhe di connessione specifiche dello slot (se previste).
+  - Impostazioni di distribuzione continua (continuous deployment), quando abilitata.
+  - Impostazioni di autenticazione di **App Service** (quando abilitata).
+- Quando cloni la configurazione da un altro slot, la configurazione clonata rimane modificabile. Il punto importante da capire è cosa succede durante lo swap: alcuni elementi di configurazione "seguono" il contenuto e si spostano con lo swap, mentre altri elementi sono specifici dello slot (slot-specific) e restano nello slot di origine anche dopo lo swap.
+
+> **Perché questa distinzione conta**: durante uno swap vuoi che il codice e le impostazioni applicative collaudate vadano in produzione, ma NON vuoi che impostazioni come il nome di dominio personalizzato o le regole di scalabilità seguano lo spostamento, altrimenti la produzione si ritroverebbe la configurazione dello staging. Sapere cosa viene scambiato e cosa resta fisso evita sorprese.
+_(infoBox)_
+
+**Impostazioni scambiate (swapped) e impostazioni specifiche dello slot** _(stepTitle)_
+
+La tabella seguente elenca le impostazioni che vengono scambiate tra gli slot durante uno swap e quelle che invece rimangono nello slot di origine (slot-specific). Nel rivederle, valuta quali funzionalità sono richieste dalle tue app di **App Service**.
+
+| **Impostazioni scambiate (swapped)** | **Impostazioni specifiche dello slot (slot-specific)** |
+| --- | --- |
+| Stack di linguaggio e versione, 32/64-bit | Nomi di dominio personalizzati |
+| Impostazioni dell'app (app settings) **\*** | Certificati non pubblici e impostazioni TLS/SSL |
+| Stringhe di connessione (connection strings) **\*** | Impostazioni di scalabilità (scale settings) |
+| Account di archiviazione montati (mounted storage) **\*** | Always On |
+| Certificati pubblici | Restrizioni IP |
+| Contenuto dei WebJobs | Pianificatori dei WebJobs (schedulers) |
+| Connessioni ibride (hybrid connections) **\*\*** | Impostazioni di diagnostica |
+| Endpoint di servizio (service endpoints) **\*\*** | Condivisione delle risorse tra origini (CORS) |
+| Azure Content Delivery Network **\*\*** | Integrazione con rete virtuale (virtual network) |
+| Mappatura dei percorsi (path mapping) | Identità gestite (managed identities) |
+
+> **Nota sui marcatori della tabella**: **\*** indica che l'impostazione può essere configurata come specifica dello slot (quindi, se vuoi, puoi impedirne lo scambio). **\*\*** indica una funzionalità attualmente non disponibile per lo swap.
+_(infoBox)_
+
+Per impostazione predefinita, le impostazioni dell'app e le stringhe di connessione vengono scambiate. Se però hai una configurazione che deve restare ancorata a un determinato slot (per esempio una stringa di connessione che punta a un database di test e non deve mai finire in produzione), puoi contrassegnarla come specifica dello slot. In questo modo quel valore non seguirà lo swap e ogni slot manterrà il proprio.
+
+### 5.4.7 — Proteggere l'app di App Service
+
+**App Service** mette a disposizione un supporto integrato per l'autenticazione e l'autorizzazione degli utenti. Questo significa che puoi far accedere gli utenti e proteggere l'accesso ai dati scrivendo poco codice, o addirittura nessun codice, nelle tue applicazioni web, nelle API, nei backend per app mobile e perfino nelle app di **Azure Functions**.
+
+Il motivo per cui questa funzionalità è preziosa è semplice: realizzare autenticazione e autorizzazione sicure "a mano" richiede una conoscenza approfondita di numerosi concetti di sicurezza, come la federazione delle identità, la crittografia, la gestione dei token JSON Web (JWT) e i vari tipi di concessione (grant type). Delegando questo lavoro ad App Service, puoi dedicare più tempo ed energie a ciò che porta valore al tuo cliente, invece di reinventare meccanismi di sicurezza complessi e facili da sbagliare.
+
+> **Nota**: non sei obbligato a usare **App Service** per l'autenticazione e l'autorizzazione. Molti framework web includono già funzionalità di sicurezza, e sei libero di usare il servizio che preferisci.
+_(infoBox)_
+
+**Come App Service gestisce la sicurezza dell'app** _(stepTitle)_
+
+Per capire perché questa soluzione è comoda, è utile vedere come funziona "sotto il cofano".
+
+- Il modulo di sicurezza per autenticazione e autorizzazione di **App Service** viene eseguito nello stesso ambiente del codice della tua applicazione, ma in modo separato da esso. Questo isolamento è importante: la logica di sicurezza non si mescola con il tuo codice e quindi non può essere compromessa da bug applicativi.
+- Il modulo di sicurezza si configura tramite le impostazioni dell'app (app settings). Non sono richiesti SDK, linguaggi specifici o modifiche al codice dell'applicazione: è proprio questo che rende l'approccio così leggero da adottare.
+- Il modulo di sicurezza si occupa al posto tuo di diverse attività:
+  - Autenticare gli utenti tramite il provider di identità specificato.
+  - Validare, archiviare e rinnovare i token.
+  - Gestire la sessione autenticata.
+  - Inserire (inject) le informazioni di identità all'interno delle intestazioni (header) della richiesta, così che la tua app possa leggerle facilmente.
+
+**Opzioni da valutare quando si usa App Service per la sicurezza** _(stepTitle)_
+
+L'autenticazione e l'autorizzazione si configurano in **App Service** selezionando le funzionalità desiderate nel portale di Azure. La scelta principale riguarda come trattare il traffico non autenticato: in base alle esigenze dell'app devi decidere se lasciare passare le richieste anonime oppure bloccarle del tutto. La tabella seguente riassume le due opzioni disponibili.
+
+| **Opzione** | **Comportamento** | **Quando usarla** |
+|---|---|---|
+| **Consenti richieste anonime (nessuna azione)** | Demanda l'autorizzazione del traffico non autenticato al codice della tua applicazione. Per le richieste autenticate, App Service trasmette comunque le informazioni di autenticazione nelle intestazioni HTTP. | Quando vuoi maggiore flessibilità nella gestione delle richieste anonime e vuoi poter presentare agli utenti più provider di accesso. |
+| **Consenti solo richieste autenticate** | Reindirizza tutte le richieste anonime a `/.auth/login/<provider>` per il provider scelto (equivale a "Accedi con <provider>"). Se la richiesta anonima proviene da un'app mobile nativa, viene restituito un messaggio `HTTP 401 Unauthorized`. | Quando vuoi proteggere l'app senza scrivere alcun codice di autenticazione, perché l'intera app deve essere riservata agli utenti autenticati. |
+
+> **Importante**: l'opzione "Consenti solo richieste autenticate" limita l'accesso a **tutte** le chiamate verso la tua app. Questo potrebbe non essere desiderabile se l'app richiede una home page pubblica, come accade per molte applicazioni a pagina singola (single-page app).
+_(infoBox)_
+
+**Registrazione e tracciamento** _(stepTitle)_
+
+Un ultimo aspetto da considerare è la diagnostica. Puoi visualizzare le tracce di autenticazione e autorizzazione direttamente nei file di log. Il vantaggio pratico è che, se si verifica un errore di autenticazione inatteso, trovi tutti i dettagli comodamente all'interno dei log applicativi che già consulti, senza dover ricorrere a strumenti separati.
+
+Se abiliti il tracciamento delle richieste non riuscite (failed request tracing), puoi vedere esattamente in che modo il modulo di sicurezza ha partecipato a una richiesta fallita. Nei log di traccia, cerca i riferimenti a un modulo denominato `EasyAuthModule_32/64`.
+
+### 5.4.8 — Creare nomi di dominio personalizzati
+
+Quando crei una web app, Azure la pubblica automaticamente su un sottodominio di `azurewebsites.net`. Se ad esempio la tua web app si chiama `contoso`, Azure genera l'URL `contoso.azurewebsites.net` e le assegna anche un indirizzo IP virtuale. Questo va benissimo durante lo sviluppo e i test, ma per un'applicazione in produzione difficilmente vuoi che gli utenti vedano un indirizzo `*.azurewebsites.net`: per questo entra in gioco il dominio personalizzato.
+
+**Che cos'è un dominio personalizzato** _(stepTitle)_
+
+Un nome di dominio è l'indirizzo che le persone digitano nel browser per raggiungere il tuo sito. Un dominio personalizzato è un nome di dominio che possiedi e che configuri affinché punti alla tua app ospitata su **App Service**, sostituendo il dominio predefinito di Azure.
+
+Per chiarire la differenza:
+
+- Dominio predefinito di Azure: `myapp-00000.westus.azurewebsites.net`
+- Dominio personalizzato: `www.contoso.com`
+
+Usare un dominio personalizzato ti consente di:
+
+- Avere un indirizzo web brandizzato e facile da ricordare.
+- Aumentare la fiducia e la credibilità presso i clienti.
+- Gestire e proteggere meglio il traffico verso la tua applicazione.
+
+**Passaggi per configurare un nome di dominio personalizzato** _(stepTitle)_
+
+La configurazione di un dominio personalizzato richiede informazioni su provider, sicurezza e denominazione. Il processo si svolge interamente dal portale di Azure, nella pagina dedicata ai domini personalizzati.
+
+![Pagina dei domini personalizzati nel portale di Azure](img/custom-domain.png) _(dimensioni: 557×661 px)_
+*Figura 106: La pagina «Custom domain» del portale di Azure, dove si riservano i domini e si configurano i binding.* _(caption)_
+
+I passaggi per creare un nome di dominio personalizzato sono tre.
+
+- **Riserva il tuo nome di dominio**. Il modo più semplice per ottenere un dominio personalizzato è acquistarlo direttamente nel portale di Azure (questo nome non è quello assegnato da Azure nella forma `*.azurewebsites.net`). Il processo di registrazione ti permette di gestire il dominio della web app direttamente dal portale di Azure, senza doverti rivolgere a un sito di terze parti. Anche la successiva configurazione del dominio nella web app è un'operazione semplice all'interno del portale.
+- **Crea i record DNS per mappare il dominio alla web app di Azure**. Il Domain Name System (DNS) usa dei record dati per mappare i nomi di dominio agli indirizzi IP. Esistono diversi tipi di record DNS. Per le web app, in particolare, si crea un record `A` (Address) oppure un record `CNAME` (Canonical Name).
+  - Un record `A` mappa un nome di dominio direttamente su un indirizzo IP.
+  - Un record `CNAME` mappa un nome di dominio su un altro nome di dominio: il DNS usa il secondo nome per risolvere l'indirizzo, ma nel browser l'utente continua a vedere il primo. Ad esempio, potresti mappare `contoso.com` sul tuo URL `webapp.azurewebsites.net`.
+  - La differenza pratica è importante: se l'indirizzo IP cambia, un record `CNAME` resta valido, mentre un record `A` deve essere aggiornato manualmente.
+  - Attenzione però: alcuni registrar di domini non consentono i record `CNAME` per il dominio radice (root) o per i domini wildcard. In questi casi sei obbligato a usare un record `A`.
+- **Abilita il dominio personalizzato**. Dopo aver ottenuto il dominio e creato il record DNS, usa il portale di Azure per validare il dominio personalizzato e aggiungerlo alla web app. Ricordati di testare il dominio prima di pubblicarlo.
+
+La scelta tra record `A` e `CNAME` è uno dei punti decisionali chiave: la tabella seguente riassume quando conviene l'uno o l'altro.
+
+| **Record** | **Mappa verso** | **Resiste al cambio di IP** | **Quando usarlo** |
+|---|---|---|---|
+| **A** | Indirizzo IP | No (va aggiornato manualmente) | Dominio radice o wildcard, o quando il registrar non supporta `CNAME` |
+| **CNAME** | Altro nome di dominio | Sì | Sottodomini (es. `www`) quando il registrar lo consente |
+
+> **Importante**: **App Service** offre certificati TLS gestiti gratuiti. I certificati si rinnovano automaticamente 30 giorni prima della scadenza. Nel portale di Azure, vai su **Custom domains** → **Add binding** → **App Service Managed Certificate**.
+_(infoBox)_
+
+### 5.4.9 — Backup e ripristino dell'app
+
+La funzionalità di **Backup and Restore** di **App Service** permette di creare copie di sicurezza dell'app, manualmente oppure in modo pianificato. Il motivo per cui questa funzionalità è importante è semplice: un'app in produzione contiene configurazioni, file e dati che evolvono nel tempo e che possono essere danneggiati da un errore di deployment, da una modifica sbagliata o da un guasto. Avere un backup consente di tornare a uno stato precedente noto e funzionante, riducendo al minimo i tempi di fermo.
+
+I backup possono essere conservati per un periodo di tempo definito oppure a tempo indeterminato. Quando si esegue un ripristino è possibile riportare l'app a uno snapshot di uno stato precedente sovrascrivendo il contenuto esistente, oppure ripristinare il backup su un'app o un sito diverso (utile, ad esempio, per clonare un ambiente o creare una copia di test senza toccare la produzione).
+
+La pagina **Backups** elenca tutti i backup automatici e personalizzati dell'app e mostra lo stato di ciascuno, così da avere un quadro immediato di cosa è stato salvato e con quale esito.
+
+![Pagina dei backup di App Service nel portale](img/open-backups-page.png) _(dimensioni: 982×582 px)_
+*Figura 107: La pagina «Backups» di App Service nel portale di Azure.* _(caption)_
+
+**Cosa sapere su Backup and Restore** _(stepTitle)_
+
+Di seguito i dettagli operativi della funzionalità, utili per capire quando e come adottarla nelle proprie app di App Service.
+
+- Backup and Restore è supportato nei tier **Basic**, **Standard**, **Premium** e **Isolated**. Nel tier **Basic** è possibile eseguire backup e ripristino solo dello slot di produzione.
+- È necessario un account di archiviazione di Azure (**Azure Storage account**) con un container, nella stessa sottoscrizione dell'app da salvare. Il backup viene infatti scritto su quello storage.
+- Azure App Service può salvare nello storage account e nel container configurati le seguenti informazioni:
+  - Le impostazioni di configurazione dell'app.
+  - Il contenuto dei file.
+  - Qualsiasi database connesso all'app (**SQL Database**, **Azure Database for MySQL**, **Azure Database for PostgreSQL**, MySQL in-app).
+- Nello storage account, ogni backup è costituito da un file Zip e da un file XML:
+  - Il file Zip contiene i dati di backup dell'app o del sito.
+  - Il file XML contiene un manifesto del contenuto del file Zip.
+- I backup possono essere configurati manualmente oppure su pianificazione.
+- L'impostazione predefinita è il backup completo (full).
+- Sono supportati anche i backup parziali: si possono indicare file e cartelle da escludere dal backup.
+- Il ripristino di un backup parziale avviene allo stesso modo del ripristino di un backup normale.
+- Un backup può contenere fino a 10 GB di contenuti tra app e database.
+- I backup dell'app o del sito sono visibili nella pagina **Containers** dello storage account, oltre che nella pagina dell'app (o del sito) nel portale di Azure.
+
+**Considerazioni su creazione e ripristino dei backup** _(stepTitle)_
+
+Prima di scegliere la strategia di backup conviene ragionare su alcuni aspetti pratici, perché il comportamento del ripristino cambia in modo significativo tra backup completi e parziali.
+
+- **Backup completi**. Eseguire un backup completo permette di salvare con facilità tutte le impostazioni di configurazione, tutto il contenuto dei file e tutto il contenuto dei database collegati all'app o al sito. Attenzione però: quando si ripristina un backup completo, tutto il contenuto del sito viene sostituito con quello presente nel backup. Se un file è presente sul sito ma non nel backup, quel file viene eliminato. È quindi un ripristino "specchio" dello stato salvato.
+- **Backup parziali**. Specificare un backup parziale consente di scegliere esattamente quali file salvare. In fase di ripristino di un backup parziale, qualsiasi contenuto che si trova in una cartella o in un file esclusi viene lasciato così com'è (non viene toccato), a differenza di quanto avviene con il backup completo.
+- **Esplorare i file di backup**. È possibile decomprimere ed esaminare i file Zip e XML associati al backup per accedere ai contenuti. Questa opzione permette di visualizzare il contenuto senza eseguire effettivamente un ripristino dell'app o del sito: comoda per verificare cosa è stato salvato o per recuperare un singolo file.
+- **Firewall sulla destinazione del backup**. Se sullo storage account è abilitato un firewall, non è possibile usare quello storage account come destinazione dei backup. Va quindi pianificata la configurazione di rete dello storage in funzione del backup.
+
+> **Importante**: il ripristino di un backup completo sovrascrive l'intero sito. I file presenti sul sito ma assenti dal backup vengono eliminati. Valuta un backup parziale quando vuoi preservare contenuti generati a runtime o cartelle che non devono essere toccate dal ripristino.
+_(infoBox)_
+
+### 5.4.10 — Usare Azure Application Insights
+
+**Application Insights** è una funzionalità di **Azure Monitor** che permette di monitorare le applicazioni mentre sono in esecuzione (le tue applicazioni "live"). Integrandolo con la configurazione del tuo **App Service**, puoi rilevare automaticamente le anomalie di prestazioni nelle tue applicazioni, senza dover ispezionare manualmente i log o attendere le segnalazioni degli utenti.
+
+Il motivo per cui questo strumento è importante è che ti consente di migliorare in modo continuo le prestazioni e l'usabilità delle tue app. Application Insights non si limita a raccogliere dati: offre potenti strumenti di analisi che ti aiutano sia a diagnosticare i problemi (il lato tecnico) sia a capire cosa fanno realmente gli utenti quando usano l'applicazione (il lato comportamentale). In altre parole, risponde a due domande diverse ma collegate: "l'app funziona bene?" e "l'app viene usata come ci aspettavamo?".
+
+Il diagramma seguente mostra l'idea di fondo: Application Insights riceve la telemetria da più fonti — pagine web, applicazioni client e servizi web — e la rende disponibile a strumenti a valle come gli avvisi (Alerts), **Power BI** e **Visual Studio**. È quindi un punto di raccolta centrale da cui poi diramare verso analisi, dashboard e debugging.
+
+![Diagramma di Application Insights che riceve telemetria e la inoltra ad Alerts, Power BI e Visual Studio](img/app-insights-16629887.png) _(dimensioni: 1379×734 px)_
+*Figura 108: Application Insights raccoglie le informazioni da pagine web, app client e servizi web e le trasferisce ad Alerts, Power BI e Visual Studio.* _(caption)_
+
+**Cosa sapere su Application Insights** _(stepTitle)_
+
+Vediamo alcune caratteristiche di base di Application Insights all'interno di Azure Monitor. Queste proprietà ne spiegano la flessibilità e il motivo per cui può adattarsi a contesti molto diversi.
+
+- Application Insights funziona su varie piattaforme, tra cui .NET, Node.js e Java EE. Non sei quindi vincolato a un singolo linguaggio o stack tecnologico.
+- Può essere usato per configurazioni ospitate on-premises, in un ambiente ibrido o in qualsiasi cloud pubblico. La portabilità è importante perché ti permette di adottare lo stesso strumento di monitoraggio anche se le tue app non vivono tutte in Azure.
+- Si integra con i processi di **Azure Pipelines** e ha punti di connessione con molti strumenti di sviluppo, in modo da inserire il monitoraggio direttamente nel ciclo di sviluppo e rilascio (DevOps), e non come attività separata e successiva.
+
+**Cosa considerare quando si usa Application Insights** _(stepTitle)_
+
+Application Insights è particolarmente indicato per supportare il team di sviluppo: aiuta gli sviluppatori a capire come l'app si comporta e come viene utilizzata. Nello scenario di configurazione di un App Service, vale la pena considerare il monitoraggio degli elementi seguenti. Ognuno risponde a una specifica domanda diagnostica.
+
+- **Frequenza delle richieste, tempi di risposta e tassi di errore**. Scopri quali pagine sono più popolari, in quali orari della giornata e da dove provengono gli utenti. Vedi quali pagine offrono le prestazioni migliori. Se all'aumentare delle richieste i tempi di risposta e i tassi di errore crescono, è probabile che tu abbia un problema di risorse (capacità insufficiente).
+- **Frequenza delle dipendenze, tempi di risposta e tassi di errore**. Usa Application Insights per scoprire se i servizi esterni da cui dipende la tua app ne stanno degradando le prestazioni. Questo è utile perché il collo di bottiglia spesso non è nel tuo codice, ma in un servizio di terze parti che l'app chiama.
+- **Eccezioni**. Analizza le statistiche aggregate, oppure seleziona istanze specifiche per approfondire lo stack trace e le richieste correlate. Vengono segnalate sia le eccezioni lato server sia quelle lato browser.
+- **Visualizzazioni di pagina e prestazioni di caricamento**. Raccogli il numero di visualizzazioni di pagina segnalate dai browser degli utenti e analizza le prestazioni di caricamento, cioè quanto velocemente le pagine si presentano all'utente finale.
+- **Conteggi di utenti e sessioni**. Application Insights ti aiuta a tenere traccia del numero di utenti e di sessioni connesse alla tua app, dandoti una misura concreta del livello di utilizzo.
+- **Contatori delle prestazioni (performance counters)**. Aggiungi i contatori delle prestazioni di Application Insights dalle tue macchine server Windows o Linux. Monitora l'output relativo a CPU, memoria, utilizzo della rete e così via, per correlare i problemi applicativi all'uso delle risorse fisiche.
+- **Diagnostica dell'host**. Integra nella telemetria di Application Insights la diagnostica proveniente da Docker o da Azure.
+- **Log di traccia diagnostici (diagnostic trace logs)**. Implementa i log di traccia della tua app per correlare gli eventi di traccia alle richieste e diagnosticare i problemi seguendo il percorso di una singola richiesta.
+- **Eventi e metriche personalizzati**. Scrivi i tuoi algoritmi di tracciamento di eventi e metriche come codice client o server. Puoi così tracciare eventi di business — ad esempio il numero di articoli venduti o il numero di partite vinte — andando oltre le metriche puramente tecniche.
+
+> **Suggerimento**: puoi approfondire l'argomento con il modulo di formazione "Troubleshoot solutions by using Application Insights", che mostra come usare Application Insights per risolvere i problemi delle soluzioni.
+_(infoBox)_
