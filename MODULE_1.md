@@ -16,7 +16,15 @@ con focus sugli strumenti di gestione interattiva e sull'automazione dell'infras
 _(h2: Calibri 14pt grassetto #0078D4 keepNext)_
 
 
-### 1.1.1 — Che cos'è Azure Cloud Shell?
+### 1.1.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Come amministratore di Azure capita spesso di dover eseguire comandi o script di gestione da postazioni diverse — il proprio PC, un computer condiviso, un tablet — senza avere installati Azure CLI o Azure PowerShell. Azure Cloud Shell risolve questo problema offrendo una shell pronta all'uso, già autenticata e accessibile dal browser, senza alcuna configurazione locale.
+
+In questa sezione vedrai che cos'è Cloud Shell, come funziona il suo ambiente (container temporaneo, strumenti preinstallati e archiviazione persistente) e in quali situazioni conviene usarlo rispetto a un'installazione locale degli strumenti.
+
+
+### 1.1.2 — Che cos'è Azure Cloud Shell?
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Azure Cloud Shell è un ambiente shell interattivo e autenticato accessibile direttamente dal browser, senza necessità di installare nulla in locale. Supporta sia Bash che PowerShell e si integra nativamente con la sottoscrizione Azure dell'utente.
@@ -26,7 +34,7 @@ Azure Cloud Shell è un ambiente shell interattivo e autenticato accessibile dir
 *Figura 1 — Sessione di Azure Cloud Shell in modalità PowerShell all'interno del portale di Azure.* _(caption)_
 
 
-### 1.1.2 — Come funziona Azure Cloud Shell?
+### 1.1.3 — Come funziona Azure Cloud Shell?
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 - Viene eseguita in un container temporaneo su un host gestito da Microsoft.
@@ -34,7 +42,7 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 - Ha accesso diretto agli strumenti pre-installati: Azure CLI, Azure PowerShell, kubectl, Terraform, git e molti altri.
 - L'autenticazione è automatica tramite le credenziali della sessione Azure già attiva.
 
-### 1.1.3 — Quando è consigliabile usare Azure Cloud Shell?
+### 1.1.4 — Quando è consigliabile usare Azure Cloud Shell?
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Cloud Shell è la scelta ideale quando si lavora da un dispositivo senza strumenti Azure installati, si vogliono eseguire script occasionali senza configurare un ambiente locale, oppure si desidera un accesso rapido e sicuro alla CLI da qualsiasi browser.
@@ -50,7 +58,15 @@ Cloud Shell è la scelta ideale quando si lavora da un dispositivo senza strumen
 _(h2: Calibri 14pt grassetto #0078D4 keepNext)_
 
 
-### 1.2.1 — Struttura dei modelli di Azure Resource Manager
+### 1.2.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Distribuire risorse a mano dal portale è pratico per pochi elementi, ma diventa lento e soggetto a errori quando si devono creare ambienti complessi e ripetibili. I modelli ARM (Azure Resource Manager) permettono di descrivere l'intera infrastruttura come codice in un file JSON, distribuendola in modo coerente, automatizzabile e idempotente.
+
+In questa sezione vedrai la struttura di un modello ARM, come crearne e distribuirne uno con Visual Studio Code e come renderlo flessibile e riutilizzabile tramite parametri e output.
+
+
+### 1.2.2 — Struttura dei modelli di Azure Resource Manager
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 L'infrastruttura come codice (IaC) consente di descrivere tramite codice l'intera infrastruttura necessaria per un'applicazione, gestendola insieme al codice applicativo in un repository centrale. I vantaggi principali sono:
@@ -95,11 +111,12 @@ Alcune risorse dipendono da altre per funzionare: in questi casi si usa la propr
 
 - `Microsoft.Storage/storageAccounts` — lo storage account, usato dalla Function App per trigger, log e stato interno.
 - `Microsoft.Web/serverfarms` — il piano di hosting (Consumption, Premium o Dedicated).
+- `Microsoft.Web/sites` — la Function App vera e propria (con `kind` impostato su `functionapp`), che dipende dalle due risorse precedenti tramite `dependsOn`.
 
 Resource Manager legge le dipendenze e crea le risorse nell'ordine corretto, in parallelo dove possibile.
 
 
-### 1.2.2 — Esercizio: Creare e distribuire un modello ARM
+### 1.2.3 — Esercizio: Creare e distribuire un modello ARM
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 
@@ -166,7 +183,7 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 - Verificare sul portale: 2 deployment riusciti + storage account visibile tra le risorse.
 
 
-### 1.2.3 — Parametri e output nei modelli ARM
+### 1.2.4 — Esercizio: Parametri e output nei modelli ARM
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 I parametri rendono il template riutilizzabile: invece di scrivere valori fissi nel JSON, li si riceve dall'esterno al momento della distribuzione. Gli output invece espongono valori prodotti dalla distribuzione (es. endpoint, ID risorse) verso sistemi esterni o step successivi di una pipeline.
