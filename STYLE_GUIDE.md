@@ -86,7 +86,13 @@ Tutte le altre tabelle si scrivono direttamente in markdown nel `.md`.
 - Linea sotto 'Sommario' e moduloTitle: `BorderStyle.SINGLE size 8 color #0078D4 space 4`
 - infoBox: sfondo `#E8F0FB`, bordo sinistro `SINGLE size 12 color #0078D4`, indent left 360 right 360
 - Tabelle: intestazione sfondo `#1F4E78` testo bianco; righe pari `#F5F8FC`, dispari `#FFFFFF`; bordi `SINGLE size 1 color #CCCCCC`; `cantSplit: true` su tutte le righe
-- Tab stop sommario: `TabStopType.RIGHT position 8200 leader 'dot'`
+- Tab stop sommario: `TabStopType.RIGHT position 9000 leader 'dot'` (allinea a destra il numero di pagina)
+
+### Numeri di pagina
+
+- **Sommario**: ogni voce (titolo modulo, `## N.M`, `### N.M.K`) riporta a destra il **numero di pagina** tramite un campo `PAGEREF` agganciato a un **segnalibro** posto sull'intestazione corrispondente (`bkm<modulo>_<n>`). Lo stile del numero (Calibri 10pt grigio) deriva dal `docDefaults` del documento, perché il campo `PAGEREF` è "nudo" (un `TextRun` che lo avvolge produrrebbe XML non valido con run annidati).
+- **Pie' di pagina**: il documento è diviso in **due sezioni** — (1) copertina + sommario **senza** numero di pagina, (2) contenuto dei moduli con campo `PAGE` centrato nel footer e numerazione che **riparte da 1**. Lo stacco tra le due sezioni sostituisce il `pageBreakBefore` del primo titolo-modulo (gli altri moduli sono separati da un `PageBreak` esplicito) per evitare una pagina bianca.
+- **Aggiornamento**: i numeri sono **campi calcolati da Word**, non valori fissi (la libreria `docx` non impagina). Il documento ha `features.updateFields = true`, quindi Word aggiorna Sommario e numeri all'apertura (potrebbe chiedere conferma con "Aggiornare i campi?"). In stampa/anteprima senza aggiornamento i numeri possono apparire vuoti finché non si preme `F9`.
 
 ---
 
