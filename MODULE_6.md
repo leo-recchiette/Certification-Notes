@@ -636,3 +636,398 @@ Nella scheda del job si possono monitorare tre informazioni chiave:
 - **Sub tasks**: nome e stato delle singole attività che compongono il job, utili per capire a che punto è il processo e per diagnosticare eventuali blocchi.
 
 Quando lo stato del job passa a completato con successo, il ripristino è concluso: a seconda della configurazione scelta, si avrà una nuova VM, i dischi nello storage di staging pronti per essere ricollegati, oppure la VM esistente riportata al contenuto del restore point selezionato. Monitorare il job fino in fondo è la garanzia finale che la strategia di protezione dei dati ha funzionato come previsto.
+
+## 6.3 — Monitorare le VM di Azure con Azure Monitor
+
+### 6.3.1 — Introduzione
+
+Immagina di essere l'amministratore IT del sito web di un gruppo musicale ospitato su macchine virtuali (VM) di Azure. Il sito eroga servizi mission-critical, come la prenotazione dei biglietti, le informazioni sulle venue e gli aggiornamenti sul tour, e deve rispondere rapidamente restando sempre disponibile, anche durante aggiornamenti frequenti e picchi di traffico. Il tuo obiettivo è mantenere dimensioni e memoria delle VM adeguate a ospitare il sito senza sostenere costi inutili e, allo stesso tempo, prevenire in modo proattivo e risolvere velocemente eventuali problemi di accesso, sicurezza e prestazioni. Per riuscirci, hai bisogno di monitorare in modo semplice e immediato traffico, integrità, prestazioni ed eventi delle tue VM.
+
+**Azure Monitor** offre funzionalità di monitoraggio integrate e personalizzabili che permettono di tenere sotto controllo l'integrità, le prestazioni e il comportamento sia dell'host della VM sia del sistema operativo, dei carichi di lavoro e delle applicazioni in esecuzione al suo interno. In questa sezione imparerai a visualizzare i dati di monitoraggio dell'host della VM, a configurare le regole di avviso consigliate e a sfruttare **VM insights** e le regole di raccolta dati (**Data Collection Rule**, DCR) personalizzate per raccogliere e analizzare i dati di monitoraggio provenienti dall'interno delle tue VM.
+
+### 6.3.2 — Monitoraggio delle VM di Azure
+
+Tenere sotto controllo le macchine virtuali non significa solo sapere se sono accese: vuol dire raccogliere dati nel tempo per capire come si comportano, individuare colli di bottiglia prima che diventino disservizi e dimensionare correttamente le risorse per non sprecare budget. Lo strumento centrale per farlo è **Azure Monitor**, una soluzione completa per raccogliere, analizzare e reagire ai dati di monitoraggio provenienti da risorse Azure e non Azure, incluse le VM. **Azure Monitor** si basa su due funzionalità principali: le metriche (**Azure Monitor Metrics**) e i log (**Azure Monitor Logs**).
+
+Capire la differenza tra queste due famiglie di dati è fondamentale, perché determina cosa puoi misurare e per quanto tempo conservi le informazioni.
+
+- Le **metriche** sono valori numerici raccolti a intervalli predefiniti per descrivere un aspetto del sistema. Possono misurare le prestazioni della VM, l'utilizzo delle risorse, il numero di errori, i tempi di risposta agli utenti o qualunque altro aspetto quantificabile. **Azure Monitor Metrics** monitora automaticamente un insieme predefinito di metriche per ogni VM di Azure e ne conserva i dati per 93 giorni (con alcune eccezioni).
+- I **log** sono eventi di sistema registrati che contengono un timestamp e diversi tipi di dati strutturati o in formato libero. Azure registra automaticamente i log attività (**activity log**) per tutte le risorse e li rende disponibili a livello di risorsa. A differenza delle metriche, **Azure Monitor** non raccoglie gli altri log per impostazione predefinita: devi configurare **Azure Monitor Logs** per raccoglierli da una qualsiasi risorsa Azure. I dati di log vengono archiviati in un **Log Analytics workspace** per essere interrogati e analizzati.
+
+> **Nota**: in sintesi, le metriche sono ideali per valori numerici campionati frequentemente e a breve ritenzione, mentre i log servono per analisi più ricche, eventi testuali e conservazione a lungo termine.
+_(infoBox)_
+
+**Gli strati di monitoraggio di una VM** _(stepTitle)_
+
+Una VM di Azure non è un'entità monolitica: è composta da più strati sovrapposti, ognuno con esigenze di telemetria e monitoraggio diverse. Riconoscere questi strati aiuta a capire dove cercare i dati quando qualcosa non funziona e quali strumenti servono per ciascun livello. Gli strati da monitorare sono:
+
+- L'**host della VM** (host VM)
+- Il **sistema operativo guest** (guest OS)
+- I **carichi di lavoro client** (client workload)
+- Le **applicazioni** che vengono eseguite sulla VM
+
+![Architettura fondamentale di una VM e strati di monitoraggio](img/monitoring-layers.png) _(dimensioni: 894×461 px)_
+*Figura 130: Architettura fondamentale di una VM con i diversi strati da monitorare (host e guest).* _(caption)_
+
+La distinzione chiave è tra ciò che Azure vede dall'esterno (l'host) e ciò che accade dentro il sistema operativo (il guest). L'host viene monitorato automaticamente dalla piattaforma; per il guest, invece, serve installare un agente, come vedremo più avanti.
+
+**Monitoraggio dell'host della VM** _(stepTitle)_
+
+L'host della VM rappresenta le risorse di calcolo, archiviazione e rete che Azure alloca alla macchina virtuale. Poiché questo strato è gestito dalla piattaforma, Azure è in grado di osservarlo direttamente senza alcun agente installato.
+
+Le **metriche dell'host** misurano gli aspetti tecnici della VM, come l'utilizzo del processore e se la macchina è in esecuzione. Sono utili per:
+
+- Generare un avviso quando la VM si avvicina ai limiti di disco o di CPU.
+- Identificare tendenze o pattern di utilizzo.
+- Controllare i costi operativi, dimensionando le VM in base all'uso e alla domanda reali.
+
+Azure raccoglie automaticamente le metriche di base dell'host. Nella pagina **Panoramica** (Overview) della VM nel portale di Azure trovi grafici predefiniti per le metriche più importanti dell'host:
+
+- Disponibilità della VM (VM availability)
+- Percentuale di utilizzo della CPU (media)
+- Utilizzo del disco del sistema operativo (totale)
+- Operazioni di rete (totale)
+- Operazioni su disco al secondo (media)
+
+Per andare oltre i grafici predefiniti puoi usare **Azure Monitor Metrics Explorer**, che ti permette di tracciare grafici aggiuntivi, indagare i cambiamenti e correlare visivamente le tendenze delle metriche. Con Metrics Explorer puoi:
+
+- Tracciare più metriche su uno stesso grafico, per vedere quanto traffico arriva alla VM e come si comporta.
+- Seguire la stessa metrica su più VM all'interno di un resource group o di un altro ambito, usando lo *splitting* per mostrare ogni VM separatamente sul grafico.
+- Selezionare intervalli temporali e granularità flessibili.
+- Specificare molte altre impostazioni, come il tipo di grafico e gli intervalli dei valori.
+- Inviare i grafici alle workbook o aggiungerli (pin) alle dashboard, per controllare rapidamente salute e prestazioni.
+- Raggruppare le metriche per intervalli di tempo, aree geografiche, cluster di server o componenti dell'applicazione.
+
+![Grafico di utilizzo CPU e flusso in ingresso di una VM](img/2-vm-metrics-screenshot.png) _(dimensioni: 1198×723 px)_
+*Figura 131: Grafico della percentuale di utilizzo della CPU e del flusso in ingresso per una VM.* _(caption)_
+
+**Regole di avviso consigliate** _(stepTitle)_
+
+Gli avvisi (alert) ti notificano in modo proattivo quando si verificano determinati eventi o pattern nelle metriche dell'host: anziché controllare manualmente i grafici, sei tu a essere avvisato quando qualcosa va storto. Le *regole di avviso consigliate* (recommended alert rules) sono un insieme predefinito di regole basate sulle metriche dell'host monitorate più di frequente. Queste regole definiscono livelli consigliati di utilizzo di CPU, memoria, disco e rete su cui generare un avviso, e includono anche la disponibilità della VM, avvisandoti quando la macchina smette di funzionare.
+
+Puoi abilitare e configurare rapidamente le regole consigliate al momento della creazione della VM, oppure in seguito dalla pagina della VM nel portale. Puoi inoltre visualizzare, configurare e creare avvisi personalizzati tramite **Azure Monitor Alerts**.
+
+**Activity log** _(stepTitle)_
+
+**Azure Monitor** registra e mostra automaticamente i log attività (activity log) per le VM di Azure. Questi log includono informazioni come l'avvio della VM o le sue modifiche. Tramite le impostazioni di diagnostica (diagnostic settings) puoi inviare gli activity log verso destinazioni diverse, a seconda dell'obiettivo:
+
+| **Destinazione** | **Quando usarla** |
+|---|---|
+| **Azure Monitor Logs** | Per query e avvisi più complessi e per una ritenzione più lunga, fino a due anni. |
+| **Azure Storage** | Per l'archiviazione a lungo termine a costo ridotto. |
+| **Azure Event Hubs** | Per inoltrare i dati al di fuori di Azure. |
+
+**Diagnostica di avvio (boot diagnostics)** _(stepTitle)_
+
+La diagnostica di avvio (boot diagnostics) raccoglie log dell'host utili per risolvere i problemi di avvio delle VM. Puoi abilitarla per impostazione predefinita alla creazione della VM, oppure in seguito per le VM già esistenti.
+
+Una volta abilitata, puoi vedere gli screenshot generati dall'hypervisor della VM, sia per macchine Windows sia Linux, e visualizzare l'output del log della console seriale della sequenza di avvio per le macchine Linux. I dati vengono archiviati in un account di archiviazione gestito.
+
+**Monitoraggio di guest OS, carichi di lavoro e applicazioni** _(stepTitle)_
+
+Tutto ciò che abbiamo visto finora riguarda l'host, che Azure osserva dall'esterno. Per vedere cosa accade *dentro* la VM (il sistema operativo guest, i carichi di lavoro e le applicazioni in esecuzione) Azure non ha visibilità diretta: serve installare **Azure Monitor Agent** e configurare una **Data Collection Rule** (DCR).
+
+Le **Data Collection Rule** definiscono quali dati raccogliere e dove inviarli. Con una DCR puoi inviare dati di tipo metrica, ovvero i *performance counter*, sia a **Azure Monitor Logs** sia a **Azure Monitor Metrics**. Puoi inoltre inviare i dati degli event log a **Azure Monitor Logs**. La distinzione è importante: **Azure Monitor Metrics** può archiviare solo dati di tipo metrica, mentre **Azure Monitor Logs** può archiviare sia metriche sia event log.
+
+> **Importante**: senza **Azure Monitor Agent** e una DCR non è possibile raccogliere metriche e log dall'interno del sistema operativo guest. Il monitoraggio dell'host, invece, è automatico e non richiede alcun agente.
+_(infoBox)_
+
+**VM insights** _(stepTitle)_
+
+**VM insights** è una funzionalità di **Azure Monitor** pensata per farti iniziare rapidamente a monitorare i client delle tue VM. È particolarmente utile quando vuoi esplorare l'utilizzo e le prestazioni complessive di una VM ma non sai ancora quale sia la metrica di interesse principale. **VM insights** offre:
+
+- L'onboarding semplificato di **Azure Monitor Agent** per abilitare il monitoraggio del guest OS e dei carichi di lavoro.
+- Una **Data Collection Rule** preconfigurata che monitora e raccoglie i performance counter più comuni per Windows e Linux.
+- Grafici di metriche di tendenza e workbook predefiniti relativi al guest OS della VM.
+- Un insieme di workbook predefiniti che mostrano nel tempo le metriche client raccolte dalla VM.
+- Facoltativamente, la raccolta dei processi in esecuzione sulla VM, delle dipendenze con altri servizi e una mappa delle dipendenze (dependency map) che visualizza i componenti interconnessi con altre VM e fonti esterne.
+
+I workbook predefiniti di **VM insights** mostrano prestazioni, connessioni, porte attive, traffico e altri dati raccolti da una o più VM. Puoi consultare i dati direttamente dalla singola VM, oppure ottenere una vista combinata di più VM per valutare tendenze e pattern trasversali. Puoi modificare le configurazioni dei workbook predefiniti o crearne di personalizzati.
+
+**Dati degli event log del client** _(stepTitle)_
+
+La DCR creata da **VM insights** raccoglie un insieme specifico di performance counter. Per raccogliere altri dati, come gli event log, devi creare una DCR separata che specifichi quali dati raccogliere dalla VM e dove inviarli. **Azure Monitor** archivia i dati di log raccolti in un **Log Analytics workspace**: da lì puoi accedervi e analizzarli tramite query scritte in **Kusto Query Language** (KQL).
+
+### 6.3.3 — Procedura guidata: monitorare i dati host della VM
+
+Quando si crea una macchina virtuale dal portale Azure è possibile attivare fin da subito alcune funzionalità di monitoraggio integrate, senza dover installare agenti o configurare risorse aggiuntive. Il vantaggio è immediato: appena la VM si avvia, **Azure Monitor** inizia a raccogliere automaticamente le metriche di base dell'host e i log delle attività. In questa guida vediamo come abilitare i **boot diagnostics** e le regole di avviso consigliate durante la creazione, e come consultare poi le metriche della piattaforma (host), i boot diagnostics e l'activity log.
+
+> **Perché farlo in fase di creazione**: abilitare il monitoraggio già nella scheda Monitoring evita configurazioni manuali successive e garantisce che la raccolta dati parta dal primo avvio della VM, così da avere subito una baseline di salute e prestazioni.
+_(infoBox)_
+
+**Abilitare le regole di avviso consigliate** _(stepTitle)_
+
+Durante la creazione della VM, dopo aver compilato la scheda **Basics** (sottoscrizione, gruppo di risorse, nome della VM e immagine, ad esempio Ubuntu Server LTS), spostarsi sulla scheda **Monitoring**.
+
+- Selezionare la casella **Enable recommended alert rules**.
+- Nella schermata **Set up recommended alert rules**, lasciare selezionate tutte le regole di avviso proposte (è possibile regolarne i valori soglia se necessario).
+- In **Notify me by**, selezionare **Email** e inserire un indirizzo a cui ricevere le notifiche di avviso.
+- Selezionare **Save** per confermare.
+
+Le regole consigliate coprono condizioni tipiche di salute e prestazioni della VM (ad esempio CPU elevata o disponibilità della macchina), così da essere avvisati tempestivamente quando un valore supera la soglia.
+
+**Abilitare i boot diagnostics** _(stepTitle)_
+
+Sempre nella scheda **Monitoring**, sotto la sezione **Diagnostics**, in corrispondenza di **Boot diagnostics** verificare che sia selezionata l'opzione **Enable with managed storage account (recommended)**. I boot diagnostics catturano una schermata e il log seriale generati durante l'avvio della VM, strumenti preziosi per diagnosticare problemi di startup.
+
+> **Importante**: non selezionare **Enable OS guest diagnostics**. Il Linux Diagnostics Agent (LAD) è deprecato; la raccolta delle metriche guest OS si potrà abilitare in seguito tramite **VM insights** e le **Data Collection Rule**.
+_(infoBox)_
+
+![Scheda Monitoring nella creazione della VM](img/create-vm-monitoring.png) _(dimensioni: 1019×643 px)_
+*Figura 132: Scheda Monitoring e configurazione delle regole di avviso nella pagina di creazione della macchina virtuale.* _(caption)_
+
+Per completare, selezionare **Review + create** in fondo alla pagina e, superata la validazione, selezionare **Create**. Nella finestra **Generate new key pair** scegliere **Download private key and create resource** per scaricare la chiave privata e avviare il deployment. La creazione richiede qualche minuto; al termine, selezionare **Go to resource** per aprire la VM.
+
+**Visualizzare le platform metrics (host)** _(stepTitle)_
+
+Una volta creata la VM, **Azure Monitor** raccoglie automaticamente le metriche di base dell'host (le cosiddette platform metrics), senza alcun agente. Questi grafici, insieme agli avvisi consigliati appena attivati, permettono di capire se e quando la VM incontra problemi di salute o di prestazioni.
+
+- Dalla pagina **Overview** della VM, selezionare la scheda **Monitoring**.
+- In **Performance and utilization** > **Platform metrics**, consultare i grafici delle metriche. Se non compaiono tutti subito, selezionare **Show more metrics**.
+
+I grafici disponibili per impostazione predefinita sono:
+
+| **Metrica** | **Cosa mostra** |
+|---|---|
+| **VM Availability** | Disponibilità della macchina virtuale |
+| **CPU (average)** | Utilizzo medio della CPU |
+| **Disk bytes (total)** | Byte totali letti/scritti su disco |
+| **Network (total)** | Traffico di rete totale |
+| **Disk operations/sec (average)** | Operazioni disco al secondo (media) |
+
+![Grafici delle platform metrics nella pagina Overview](img/platform-metrics.png) _(dimensioni: 1162×739 px)_
+*Figura 133: Grafici delle platform metrics nella pagina Overview della VM.* _(caption)_
+
+> **Nota**: nella sezione **Guest OS metrics** si noterà che le metriche del sistema operativo guest non vengono ancora raccolte. Per ottenerle occorre configurare **VM insights** e le **Data Collection Rule**, trattate più avanti.
+_(infoBox)_
+
+**Consultare l'activity log** _(stepTitle)_
+
+L'activity log registra le operazioni eseguite sulla risorsa (creazione, modifiche, eventi di gestione). Per consultarlo, selezionare **Activity log** dal menu di navigazione sinistro della VM. Le stesse voci possono essere recuperate anche tramite PowerShell o la Azure CLI.
+
+**Consultare i boot diagnostics** _(stepTitle)_
+
+Avendo abilitato i boot diagnostics in fase di creazione, è ora possibile esaminare i dati di avvio per risolvere eventuali problemi di startup.
+
+- Nel menu di navigazione sinistro della VM, sotto **Help**, selezionare **Boot diagnostics**.
+- Nella pagina **Boot diagnostics**, selezionare **Screenshot** per visualizzare una schermata di avvio catturata dall'hypervisor, oppure **Serial log** per leggere i messaggi di log generati all'avvio della VM.
+
+![Schermata dei boot diagnostics della VM](img/3-boot-diagnostics.png) _(dimensioni: 920×667 px)_
+*Figura 134: Schermata di avvio catturata dai boot diagnostics della VM.* _(caption)_
+
+### 6.3.4 — Usare Esplora metriche per le metriche host
+
+I grafici delle metriche già pronti per una VM sono comodi, ma mostrano solo un insieme predefinito di dati. Quando devi correlare due grandezze diverse — per esempio capire come il traffico in ingresso verso la tua VM incide sulla sua capacità di CPU — quei grafici da soli non bastano. È qui che entra in gioco **Esplora metriche** (Metrics Explorer): ti permette di costruire grafici personalizzati combinando le metriche che vuoi. In questo scenario l'obiettivo è tracciare un unico grafico che mostri insieme la percentuale massima di CPU della VM e il flusso medio dei dati in ingresso, così da osservare a colpo d'occhio l'eventuale relazione tra i due valori.
+
+**Azure Monitor Metrics Explorer** offre un'interfaccia grafica per esplorare e analizzare le metriche delle VM. Il punto di forza è che non sei limitato alle metriche dei grafici predefiniti: puoi visualizzare e creare grafici personalizzati per molte metriche host della VM, andando ben oltre quello che vedi nelle viste built-in.
+
+**Capire Esplora metriche** _(stepTitle)_
+
+Per aprire **Esplora metriche** hai a disposizione tre strade diverse, a seconda di dove ti trovi nel portale:
+
+- Seleziona **Metrics** dal menu di navigazione a sinistra della VM, sotto **Monitoring**.
+- Seleziona il collegamento **See all Metrics** accanto a **Platform metrics**, nella scheda **Monitoring** della pagina **Overview** della VM.
+- Seleziona **Metrics** dal menu di navigazione a sinistra nella pagina **Overview** di **Azure Monitor**.
+
+![Interfaccia di Esplora metriche](img/metrics-explorer.png) _(dimensioni: 1189×640 px)_
+*Figura 135: Schermata di Esplora metriche (Metrics Explorer).* _(caption)_
+
+Una volta dentro Esplora metriche, costruisci il grafico scegliendo i valori da alcuni menu a discesa. Capire cosa rappresenta ciascun campo è importante perché ti dà il controllo preciso su quali dati visualizzare e come aggregarli:
+
+- **Scope** (ambito): se apri Esplora metriche da una VM, questo campo è già precompilato con il nome della VM. Puoi aggiungere altri elementi purché siano dello stesso tipo di risorsa (VM) e della stessa posizione.
+- **Metric Namespace** (spazio dei nomi della metrica): la maggior parte dei tipi di risorsa ha un solo namespace, ma per alcuni tipi devi sceglierlo. Per esempio, gli account di archiviazione hanno namespace separati per file, tabelle, BLOB e code.
+- **Metric** (metrica): ogni namespace di metriche mette a disposizione molte metriche tra cui scegliere.
+- **Aggregation** (aggregazione): per ogni metrica Esplora metriche applica un'aggregazione predefinita. Puoi cambiarla per ottenere informazioni diverse sulla stessa metrica.
+
+Il concetto chiave da afferrare è quello di **aggregazione**: una metrica produce molti punti dati nel tempo, e l'aggregazione decide come riassumerli in ciascun intervallo. Scegliere l'aggregazione giusta cambia completamente il significato del grafico (la media nasconde i picchi, il massimo li evidenzia). Le funzioni di aggregazione applicabili sono:
+
+| **Funzione** | **Significato** |
+|---|---|
+| **Count** | Conta il numero di punti dati. |
+| **Average (Avg)** | Calcola la media aritmetica dei valori. |
+| **Maximum (Max)** | Individua il valore più alto. |
+| **Minimum (Min)** | Individua il valore più basso. |
+| **Sum** | Somma tutti i valori. |
+
+Infine puoi scegliere intervalli di tempo flessibili per i grafici, dagli ultimi 30 minuti fino agli ultimi 30 giorni, oppure intervalli personalizzati. Puoi anche specificare la granularità dell'intervallo temporale, da un minuto fino a un mese: più è fine la granularità, più dettagliato (ma rumoroso) sarà il grafico.
+
+**Creare un grafico di metriche** _(stepTitle)_
+
+Vediamo ora in pratica come costruire un grafico in Esplora metriche che mostri insieme la percentuale massima di CPU dell'host della VM e i flussi in ingresso, relativi agli ultimi 30 minuti. La procedura è la seguente:
+
+1. Apri **Esplora metriche** selezionando **See all Metrics** nella scheda **Monitoring** della VM, oppure selezionando **Metrics** dal menu di navigazione a sinistra della VM.
+2. I campi **Scope** e **Metric Namespace** sono già popolati per l'host della VM. Seleziona **Percentage CPU** dall'elenco a discesa **Metrics**.
+3. Il campo **Aggregation** viene popolato automaticamente con **Avg**, ma in questo caso impostalo su **Max**: vuoi infatti vedere i picchi di CPU, non la media che li smusserebbe.
+
+![Grafico delle metriche di CPU a livello host per una VM](img/3-view-host-level-metrics.png) _(dimensioni: 1221×633 px)_
+*Figura 136: Grafico della metrica Percentage CPU a livello host per una VM.* _(caption)_
+
+4. Seleziona **Add metric** in alto a sinistra per aggiungere una seconda metrica allo stesso grafico.
+5. In **Metric**, seleziona **Inbound Flows**. Lascia **Aggregation** su **Avg**.
+6. In alto a destra, seleziona **Local Time: Last 24 hours (Automatic - 15 minutes)**, cambialo in **Last 30 minutes** e seleziona **Apply**.
+
+A questo punto il grafico mostra le due metriche sovrapposte e dovrebbe avere un aspetto simile alla schermata seguente, in cui puoi confrontare visivamente l'andamento dell'uso della CPU con quello del traffico in ingresso:
+
+![Grafico che mostra uso della CPU e traffico in ingresso](img/3-metric-graph.png) _(dimensioni: 880×543 px)_
+*Figura 137: Grafico che combina l'uso della CPU e il traffico in ingresso.* _(caption)_
+
+> **Suggerimento**: per aggiungere un'altra metrica a un grafico già esistente usa sempre il pulsante **Add metric**; non serve creare un nuovo grafico. Combinare più metriche nello stesso grafico è proprio ciò che rende Esplora metriche utile per individuare correlazioni.
+_(infoBox)_
+
+### 6.3.5 — Raccogliere contatori di prestazioni con VM insights
+
+Monitorare lo stato, l'utilizzo e le prestazioni dell'host della macchina virtuale è solo metà del lavoro. L'altra metà consiste nel monitorare il software e i processi che girano _dentro_ la VM, cioè il cosiddetto guest (o client): il sistema operativo e tutti i carichi di lavoro e le applicazioni che esegui. Il problema è che le metriche dell'host (raccolte automaticamente dalla piattaforma) non vedono cosa accade all'interno del sistema operativo. Per andare oltre serve un agente che osservi la VM dall'interno, e configurare manualmente questa raccolta richiede diversi passaggi. Qui entra in gioco **VM insights**, una funzionalità di **Azure Monitor** pensata per attivare rapidamente il monitoraggio del client della VM.
+
+**Cosa fa VM insights** _(stepTitle)_
+
+Per raccogliere i dati dall'interno della VM occorre installare l'**Azure Monitor Agent**, l'agente che legge i contatori di prestazioni del sistema operativo guest. VM insights automatizza l'intero allestimento e in particolare:
+
+- Installa l'**Azure Monitor Agent** sulla VM.
+- Crea una **Data Collection Rule** (DCR) che raccoglie e invia un set predefinito di dati di prestazione del client a un **Log Analytics workspace**.
+- Presenta i dati in cartelle di lavoro (workbook) curate e già pronte.
+
+In teoria potresti fare tutto a mano: installare l'agente, creare le DCR e costruire i workbook uno per uno. Il valore di VM insights è proprio quello di semplificare questa configurazione, offrendoti da subito una base per monitorare le prestazioni del client della VM e per mappare i processi in esecuzione sulla macchina.
+
+**Abilitare VM insights** _(stepTitle)_
+
+La procedura di attivazione si svolge interamente dal portale di Azure:
+
+1. Nella pagina **Overview** della VM, seleziona **Insights** dal menu di navigazione a sinistra, sotto **Monitoring**.
+2. Nella pagina **Insights**, seleziona **Enable**.
+3. Sotto **Data collection rule**, prendi nota delle proprietà della **Data Collection Rule** che VM insights sta per creare. Nella descrizione della DCR, l'opzione **Processes and dependencies (Map)** è impostata su **Disabled**: puoi cambiarla in **Enabled** per abilitare la mappa delle dipendenze. Viene inoltre creato o assegnato un **Log Analytics workspace** predefinito, dove confluiranno i dati.
+4. Seleziona **Configure**.
+
+![Abilitazione e configurazione di VM insights](img/enable-insights.png) _(dimensioni: 2201×1187 px)_
+*Figura 138: Abilitazione e configurazione di VM insights dalla pagina Insights della VM.* _(caption)_
+
+> **Nota**: la configurazione del workspace e l'installazione dell'agente richiedono in genere dai 5 ai 10 minuti. Possono servire altri 5-10 minuti prima che i dati diventino disponibili per la visualizzazione nel portale.
+_(infoBox)_
+
+5. Al termine della distribuzione, conferma che l'**Azure Monitor Agent** sia installato controllando la scheda **Properties** della pagina **Overview** della VM, sotto **Extensions + applications**.
+
+A questo punto, nella scheda **Monitoring** della pagina **Overview**, sotto **Performance and utilization**, noterai che ora vengono raccolte le **Guest OS metrics**, cioè le metriche del sistema operativo interno alla VM: è la prova concreta che l'agente sta osservando la macchina dall'interno.
+
+![Metriche del sistema operativo guest nella scheda Monitoring](img/guest-os-metrics.png) _(dimensioni: 777×357 px)_
+*Figura 139: Metriche del sistema operativo guest (Guest OS metrics) nella scheda Monitoring della VM.* _(caption)_
+
+**Visualizzare i dati di VM insights** _(stepTitle)_
+
+C'è un dettaglio importante da capire sul percorso dei dati. La **Data Collection Rule** creata da VM insights invia i contatori di prestazioni del client ad **Azure Monitor Logs** (cioè al **Log Analytics workspace**), non al datastore delle metriche. Di conseguenza, per consultare i dati raccolti da VM insights _non_ si usa Metrics Explorer: i grafici e le mappe vivono dentro la pagina Insights, alimentati dalle query sui log.
+
+Per visualizzare i grafici delle prestazioni e le mappe di VM insights:
+
+1. Seleziona **Insights** dal menu di navigazione a sinistra della VM, sotto **Monitoring**.
+2. Vicino alla parte alta della pagina **Insights**, seleziona la scheda **Performance**. Il workbook predefinito **VM insights Performance** mostra grafici e diagrammi con i dati di prestazione relativi alla VM corrente.
+
+![Workbook Performance predefinito di VM insights](img/vm-insights-performance.png) _(dimensioni: 1190×810 px)_
+*Figura 140: Il workbook Performance predefinito di VM insights con i grafici delle prestazioni.* _(caption)_
+
+   - Puoi personalizzare la vista specificando un diverso **Time range** in cima alla pagina e aggregazioni differenti in cima a ciascun grafico.
+   - Seleziona **View Workbooks** per scegliere tra gli altri workbook predefiniti di VM insights. Seleziona **Go To Gallery** per accedere a una galleria di workbook e modelli di VM insights, oppure per modificare e creare i tuoi workbook personalizzati.
+
+3. Se l'hai abilitata in precedenza (impostando **Processes and dependencies (Map)** su **Enabled**), seleziona la scheda **Map** nella pagina **Insights** per vedere il workbook della funzionalità Map. La mappa visualizza le dipendenze della VM individuando i gruppi di processi e i singoli processi in esecuzione che hanno connessioni di rete attive in un intervallo di tempo specificato. È particolarmente utile per capire come la VM comunica con gli altri sistemi e per diagnosticare problemi di connettività.
+
+![Mappa delle dipendenze nella scheda Map di VM insights](img/dependency-map.png) _(dimensioni: 858×769 px)_
+*Figura 141: Mappa delle dipendenze nella scheda Map di VM insights.* _(caption)_
+
+### 6.3.6 — Raccogliere i log eventi del client VM
+
+Le metriche di **Azure Monitor** e i contatori di prestazioni di **VM insights** sono ottimi per individuare le anomalie e per generare avvisi quando vengono superate determinate soglie. Da soli, però, non bastano: per capire la causa profonda (la _root cause_) di un problema rilevato, occorre andare oltre i numeri e analizzare i dati di log, cioè gli eventi di sistema che hanno causato o contribuito al problema. In questa unità vediamo come configurare una **Data Collection Rule** (DCR) per raccogliere il Syslog di una VM Linux e come consultare i log raccolti in **Azure Monitor** Log Analytics tramite una semplice query in **Kusto Query Language** (KQL).
+
+**Perché creare una DCR personalizzata** _(stepTitle)_
+
+Quando si attiva **VM insights**, Azure installa l'**Azure Monitor Agent** e crea automaticamente una DCR che raccoglie un set predefinito di contatori di prestazioni, mappa le dipendenze tra processi e presenta i dati in workbook precostruiti. Questa DCR automatica, però, copre solo le prestazioni: non raccoglie i log eventi. Per andare oltre puoi creare DCR personalizzate per due scopi:
+
+- Raccogliere contatori di prestazioni aggiuntivi che la DCR di **VM insights** non include.
+- Raccogliere dati di log (come il Syslog di Linux o l'Event Log di Windows), che è proprio l'obiettivo di questa unità.
+
+Quando crei una DCR dal portale Azure puoi scegliere tra un'ampia gamma di contatori di prestazioni e frequenze di campionamento, oppure aggiungerne di personalizzati; in alternativa puoi selezionare un set predefinito di tipi di log e livelli di severità, o definire schemi di log personalizzati. Una singola DCR può essere associata a una qualsiasi o a tutte le VM della sottoscrizione, ma in pratica servono spesso più DCR per raccogliere tipi di dati diversi da VM diverse.
+
+> **Nota**: una DCR disaccoppia la sorgente dei dati (la VM) dalla destinazione (il workspace Log Analytics) dalle regole di raccolta. È questo che ti permette di riusare la stessa configurazione su più macchine e di modificare cosa raccogliere senza toccare l'agente.
+_(infoBox)_
+
+**Aprire Azure Monitor** _(stepTitle)_
+
+Nel portale Azure cerca e seleziona _monitor_ per aprire la pagina **Overview** di **Azure Monitor**. È il punto di partenza per gestire endpoint e regole di raccolta.
+
+![Pagina Overview di Azure Monitor](img/monitor-overview.png) _(dimensioni: 986×614 px)_
+*Figura 142: Pagina Overview di Azure Monitor, da cui si gestiscono endpoint e regole di raccolta dati.* _(caption)_
+
+**Creare un Data Collection Endpoint** _(stepTitle)_
+
+Prima della regola serve un punto a cui inviare i log: il **Data Collection Endpoint** (DCE). È l'indirizzo che l'agente usa per consegnare i dati. Per crearlo:
+
+1. Nel menu di navigazione a sinistra di **Azure Monitor**, sotto **Settings**, seleziona **Data Collection Endpoints**.
+2. Nella pagina **Data Collection Endpoints** seleziona **Create**.
+3. Nella pagina **Create data collection endpoint**, nel campo **Name** inserisci _linux-logs-endpoint_.
+4. Seleziona la stessa **Subscription**, lo stesso **Resource group** e la stessa **Region** della tua VM.
+5. Seleziona **Review + create** e, quando la convalida ha esito positivo, seleziona **Create**.
+
+> **Importante**: l'endpoint deve trovarsi nella stessa **Region** della VM. La raccolta dei log è infatti legata alla località dell'endpoint, quindi un endpoint in una region diversa non funzionerebbe per quella macchina.
+_(infoBox)_
+
+**Creare la Data Collection Rule** _(stepTitle)_
+
+Con l'endpoint pronto, si crea la **Data Collection Rule** vera e propria:
+
+1. Nel menu di navigazione a sinistra di **Monitor**, sotto **Settings**, seleziona **Data Collection Rules**.
+2. Nella pagina **Data Collection Rules** vedrai già la DCR creata da **VM insights**. Seleziona **Create** per crearne una nuova.
+
+![Schermata Data Collection Rules con il pulsante Create evidenziato](img/dcr-create.png) _(dimensioni: 1210×528 px)_
+*Figura 143: Pagina Data Collection Rules con il pulsante Create evidenziato; è già presente la DCR generata da VM insights.* _(caption)_
+
+3. Nella scheda **Basics** della schermata **Create Data Collection Rule** fornisci queste informazioni:
+  - **Rule name**: inserisci _collect-events-linux_.
+  - **Subscription**, **Resource Group** e **Region**: gli stessi della tua VM.
+  - **Platform Type**: seleziona **Linux**.
+4. Seleziona **Next: Resources** oppure la scheda **Resources**.
+
+![Scheda Basics della creazione della Data Collection Rule](img/create-dcr-basics.png) _(dimensioni: 785×654 px)_
+*Figura 144: Scheda Basics della schermata Create Data Collection Rule, con nome regola, sottoscrizione e tipo di piattaforma Linux.* _(caption)_
+
+Nella scheda **Resources** colleghi la VM da monitorare e l'endpoint che hai creato:
+
+5. Nella schermata **Resources** seleziona **Add resources**.
+6. Nella schermata **Select a scope** seleziona la VM **monitored-linux-vm**, quindi seleziona **Apply**.
+7. Tornato nella schermata **Resources**, seleziona **Enable Data Collection Endpoints**.
+8. Sotto **Data collection endpoint** per la VM **monitored-linux-vm**, seleziona il **linux-logs-endpoint** che avevi creato.
+9. Seleziona **Next: Collect and deliver** oppure la scheda **Collect and deliver**.
+
+![Scheda Resources della creazione della Data Collection Rule](img/create-dcr-resources.png) _(dimensioni: 763×652 px)_
+*Figura 145: Scheda Resources della schermata Create Data Collection Rule, con la VM e il Data Collection Endpoint associati.* _(caption)_
+
+Nella scheda **Collect and deliver** definisci cosa raccogliere (la sorgente) e dove inviarlo (la destinazione):
+
+10. Nella scheda **Collect and deliver** seleziona **Add data source**.
+11. Nella schermata **Add data source**, sotto **Data source type**, seleziona **Linux Syslog**.
+12. Sempre nella schermata **Add data source**, seleziona **Next: Destination** o la scheda **Destination** e verifica che **Account or namespace** corrisponda al workspace Log Analytics che vuoi usare. Puoi usare il workspace Log Analytics predefinito impostato da **VM insights**, oppure crearne o sceglierne un altro.
+13. Nella schermata **Add data source** seleziona **Add data source**.
+14. Nella schermata **Create Data Collection Rule** seleziona **Review + create** e, quando la convalida ha esito positivo, seleziona **Create**.
+
+![Review + create nella schermata di creazione della Data Collection Rule](img/create-dcr-finish.png) _(dimensioni: 698×460 px)_
+*Figura 146: Passaggio Review + create della schermata Create Data Collection Rule, pronto per la creazione della regola.* _(caption)_
+
+**Visualizzare i dati di log** _(stepTitle)_
+
+Una volta attiva la DCR, puoi consultare e analizzare i log raccolti con query KQL. Per le VM è disponibile un set di query KQL di esempio, ma puoi anche scriverne una tua per esaminare gli eventi che la DCR sta raccogliendo:
+
+1. Nella pagina **Overview** della tua VM, seleziona **Logs** dal menu di navigazione a sinistra sotto **Monitoring**. Log Analytics apre una finestra di query vuota con lo scope già impostato sulla tua VM. In alternativa puoi aprire i log selezionando **Logs** dal menu di navigazione della pagina **Overview** di **Azure Monitor**; in questo caso, se necessario, usa **Select scope** in alto nella finestra di query per impostare il workspace Log Analytics e la VM desiderati.
+
+  > **Nota**: all'apertura di Log Analytics potrebbe comparire la finestra **Queries** con le query di esempio. Per ora chiudila, perché creerai manualmente una query semplice.
+  _(infoBox)_
+
+2. Nella finestra di query vuota digita _Syslog_ e seleziona **Run**. Vengono mostrati tutti gli eventi di log di sistema che la DCR ha raccolto nell'intervallo definito da **Time range**.
+
+```kusto
+Syslog
+```
+
+3. Puoi affinare la query per isolare gli eventi che ti interessano. Ad esempio, per mostrare solo gli eventi con **SeverityLevel** pari a **warning** puoi aggiungere un filtro:
+
+```kusto
+Syslog
+| where SeverityLevel == "warning"
+```
+
+![Eventi restituiti dal Syslog grazie alla DCR](img/dcr-log.png) _(dimensioni: 1053×638 px)_
+*Figura 147: Eventi restituiti dal Syslog grazie alla DCR, filtrati per livello di severità in Log Analytics.* _(caption)_
