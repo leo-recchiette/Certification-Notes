@@ -86,7 +86,13 @@ Tutte le altre tabelle si scrivono direttamente in markdown nel `.md`.
 - Linea sotto 'Sommario' e moduloTitle: `BorderStyle.SINGLE size 8 color #0078D4 space 4`
 - infoBox: sfondo `#E8F0FB`, bordo sinistro `SINGLE size 12 color #0078D4`, indent left 360 right 360
 - Tabelle: intestazione sfondo `#1F4E78` testo bianco; righe pari `#F5F8FC`, dispari `#FFFFFF`; bordi `SINGLE size 1 color #CCCCCC`; `cantSplit: true` su tutte le righe
-- Tab stop sommario: `TabStopType.RIGHT position 8200 leader 'dot'`
+- Tab stop sommario: `TabStopType.RIGHT position 9000 leader 'dot'` (allinea a destra il numero di pagina)
+
+### Numeri di pagina
+
+- **Sommario**: è un **campo TOC nativo di Word** (`TableOfContents`, istruzione `TOC \o "1-3" \u \h`). Le intestazioni sono marcate con un **livello di struttura** (`outlineLevel` 0/1/2 su titolo modulo / `## N.M` / `### N.M.K`) e Word genera automaticamente le voci, i **numeri di pagina**, i dot leader e gli hyperlink. L'aspetto delle voci deriva dagli stili `TOC1`/`TOC2`/`TOC3` definiti nel documento (palette blu coerente). NB: l'approccio con campi `PAGEREF` manuali NON funziona, perché la classe high-level `Bookmark` di docx assegna a tutti i segnalibri lo stesso `w:id` → Word risolve ogni `PAGEREF` a "pagina 1".
+- **Pie' di pagina**: il documento è diviso in **due sezioni** — (1) copertina + sommario **senza** numero di pagina, (2) contenuto dei moduli con campo `PAGE` centrato nel footer e numerazione che **riparte da 1**. Lo stacco tra le due sezioni sostituisce il `pageBreakBefore` del primo titolo-modulo (gli altri moduli sono separati da un `PageBreak` esplicito) per evitare una pagina bianca.
+- **Aggiornamento**: i numeri sono **campi calcolati da Word** (la libreria `docx` non impagina). Il documento ha `features.updateFields = true`: Word aggiorna il Sommario all'apertura. Se il Sommario appare vuoto o con un segnaposto, clic destro su di esso → **Aggiorna campo** → "Aggiorna intero sommario" (oppure `Ctrl+A` poi `F9`).
 
 ---
 

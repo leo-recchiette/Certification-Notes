@@ -20,7 +20,8 @@ const path = require('path');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
   AlignmentType, LevelFormat, TabStopType,
-  BorderStyle, WidthType, ShadingType, VerticalAlign, PageBreak
+  BorderStyle, WidthType, ShadingType, VerticalAlign, PageBreak,
+  Footer, PageNumber, NumberFormat, TableOfContents
 } = require('docx');
 
 const C = {
@@ -69,11 +70,11 @@ function body(text, opts={}, paraOpts={}) {
     children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText, ...opts})] });
 }
 function h2(text) {
-  return new Paragraph({ spacing:{before:200,after:80}, keepNext:true, keepLines:true,
+  return new Paragraph({ spacing:{before:200,after:80}, keepNext:true, keepLines:true, outlineLevel:1,
     children:[new TextRun({text, font:'Calibri', size:28, bold:true, color:C.sectionBlue})] });
 }
 function h3(text) {
-  return new Paragraph({ spacing:{before:140,after:60}, keepNext:true, keepLines:true,
+  return new Paragraph({ spacing:{before:140,after:60}, keepNext:true, keepLines:true, outlineLevel:2,
     children:[new TextRun({text, font:'Calibri', size:24, bold:true, color:C.tocEntry})] });
 }
 function stepTitle(text) {
@@ -163,7 +164,9 @@ function makeTable(headers, rows, colWidths, opts={}) {
 }
 
 function moduloTitle(text) {
-  return new Paragraph({ spacing:{before:0,after:120}, pageBreakBefore:true, keepNext:true, keepLines:true,
+  // Niente pageBreakBefore: lo stacco tra moduli e' gestito in fase di assemblaggio
+  // (interruzione di pagina tra un modulo e l'altro; il primo sfrutta lo stacco di sezione).
+  return new Paragraph({ spacing:{before:0,after:120}, keepNext:true, keepLines:true, outlineLevel:0,
     border:{bottom:{style:BorderStyle.SINGLE, size:8, color:C.sectionBlue, space:4}},
     children:[new TextRun({text, font:'Calibri', size:48, bold:true, color:C.titleBlue})] });
 }
@@ -176,22 +179,6 @@ function tocTitle() {
   return new Paragraph({ spacing:{before:0,after:80},
     border:{bottom:{style:BorderStyle.SINGLE, size:8, color:C.sectionBlue, space:4}},
     children:[new TextRun({text:'Sommario', font:'Calibri', size:36, bold:true, color:C.titleBlue})] });
-}
-function tocMacro(text) {
-  return new Paragraph({ spacing:{before:120,after:40}, keepNext:true,
-    children:[new TextRun({text, font:'Calibri', size:24, bold:true, color:C.titleBlue})] });
-}
-function tocHeading(text) {
-  return new Paragraph({ spacing:{before:60,after:20}, indent:{left:360}, keepNext:true,
-    children:[new TextRun({text, font:'Calibri', size:22, bold:true, color:C.sectionBlue})] });
-}
-function tocEntry(text) {
-  const tabStop={type:TabStopType.RIGHT, position:8200, leader:'dot'};
-  return new Paragraph({ spacing:{before:20,after:20}, indent:{left:720}, tabStops:[tabStop],
-    children:[
-      new TextRun({text, font:'Calibri', size:20, color:C.tocEntry}),
-      new TextRun({text:'\t...', font:'Calibri', size:20, color:C.caption}),
-    ] });
 }
 
 // ─── TABELLE GENERATE DA CODICE (riferite nei .md come [TABELLA: nome]) ───────
@@ -300,7 +287,7 @@ function inlineText(s) {
     .trim();
 }
 
-function parseModule(md) {
+function parseModule(md, modNum = 0) {
   if (md.charCodeAt(0) === 0xFEFF) md = md.slice(1);   // rimuovi eventuale BOM UTF-8
   const L = md.split(/\r?\n/);
   const N = L.length;
@@ -308,6 +295,10 @@ function parseModule(md) {
   const headings = [];
   let title = '';
   let i = 0;
+  // Segnalibri univoci per i riferimenti di pagina del Sommario (PAGEREF -> pagina dell'intestazione)
+  const titleBk = 'bkm' + modNum + '_t';
+  let bkCount = 0;
+  const nextBk = () => 'bkm' + modNum + '_' + (++bkCount);
 
   const peekNonBlank = (j) => { while (j < N && L[j].trim() === '') j++; return j; };
 
@@ -319,7 +310,7 @@ function parseModule(md) {
   } else {
     i = 0;   // nessun titolo h1 trovato: interpreta dall'inizio
   }
-  elements.push(moduloTitle(title));
+  elements.push(moduloTitle(title, titleBk));
   i = peekNonBlank(i);
   if (i < N && /^_/.test(L[i].trim()) && !/^#/.test(L[i])) {
     const introLines = [];
@@ -360,12 +351,12 @@ function parseModule(md) {
     let m;
     // Intestazioni
     if ((m = line.match(/^###\s+(.+)$/))) {
-      flush(); const t = inlineText(splitTag(m[1]).text);
-      elements.push(h3(t)); headings.push({ level: 3, text: t }); i++; continue;
+      flush(); const t = inlineText(splitTag(m[1]).text); const bk = nextBk();
+      elements.push(h3(t, bk)); headings.push({ level: 3, text: t, bk }); i++; continue;
     }
     if ((m = line.match(/^##\s+(.+)$/))) {
-      flush(); const t = inlineText(splitTag(m[1]).text);
-      elements.push(h2(t)); headings.push({ level: 2, text: t }); i++; continue;
+      flush(); const t = inlineText(splitTag(m[1]).text); const bk = nextBk();
+      elements.push(h2(t, bk)); headings.push({ level: 2, text: t, bk }); i++; continue;
     }
     if (/^#\s+/.test(line)) { i++; continue; }   // eventuale altro h1
 
@@ -478,23 +469,23 @@ function parseModule(md) {
   }
   flush();
 
-  return { title, headings, elements };
+  return { title, headings, elements, titleBk, modNum };
 }
 
 // ─── SOMMARIO (generato dalle intestazioni dei moduli) ────────────────────────
-function buildSommario(modules) {
-  const out = [
+function buildSommario() {
+  // Campo TOC nativo di Word: raccoglie le intestazioni tramite i livelli di struttura
+  // (outlineLevel 0/1/2 -> livelli 1/2/3) e genera voci, numeri di pagina, dot leader e
+  // hyperlink. Word lo compila all'apertura (updateFields) o con F9 / "Aggiorna campo".
+  return [
     new Paragraph({ pageBreakBefore:true, spacing:noSpacing, children:[new TextRun('')] }),
     tocTitle(),
+    new TableOfContents('Sommario', {
+      hyperlink: true,
+      headingStyleRange: '1-3',
+      useAppliedParagraphOutlineLevel: true,
+    }),
   ];
-  for (const mod of modules) {
-    out.push(tocMacro(mod.title));
-    for (const h of mod.headings) {
-      if (h.level === 2) out.push(tocHeading(h.text));
-      else out.push(tocEntry(h.text));
-    }
-  }
-  return out;
 }
 
 // ─── Argomenti da riga di comando ────────────────────────────────────────────
@@ -535,38 +526,70 @@ async function main() {
   for (let m = 1; m <= 6; m++) {
     const p = path.join(__dirname, `MODULE_${m}.md`);
     if (fs.existsSync(p)) {
-      try { parsed[m] = parseModule(fs.readFileSync(p, 'utf8')); }
+      try { parsed[m] = parseModule(fs.readFileSync(p, 'utf8'), m); }
       catch (e) { console.error(`  [ERRORE] parsing MODULE_${m}.md: ${e.message}`); parsed[m] = null; }
     } else { parsed[m] = null; }
   }
   const tocModules = [];
   for (let m = 1; m <= 6; m++) if (parsed[m]) tocModules.push(parsed[m]);
 
-  let children = [...coverPage()];
-  if (mode === 'toc') {
-    children.push(...buildSommario(tocModules));
-  } else if (mode === 'module') {
-    children.push(...buildSommario(tocModules));
-    if (!parsed[n]) { console.error(`MODULE_${n}.md non trovato o non parsabile`); process.exit(1); }
-    children.push(...parsed[n].elements);
-  } else {
-    children.push(...buildSommario(tocModules));
-    for (let m = 1; m <= 6; m++) if (parsed[m]) children.push(...parsed[m].elements);
+  if (mode === 'module' && !parsed[n]) { console.error(`MODULE_${n}.md non trovato o non parsabile`); process.exit(1); }
+
+  // Sezione 1: copertina + sommario (campo TOC nativo; senza numero di pagina nel footer).
+  const frontMatter = [...coverPage(), ...buildSommario()];
+
+  // Sezione 2: contenuto dei moduli. Interruzione di pagina tra un modulo e l'altro;
+  // il primo modulo sfrutta gia' lo stacco di sezione (niente pagina bianca).
+  const content = [];
+  if (mode === 'module') {
+    content.push(...parsed[n].elements);
+  } else if (mode === 'full') {
+    let first = true;
+    for (let m = 1; m <= 6; m++) if (parsed[m]) {
+      if (!first) content.push(new Paragraph({ spacing:noSpacing, children:[new PageBreak()] }));
+      content.push(...parsed[m].elements);
+      first = false;
+    }
+  }
+
+  // margini sup/inf a 1008 twip (0,7"): piu' altezza utile -> le figure entrano piu' spesso.
+  const pageProps = { size:{width:11906,height:16838}, margin:{top:1008,right:1440,bottom:1008,left:1440} };
+  const pageFooter = new Footer({ children:[ new Paragraph({ alignment:AlignmentType.CENTER, spacing:noSpacing,
+    children:[ new TextRun({ children:[PageNumber.CURRENT], font:'Calibri', size:18, color:C.caption }) ] }) ] });
+
+  const sections = [ { properties:{ page:pageProps }, children:frontMatter } ];
+  if (content.length) {
+    sections.push({
+      properties:{ page:{ ...pageProps, pageNumbers:{ start:1, formatType:NumberFormat.DECIMAL } } },
+      footers:{ default:pageFooter },
+      children:content,
+    });
   }
 
   const doc = new Document({
+    features: { updateFields: true },   // Word aggiorna il Sommario (campo TOC) all'apertura
+    styles: {
+      default: { document: { run: { font:'Calibri', size:22, color:C.bodyText } } },
+      // Stili applicati da Word alle voci del Sommario generato (livelli 1/2/3 = TOC1/2/3).
+      paragraphStyles: [
+        { id:'TOC1', name:'toc 1', basedOn:'Normal', next:'Normal',
+          run:{ font:'Calibri', size:24, bold:true, color:C.titleBlue },
+          paragraph:{ spacing:{before:120,after:40}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+        { id:'TOC2', name:'toc 2', basedOn:'Normal', next:'Normal',
+          run:{ font:'Calibri', size:22, bold:true, color:C.sectionBlue },
+          paragraph:{ spacing:{before:60,after:20}, indent:{left:360}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+        { id:'TOC3', name:'toc 3', basedOn:'Normal', next:'Normal',
+          run:{ font:'Calibri', size:20, color:C.tocEntry },
+          paragraph:{ spacing:{before:20,after:20}, indent:{left:720}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+      ],
+    },
     numbering: { config: [{ reference:'bullets', levels:[
       {level:0, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT,
        style:{paragraph:{indent:{left:360,hanging:180}}}},
       {level:1, format:LevelFormat.BULLET, text:'◦', alignment:AlignmentType.LEFT,
        style:{paragraph:{indent:{left:720,hanging:180}}}},
     ]}] },
-    sections:[{
-      // margini sup/inf a 1008 twip (0,7"): piu' altezza utile -> le figure entrano piu' spesso
-      // e si riduce lo spazio vuoto. Dx/sx restano a 1440 (1") per non toccare la colonna utile.
-      properties:{page:{size:{width:11906,height:16838}, margin:{top:1008,right:1440,bottom:1008,left:1440}}},
-      children,
-    }],
+    sections,
   });
 
   const buffer = await Packer.toBuffer(doc);
