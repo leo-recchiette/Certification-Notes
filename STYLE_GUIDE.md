@@ -160,10 +160,11 @@ Le **dimensioni di visualizzazione** sono prese dal marcatore `_(dimensioni: L×
 | Figura 40–61 (M3) | vnet-peering-* / route5-* / lb-* / app-gateway / network-watcher | varie (vedi i `.md`) |
 | Figura 62–87 (M4) | storage-* / blob-* / *-redundant-storage / file-* / *-explorer ecc. | varie (vedi il manifest in `MODULE_4.md`) |
 | Figura 88–110 (M5) | 3-create-new-resource / *-scaling / *-scale-sets / autoscale / deployment-* / container-* ecc. | varie (vedi il manifest in `MODULE_5.md`) |
+| Figura 111–147 (M6) | architecture-on-premises-mars / azure-backup-* / backup-* / *-restore-* / *-vm-* / create-dcr-* ecc. | varie (vedi il manifest in `MODULE_6.md`) |
 
 > **Nota**: la numerazione delle figure è gestita nelle didascalie dentro i `MODULE_*.md`.
 > Modulo 2 e Modulo 3 hanno serie di numeri parzialmente sovrapposte (eredità storica);
-> dal Modulo 3 in poi la numerazione è continua: M3 termina a 61, M4 va 62–87, M5 va 88–110.
+> dal Modulo 3 in poi la numerazione è continua: M3 termina a 61, M4 va 62–87, M5 va 88–110, M6 va 111–147.
 
 ---
 
