@@ -21,8 +21,7 @@ const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
   AlignmentType, LevelFormat, TabStopType,
   BorderStyle, WidthType, ShadingType, VerticalAlign, PageBreak,
-  PageReference, Footer, PageNumber, NumberFormat,
-  BookmarkStart, BookmarkEnd, bookmarkUniqueNumericIdGen
+  Footer, PageNumber, NumberFormat, TableOfContents
 } = require('docx');
 
 const C = {
@@ -31,16 +30,6 @@ const C = {
   white: 'FFFFFF', headerBg: '1F4E78', rowEven: 'F5F8FC',
   infoBoxBg: 'E8F0FB', codeBg: 'EEF3F8', codeText: '1B3A6B', border: 'CCCCCC',
 };
-
-// Segnalibri per i numeri di pagina del Sommario. NB: la classe high-level Bookmark di docx
-// assegna sempre w:id=1 (ogni istanza crea un generatore nuovo) -> tutti i PAGEREF
-// risolverebbero a pagina 1. Usiamo BookmarkStart/End con un id numerico UNIVOCO condiviso.
-const bkIdGen = bookmarkUniqueNumericIdGen();
-function bookmarkWrap(name, run) {
-  if (!name) return [run];
-  const nid = bkIdGen();
-  return [ new BookmarkStart(name, nid), run, new BookmarkEnd(nid) ];
-}
 
 // ─── RISOLUZIONE IMMAGINI (ricorsiva, per nome file) ──────────────────────────
 // I path nei .md sono semplificati (es. img/entra-users.png) ma i file risiedono
@@ -80,15 +69,13 @@ function body(text, opts={}, paraOpts={}) {
   return new Paragraph({ spacing:stdSpacing, keepLines:true, ...paraOpts,
     children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText, ...opts})] });
 }
-function h2(text, bk) {
-  const run = new TextRun({text, font:'Calibri', size:28, bold:true, color:C.sectionBlue});
-  return new Paragraph({ spacing:{before:200,after:80}, keepNext:true, keepLines:true,
-    children: bookmarkWrap(bk, run) });
+function h2(text) {
+  return new Paragraph({ spacing:{before:200,after:80}, keepNext:true, keepLines:true, outlineLevel:1,
+    children:[new TextRun({text, font:'Calibri', size:28, bold:true, color:C.sectionBlue})] });
 }
-function h3(text, bk) {
-  const run = new TextRun({text, font:'Calibri', size:24, bold:true, color:C.tocEntry});
-  return new Paragraph({ spacing:{before:140,after:60}, keepNext:true, keepLines:true,
-    children: bookmarkWrap(bk, run) });
+function h3(text) {
+  return new Paragraph({ spacing:{before:140,after:60}, keepNext:true, keepLines:true, outlineLevel:2,
+    children:[new TextRun({text, font:'Calibri', size:24, bold:true, color:C.tocEntry})] });
 }
 function stepTitle(text) {
   return new Paragraph({ spacing:{before:100,after:40}, keepNext:true, keepLines:true,
@@ -176,13 +163,12 @@ function makeTable(headers, rows, colWidths, opts={}) {
   return new Table({ width:{size:FULL_WIDTH,type:WidthType.DXA}, columnWidths:widths, borders, rows:[headerRow,...dataRows] });
 }
 
-function moduloTitle(text, bk) {
+function moduloTitle(text) {
   // Niente pageBreakBefore: lo stacco tra moduli e' gestito in fase di assemblaggio
   // (interruzione di pagina tra un modulo e l'altro; il primo sfrutta lo stacco di sezione).
-  const run = new TextRun({text, font:'Calibri', size:48, bold:true, color:C.titleBlue});
-  return new Paragraph({ spacing:{before:0,after:120}, keepNext:true, keepLines:true,
+  return new Paragraph({ spacing:{before:0,after:120}, keepNext:true, keepLines:true, outlineLevel:0,
     border:{bottom:{style:BorderStyle.SINGLE, size:8, color:C.sectionBlue, space:4}},
-    children: bookmarkWrap(bk, run) });
+    children:[new TextRun({text, font:'Calibri', size:48, bold:true, color:C.titleBlue})] });
 }
 function moduloIntro(text) {
   return new Paragraph({ spacing:{before:80,after:120}, keepNext:true, keepLines:true,
@@ -193,25 +179,6 @@ function tocTitle() {
   return new Paragraph({ spacing:{before:0,after:80},
     border:{bottom:{style:BorderStyle.SINGLE, size:8, color:C.sectionBlue, space:4}},
     children:[new TextRun({text:'Sommario', font:'Calibri', size:36, bold:true, color:C.titleBlue})] });
-}
-const TOC_TAB = {type:TabStopType.RIGHT, position:9000, leader:'dot'};
-// Runs del numero di pagina: tab fino al margine destro (con dot leader) + campo PAGEREF.
-// Il PAGEREF e' un campo "nudo" (senza rPr): eredita lo stile di default del documento
-// (Calibri 10pt grigio), impostato in main(). Word lo compila all'apertura (updateFields).
-function pageRefRuns(bk, size) {
-  return bk ? [ new TextRun({text:'\t', font:'Calibri', size}), new PageReference(bk, {hyperlink:true}) ] : [];
-}
-function tocMacro(text, bk) {
-  return new Paragraph({ spacing:{before:120,after:40}, keepNext:true, tabStops:[TOC_TAB],
-    children:[ new TextRun({text, font:'Calibri', size:24, bold:true, color:C.titleBlue}), ...pageRefRuns(bk, 24) ] });
-}
-function tocHeading(text, bk) {
-  return new Paragraph({ spacing:{before:60,after:20}, indent:{left:360}, keepNext:true, tabStops:[TOC_TAB],
-    children:[ new TextRun({text, font:'Calibri', size:22, bold:true, color:C.sectionBlue}), ...pageRefRuns(bk, 22) ] });
-}
-function tocEntry(text, bk) {
-  return new Paragraph({ spacing:{before:20,after:20}, indent:{left:720}, tabStops:[TOC_TAB],
-    children:[ new TextRun({text, font:'Calibri', size:20, color:C.tocEntry}), ...pageRefRuns(bk, 20) ] });
 }
 
 // ─── TABELLE GENERATE DA CODICE (riferite nei .md come [TABELLA: nome]) ───────
@@ -506,22 +473,19 @@ function parseModule(md, modNum = 0) {
 }
 
 // ─── SOMMARIO (generato dalle intestazioni dei moduli) ────────────────────────
-function buildSommario(modules, present) {
-  const out = [
+function buildSommario() {
+  // Campo TOC nativo di Word: raccoglie le intestazioni tramite i livelli di struttura
+  // (outlineLevel 0/1/2 -> livelli 1/2/3) e genera voci, numeri di pagina, dot leader e
+  // hyperlink. Word lo compila all'apertura (updateFields) o con F9 / "Aggiorna campo".
+  return [
     new Paragraph({ pageBreakBefore:true, spacing:noSpacing, children:[new TextRun('')] }),
     tocTitle(),
+    new TableOfContents('Sommario', {
+      hyperlink: true,
+      headingStyleRange: '1-3',
+      useAppliedParagraphOutlineLevel: true,
+    }),
   ];
-  for (const mod of modules) {
-    // Il numero di pagina (PAGEREF) si aggancia al segnalibro solo se il contenuto del
-    // modulo e' effettivamente incluso nel documento (evita "Bookmark not defined").
-    const has = present ? present.has(mod.modNum) : false;
-    out.push(tocMacro(mod.title, has ? mod.titleBk : null));
-    for (const h of mod.headings) {
-      if (h.level === 2) out.push(tocHeading(h.text, has ? h.bk : null));
-      else out.push(tocEntry(h.text, has ? h.bk : null));
-    }
-  }
-  return out;
 }
 
 // ─── Argomenti da riga di comando ────────────────────────────────────────────
@@ -571,13 +535,8 @@ async function main() {
 
   if (mode === 'module' && !parsed[n]) { console.error(`MODULE_${n}.md non trovato o non parsabile`); process.exit(1); }
 
-  // Moduli il cui contenuto e' effettivamente incluso (per agganciare i PAGEREF del Sommario).
-  const present = new Set();
-  if (mode === 'module') present.add(n);
-  else if (mode === 'full') for (let m = 1; m <= 6; m++) if (parsed[m]) present.add(m);
-
-  // Sezione 1: copertina + sommario (senza numero di pagina nel pie' di pagina).
-  const frontMatter = [...coverPage(), ...buildSommario(tocModules, present)];
+  // Sezione 1: copertina + sommario (campo TOC nativo; senza numero di pagina nel footer).
+  const frontMatter = [...coverPage(), ...buildSommario()];
 
   // Sezione 2: contenuto dei moduli. Interruzione di pagina tra un modulo e l'altro;
   // il primo modulo sfrutta gia' lo stacco di sezione (niente pagina bianca).
@@ -608,10 +567,22 @@ async function main() {
   }
 
   const doc = new Document({
-    features: { updateFields: true },   // Word aggiorna Sommario e numeri di pagina all'apertura
-    // Stile di default dei run: serve a colorare i campi PAGEREF "nudi" del Sommario
-    // (Calibri 10pt grigio). Tutti gli altri run hanno gia' uno stile esplicito.
-    styles: { default: { document: { run: { font:'Calibri', size:20, color:C.caption } } } },
+    features: { updateFields: true },   // Word aggiorna il Sommario (campo TOC) all'apertura
+    styles: {
+      default: { document: { run: { font:'Calibri', size:22, color:C.bodyText } } },
+      // Stili applicati da Word alle voci del Sommario generato (livelli 1/2/3 = TOC1/2/3).
+      paragraphStyles: [
+        { id:'TOC1', name:'toc 1', basedOn:'Normal', next:'Normal',
+          run:{ font:'Calibri', size:24, bold:true, color:C.titleBlue },
+          paragraph:{ spacing:{before:120,after:40}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+        { id:'TOC2', name:'toc 2', basedOn:'Normal', next:'Normal',
+          run:{ font:'Calibri', size:22, bold:true, color:C.sectionBlue },
+          paragraph:{ spacing:{before:60,after:20}, indent:{left:360}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+        { id:'TOC3', name:'toc 3', basedOn:'Normal', next:'Normal',
+          run:{ font:'Calibri', size:20, color:C.tocEntry },
+          paragraph:{ spacing:{before:20,after:20}, indent:{left:720}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+      ],
+    },
     numbering: { config: [{ reference:'bullets', levels:[
       {level:0, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT,
        style:{paragraph:{indent:{left:360,hanging:180}}}},
