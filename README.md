@@ -40,6 +40,16 @@ az-104-appunti/
 npm install docx
 ```
 
+> **Node portable (alternativa all'installazione di sistema)**
+> Invece di un'installazione classica, si può usare una versione **portable** di Node
+> (archivio `.zip` scaricabile da [nodejs.org](https://nodejs.org/), senza installer). Dopo averla
+> estratta, **aggiungere al `PATH`** la cartella che contiene `node.exe` e `npm.cmd`: in questo modo
+> `node` e `npm` sono richiamabili direttamente da qualsiasi cartella e i comandi qui sotto funzionano
+> senza dover indicare il percorso completo dell'eseguibile.
+>
+> Esempio di percorso usato su questa macchina:
+> `C:\Users\<utente>\AppData\Local\node-portable\node-v24.16.0-win-x64\`
+
 ### Generazione
 
 Lo script supporta tre modalità tramite argomenti da riga di comando:
