@@ -1398,3 +1398,190 @@ Application Insights è particolarmente indicato per supportare il team di svilu
 
 > **Suggerimento**: puoi approfondire l'argomento con il modulo di formazione "Troubleshoot solutions by using Application Insights", che mostra come usare Application Insights per risolvere i problemi delle soluzioni.
 _(infoBox)_
+
+## 5.5 — Configurare Azure Container Instances
+
+### 5.5.1 — Introduzione
+
+I container e le macchine virtuali sono entrambi forme di virtualizzazione, ma presentano alcune differenze chiave. Per dare un contesto pratico, immagina di essere un amministratore Azure responsabile della distribuzione e della gestione delle applicazioni in un ambiente cloud: la tua organizzazione cerca una soluzione che offra tempi di avvio rapidi, gestione semplice e la possibilità di eseguire le applicazioni in container isolati. In questo scenario vuoi capire i vantaggi offerti da **Azure Container Instances** e come questo servizio si confronta con le macchine virtuali tradizionali.
+
+In questa sezione imparerai quando convenga usare **Azure Container Instances** al posto delle macchine virtuali, ottenendo una panoramica delle sue funzionalità e dei principali casi d'uso. Vedrai come distinguere i container dalle macchine virtuali, quali caratteristiche rendono **Azure Container Instances** adatto a determinati carichi di lavoro e come implementare i gruppi di container (container group) per orchestrare più container correlati.
+
+### 5.5.2 — Confronto tra container e macchine virtuali
+
+La virtualizzazione hardware ha reso possibile eseguire più istanze isolate di sistemi operativi contemporaneamente sullo stesso hardware fisico: è il principio su cui si basano le macchine virtuali. I container rappresentano lo stadio successivo nella virtualizzazione delle risorse di calcolo, perché spostano il confine della virtualizzazione a un livello più alto.
+
+La differenza chiave sta in *cosa* viene virtualizzato. Una macchina virtuale virtualizza l'hardware: ogni VM include un sistema operativo completo, kernel compreso. Un container, invece, virtualizza il sistema operativo: più applicazioni condividono la stessa istanza del sistema operativo, pur restando isolate tra loro. In altre parole, i container all'interno di una macchina virtuale offrono una funzionalità analoga a quella delle macchine virtuali all'interno di un server fisico, ma con un livello di astrazione più leggero. Capire questa distinzione è essenziale per scegliere lo strumento giusto: se serve una forte separazione di sicurezza si propende per le VM, se servono leggerezza e densità si propende per i container.
+
+**Container e macchine virtuali a confronto** _(stepTitle)_
+
+Per comprendere meglio la virtualizzazione basata su container, conviene confrontare le due tecnologie lungo le dimensioni che contano di più in fase di progettazione: isolamento, sistema operativo, distribuzione, archiviazione persistente e tolleranza ai guasti.
+
+| **Confronto** | **Container** | **Macchine virtuali** |
+| --- | --- | --- |
+| **Isolamento** | Un container offre tipicamente un isolamento leggero dall'host e dagli altri container, ma non fornisce un confine di sicurezza forte quanto quello di una macchina virtuale. | Una macchina virtuale fornisce un isolamento completo dal sistema operativo host e dalle altre macchine virtuali. Questa separazione è utile quando è critico un confine di sicurezza robusto, ad esempio per ospitare app di aziende concorrenti sullo stesso server o cluster. |
+| **Sistema operativo** | I container eseguono solo la porzione in modalità utente (user mode) di un sistema operativo e possono essere ridotti ai soli servizi necessari per l'app. Questo approccio consente di usare meno risorse di sistema. | Le macchine virtuali eseguono un sistema operativo completo, kernel incluso, e richiedono quindi più risorse di sistema (CPU, memoria e archiviazione). |
+| **Distribuzione** | È possibile distribuire singoli container con Docker tramite riga di comando. Per distribuire più container si usa un orchestratore come **Azure Kubernetes Service**. | È possibile distribuire singole macchine virtuali con Windows Admin Center o Hyper-V Manager. Per distribuire più macchine virtuali si usa PowerShell o System Center Virtual Machine Manager. |
+| **Archiviazione persistente** | I container usano **Azure Disks** per l'archiviazione locale di un singolo nodo, oppure **Azure Files** (condivisioni SMB) per l'archiviazione condivisa tra più nodi o server. | Le macchine virtuali usano un disco rigido virtuale (VHD) per l'archiviazione locale di una singola macchina, oppure una condivisione file SMB per l'archiviazione condivisa tra più server. |
+| **Tolleranza ai guasti** | Se un nodo del cluster va in errore, l'orchestratore ricrea rapidamente su un altro nodo del cluster i container che vi erano in esecuzione. | Le macchine virtuali possono effettuare il failover verso un altro server del cluster, dove il sistema operativo della VM viene riavviato sul nuovo server. |
+
+> **Nota**: nessuna delle due tecnologie è "migliore" in assoluto. I container vincono su leggerezza, velocità e densità; le macchine virtuali vincono quando serve un confine di sicurezza forte o l'isolamento di un intero sistema operativo. Spesso le due tecnologie convivono, con i container eseguiti all'interno di VM.
+_(infoBox)_
+
+**Quando scegliere i container** _(stepTitle)_
+
+I container offrono diversi vantaggi rispetto alle macchine fisiche e virtuali. Vale la pena valutare i benefici seguenti pensando a come applicarli alle app interne della propria azienda.
+
+- **Flessibilità e velocità**: i container aumentano la flessibilità e la rapidità nello sviluppo e nella condivisione del codice delle applicazioni containerizzate.
+- **Test**: scegliere i container per la propria configurazione semplifica il test delle applicazioni.
+- **Distribuzione delle app**: l'adozione dei container rende la distribuzione delle app più snella e più rapida.
+- **Densità dei carichi di lavoro**: i container supportano una maggiore densità dei carichi di lavoro e migliorano l'utilizzo delle risorse.
+
+### 5.5.3 — Panoramica di Azure Container Instances
+
+I container sono diventati il modo preferito per pacchettizzare, distribuire e gestire le applicazioni cloud. Il motivo è semplice: un container racchiude l'applicazione insieme a tutto ciò che le serve per funzionare, garantendo che si comporti allo stesso modo ovunque venga eseguita. Su Azure esistono diverse opzioni per costruire e distribuire applicazioni cloud-native e containerizzate; in questa unità ci concentriamo su **Azure Container Instances** (ACI).
+
+**Container Instances offre il modo più rapido e semplice per eseguire un container su Azure**, senza dover gestire alcuna macchina virtuale e senza dover adottare un servizio di orchestrazione più complesso (come Kubernetes). Questo lo rende la soluzione ideale per qualsiasi scenario che possa funzionare in container isolati: lavori batch, attività pianificate, microservizi semplici o ambienti di test usa e getta. Il vantaggio principale è la riduzione del carico operativo: ci si concentra sull'applicazione, non sull'infrastruttura che la ospita.
+
+**Comprendere le immagini dei container** _(stepTitle)_
+
+Tutti i container vengono creati a partire da un'immagine. Un'immagine del container è un pacchetto software leggero, autonomo ed eseguibile che racchiude tutto il necessario per eseguire un'applicazione. È importante capire questa distinzione: l'immagine è il "modello" statico, mentre il container è l'istanza in esecuzione di quel modello in fase di runtime.
+
+Un'immagine include i seguenti componenti:
+
+- **Codice (Code)**: il codice sorgente dell'applicazione.
+- **Runtime**: l'ambiente di esecuzione richiesto per eseguire l'applicazione.
+- **Strumenti di sistema (System tools)**: le utilità necessarie al funzionamento dell'applicazione.
+- **Librerie di sistema (System libraries)**: le librerie condivise utilizzate dall'applicazione.
+- **Impostazioni (Settings)**: i parametri di configurazione specifici dell'applicazione.
+
+Quando si crea un'immagine del container, questa diventa un'unità portabile che può essere eseguita in modo coerente su ambienti di calcolo differenti. Proprio questa portabilità è il motivo per cui i container risolvono il classico problema del "sul mio computer funziona": l'immagine porta con sé l'intero ambiente, eliminando le differenze tra macchina di sviluppo, test e produzione. Le immagini sono quindi i mattoni di base con cui si costruiscono i container.
+
+L'illustrazione seguente mostra un container che esegue un server web costruito con **Azure Container Instances**. Il container è in esecuzione su una macchina virtuale all'interno di una rete virtuale (virtual network).
+
+![Container server web in esecuzione su una VM in una rete virtuale](img/container-overview-0e72c2ba.png) _(dimensioni: 358×424 px)_
+*Figura 109: Un container con un server web in esecuzione su una macchina virtuale all'interno di una rete virtuale.* _(caption)_
+
+**Aspetti chiave di Azure Container Instances** _(stepTitle)_
+
+Vediamo ora alcuni dei principali vantaggi offerti da **Azure Container Instances**. Mentre li esamini, ragiona su come potresti adottare Container Instances per le tue applicazioni interne: ciascuna di queste caratteristiche risolve un problema operativo concreto.
+
+- **Tempi di avvio rapidi (Fast startup times)**: i container possono avviarsi in pochi secondi, senza bisogno di distribuire e gestire macchine virtuali. Questo li rende perfetti per carichi che devono partire e terminare velocemente.
+- **Connettività con IP pubblico e nomi DNS (Public IP connectivity and DNS names)**: i container possono essere esposti direttamente a Internet tramite un indirizzo IP e un FQDN (fully qualified domain name, nome di dominio completo).
+- **Dimensioni personalizzate (Custom sizes)**: si specificano i core di CPU (da 0,1 a 4 vCPU) e la memoria (da 0,1 a 16 GB) per ciascun container al momento della distribuzione. L'allocazione delle risorse è fissa per tutta la durata di vita del gruppo di container.
+- **Archiviazione persistente (Persistent storage)**: i container supportano il montaggio diretto di condivisioni file di **Azure Files**, così i dati non vanno persi quando il container termina.
+- **Container Linux e Windows (Linux and Windows containers)**: Container Instances può pianificare sia container Windows sia container Linux. Il tipo di sistema operativo va specificato al momento della creazione dei gruppi di container.
+- **Gruppi co-pianificati (Coscheduled groups)**: Container Instances supporta la pianificazione di gruppi multi-container che condividono le risorse della macchina host.
+- **Distribuzione in rete virtuale (Virtual network deployment)**: i gruppi di container Linux possono essere distribuiti all'interno di una rete virtuale di Azure per comunicare privatamente con altre risorse Azure. I container distribuiti in una rete virtuale non ricevono un indirizzo IP pubblico e comunicano solo all'interno della rete virtuale o delle reti in peering.
+
+> **Nota**: l'allocazione di CPU e memoria viene definita alla creazione del container e resta invariata per tutto il suo ciclo di vita. Se prevedi un carico variabile, dimensiona le risorse tenendo conto del picco previsto.
+_(infoBox)_
+
+### 5.5.4 — Implementare i gruppi di container
+
+La risorsa di livello più alto in **Azure Container Instances** è il *gruppo di container* (container group). Un gruppo di container è un insieme di container pianificati ed eseguiti sullo stesso host fisico. Tutti i container che ne fanno parte condividono lo stesso ciclo di vita, le stesse risorse, la stessa rete locale e gli stessi volumi di archiviazione. Comprendere questo concetto è fondamentale, perché è il gruppo (e non il singolo container) l'unità con cui si ragiona quando si distribuiscono applicazioni composte da più componenti.
+
+**Cosa sapere sui gruppi di container** _(stepTitle)_
+
+Per capire come funziona un gruppo di container conviene partire da un'analogia e poi guardare a come vengono gestite le risorse e la rete.
+
+- Un gruppo di container è concettualmente simile a un *pod* di Kubernetes. Un pod ha tipicamente una corrispondenza 1:1 con un container, ma può contenerne più di uno: i container di un pod multi-container possono condividere risorse correlate. Lo stesso vale per il gruppo di container in ACI.
+- **Azure Container Instances** alloca le risorse a un gruppo multi-container sommando le richieste di risorse di tutti i container che ne fanno parte. Le risorse considerate includono CPU, memoria e GPU. Questo significa che dimensionare correttamente ogni singolo container è importante, perché il totale del gruppo determina la capacità che verrà riservata sull'host.
+- Esistono tre modi comuni per distribuire un gruppo multi-container, ognuno adatto a uno scenario diverso.
+
+I tre approcci di distribuzione si differenziano per linguaggio e contesto d'uso ideale, come riassunto nella tabella seguente.
+
+| **Metodo di distribuzione** | **Descrizione** | **Quando usarlo** |
+|---|---|---|
+| **Azure Resource Manager template** | Infrastruttura come codice basata su JSON | Ideale quando si distribuiscono i container insieme ad altre risorse di Azure |
+| **Bicep** | Linguaggio di infrastruttura come codice consigliato da Microsoft, più conciso dei template ARM e con supporto completo a IntelliSense | Alternativa moderna e più leggibile ai template ARM |
+| **File YAML** | Formato orientato ai container | Ideale per distribuzioni che includono solo istanze di container |
+
+I gruppi di container possono inoltre condividere un indirizzo IP esterno, una o più porte su tale indirizzo e un'etichetta DNS con un nome di dominio completo (FQDN). Alcune regole sono importanti per evitare errori di configurazione:
+
+- **Accesso da client esterni**: per consentire ai client esterni di raggiungere un container del gruppo, devi esporre la porta sia sull'indirizzo IP sia sul container stesso. Non basta esporla in un solo punto.
+- **Mappatura delle porte**: la mappatura delle porte (port mapping) non è supportata, perché i container di uno stesso gruppo condividono lo stesso namespace delle porte. Di conseguenza due container del gruppo non possono ascoltare sulla stessa porta.
+- **Eliminazione del gruppo**: quando un gruppo di container viene eliminato, il suo indirizzo IP e il relativo FQDN vengono rilasciati.
+
+**Esempio di configurazione** _(stepTitle)_
+
+Per rendere concreti questi concetti, considera l'esempio seguente di un gruppo multi-container composto da due container.
+
+![Gruppo multi-container di Azure Container Instances con due container](img/container-groups-ea19ee6b.png) _(dimensioni: 763×354 px)_
+*Figura 110: Un gruppo multi-container di Azure Container Instances con due container, un indirizzo IP pubblico condiviso e due condivisioni file di Azure montate come volumi.* _(caption)_
+
+Il gruppo multi-container dell'esempio presenta le seguenti caratteristiche e configurazione:
+
+- Il gruppo di container è pianificato su un'unica macchina host e gli viene assegnata un'etichetta con nome DNS.
+- Il gruppo espone un singolo indirizzo IP pubblico con una porta esposta.
+- Un container del gruppo è in ascolto sulla porta 80, mentre l'altro container è in ascolto sulla porta 1433.
+- Il gruppo include due condivisioni file di Azure Files montate come volumi. Ogni container del gruppo monta localmente una delle due condivisioni.
+
+**Cosa considerare quando si usano i gruppi di container** _(stepTitle)_
+
+I gruppi multi-container sono utili quando vuoi suddividere un singolo compito funzionale in più immagini container. Questo approccio porta vantaggi organizzativi e tecnici: team diversi possono fornire immagini diverse e ogni immagine può avere requisiti di risorse separati, mantenendo così le responsabilità ben distinte.
+
+Di seguito alcuni scenari tipici per l'uso dei gruppi multi-container, pensati ad esempio per supportare le app interne di un rivenditore online.
+
+- **Aggiornamento delle app web**: un container del gruppo serve l'applicazione web, mentre un secondo container preleva i contenuti più recenti dal controllo del codice sorgente, mantenendo l'app sempre aggiornata.
+- **Raccolta dei dati di log**: il container dell'applicazione produce log e metriche; un container dedicato al logging raccoglie questi dati in uscita e li scrive in un'archiviazione a lungo termine.
+- **Monitoraggio dell'app**: un container di monitoraggio invia periodicamente richieste al container dell'applicazione per verificare che l'app sia in esecuzione e risponda correttamente, generando un avviso (alert) se individua possibili problemi.
+- **Supporto front-end e back-end**: il gruppo ospita un container front-end e un container back-end. Il front-end serve l'app web, mentre il back-end esegue un servizio per il recupero dei dati.
+
+> **Suggerimento**: usa i gruppi multi-container quando i componenti hanno cicli di vita strettamente collegati e devono condividere rete e storage; se invece i servizi sono indipendenti e devono scalare separatamente, valuta soluzioni di orchestrazione più complete come Kubernetes.
+_(infoBox)_
+
+### 5.5.5 — Panoramica di Azure Container Apps
+
+Quando un team deve creare e distribuire applicazioni cloud-native o containerizzate su Azure, ha a disposizione diverse opzioni. Capire quale di queste sia più adatta a un determinato scenario è fondamentale: ognuna nasce per rispondere a esigenze differenti in termini di controllo, complessità e impegno operativo. In questa unità vediamo dove si colloca **Azure Container Apps** e perché spesso rappresenta il punto di partenza ideale per i microservizi containerizzati.
+
+**Cosa sapere su Azure Container Apps** _(stepTitle)_
+
+**Azure Container Apps** è una piattaforma serverless che ti permette di eseguire applicazioni containerizzate riducendo al minimo l'infrastruttura da gestire e, di conseguenza, i costi. Il vantaggio chiave è proprio questo: invece di preoccuparti della configurazione dei server, dell'orchestrazione dei container e dei dettagli di distribuzione, è il servizio stesso a fornire e mantenere aggiornate tutte le risorse server necessarie a tenere le tue applicazioni stabili e sicure. In altre parole, deleghi alla piattaforma tutta la parte "noiosa" e ti concentri solo sul codice.
+
+Gli utilizzi più comuni di Azure Container Apps sono:
+
+- Distribuzione di endpoint API
+- Hosting di processi di elaborazione in background
+- Gestione di elaborazioni guidate dagli eventi (event-driven)
+- Esecuzione di microservizi
+
+Uno degli aspetti più potenti di questa piattaforma è la capacità di scalare dinamicamente. Le applicazioni costruite su Azure Container Apps possono aumentare o ridurre automaticamente le proprie risorse in base a queste caratteristiche:
+
+- Traffico HTTP
+- Elaborazione guidata dagli eventi (event-driven)
+- Carico di CPU o di memoria
+- Qualsiasi scaler supportato da KEDA
+
+**Considerazioni sull'uso di Azure Container Apps** _(stepTitle)_
+
+Azure Container Apps ti consente di costruire microservizi e job serverless basati su container. Per capire perché molti team lo scelgono, è utile conoscerne le caratteristiche distintive:
+
+- È ottimizzato per l'esecuzione di container generici, in particolare per applicazioni che si articolano in numerosi microservizi distribuiti in container.
+- È basato su Kubernetes e su tecnologie open-source come Dapr, KEDA ed envoy: eredita quindi la robustezza di quell'ecosistema senza esporne la complessità.
+- Supporta applicazioni e microservizi in stile Kubernetes con funzionalità come il rilevamento dei servizi (service discovery) e la suddivisione del traffico (traffic splitting).
+- Abilita architetture applicative event-driven, supportando lo scaling in base al traffico e attingendo da sorgenti di eventi come le code, inclusa la possibilità di scalare fino a zero (scale to zero), cioè azzerare le risorse quando non c'è carico.
+- Supporta l'esecuzione di job on demand, pianificati (scheduled) e guidati dagli eventi.
+
+Va sottolineato un limite preciso, che è anche il rovescio della medaglia della sua semplicità: Azure Container Apps non fornisce accesso diretto alle API native di Kubernetes. Se vuoi costruire applicazioni in stile Kubernetes ma non hai bisogno di accedere direttamente a tutte le API native di Kubernetes né di gestire il cluster, Container Apps ti offre un'esperienza completamente gestita e basata sulle best practice. È proprio per questo che molti team preferiscono iniziare a sviluppare microservizi containerizzati con Azure Container Apps: si ottiene gran parte del valore di Kubernetes senza doverne sostenere l'onere operativo.
+
+**Confronto tra le soluzioni di gestione dei container** _(stepTitle)_
+
+Azure mette a disposizione diverse piattaforme di container, ciascuna pensata per scenari diversi. Sapere distinguerle è il modo migliore per scegliere correttamente:
+
+- **Azure Container Instances** (ACI) è la scelta migliore per attività isolate e di breve durata.
+- **Azure Container Apps** (ACA) serve i microservizi serverless.
+- **Azure Kubernetes Service** (AKS) offre il controllo completo di Kubernetes, adatto a esigenze di orchestrazione complesse.
+
+La tabella seguente mette a confronto Azure Container Apps e Azure Kubernetes Service, le due opzioni più simili tra loro ma con un diverso bilanciamento tra controllo e semplicità:
+
+| **Caratteristica** | **Azure Container Apps (ACA)** | **Azure Kubernetes Service (AKS)** |
+| --- | --- | --- |
+| **Panoramica** | ACA è una piattaforma di container serverless che semplifica la distribuzione e la gestione di applicazioni basate su microservizi, astraendo l'infrastruttura sottostante. | AKS semplifica la distribuzione di un cluster Kubernetes gestito in Azure, delegando ad Azure l'onere operativo. È adatto ad applicazioni complesse che richiedono orchestrazione. |
+| **Distribuzione** | ACA offre un'esperienza PaaS con funzionalità di distribuzione e gestione rapide. | AKS offre maggiore controllo e opzioni di personalizzazione per gli ambienti Kubernetes, risultando adatto ad applicazioni e microservizi complessi. |
+| **Gestione** | ACA si basa su AKS e offre un'esperienza PaaS semplificata per l'esecuzione dei container. | AKS offre un controllo più granulare sull'ambiente Kubernetes, adatto a team con competenze specifiche su Kubernetes. |
+| **Scalabilità** | ACA supporta sia l'autoscaling basato su HTTP sia lo scaling event-driven, risultando ideale per applicazioni che devono rispondere rapidamente ai cambiamenti della domanda. | AKS offre l'autoscaling orizzontale dei pod e l'autoscaling del cluster, fornendo robuste opzioni di scalabilità per le applicazioni containerizzate. |
+| **Casi d'uso** | ACA è pensato per microservizi e applicazioni serverless che traggono vantaggio da uno scaling rapido e da una gestione semplificata. | AKS è la scelta migliore per applicazioni complesse e a esecuzione prolungata, che richiedono tutte le funzionalità di Kubernetes e una stretta integrazione con altri servizi Azure. |
+
+> **Nota**: ACA è costruito sopra AKS. Questo significa che, scegliendo Container Apps, ottieni i benefici dell'ecosistema Kubernetes (scalabilità, microservizi, event-driven) tramite un'esperienza PaaS gestita, mentre con AKS mantieni il controllo diretto e granulare del cluster, al prezzo di una maggiore responsabilità operativa.
+_(infoBox)_
