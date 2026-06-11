@@ -558,3 +558,311 @@ _(infoBox)_
 - Estensione VM di Azure Backup (Azure Backup VM extension)
 
 **Azure Backup** utilizza un **Recovery Services vault** (insieme di credenziali dei servizi di ripristino) per archiviare i dati di backup. Il vault è supportato da blob di Azure Storage, il che lo rende un mezzo di archiviazione a lungo termine efficiente ed economico. Una volta predisposto il vault, è possibile selezionare le macchine di cui eseguire il backup e definire una policy di backup, ovvero stabilire quando vengono acquisiti gli snapshot e per quanto tempo vengono conservati.
+
+## 5.2 — Configurare la disponibilità delle macchine virtuali
+
+### 5.2.1 — Introduzione
+
+Gestire le macchine virtuali su larga scala può essere impegnativo, soprattutto quando i pattern di utilizzo variano e le richieste sulle applicazioni fluttuano nel tempo. Un amministratore Azure deve poter adeguare le risorse delle proprie macchine virtuali per rispondere alle mutevoli esigenze di carico, mantenendo al contempo una configurazione coerente per garantire la stabilità delle applicazioni. L'obiettivo è preservare throughput e reattività, riducendo al minimo i costi legati all'esecuzione continua di un ampio insieme di macchine virtuali.
+
+In questa sezione viene affrontato lo scenario di un sito web aziendale, basato su **Azure Virtual Machines**, che gestisce carichi di lavoro consistenti: il reparto IT vuole assicurarsi che le macchine virtuali si adattino dinamicamente all'aumento e alla diminuzione dei carichi e che esista un piano di continuità operativa per garantirne l'alta disponibilità. Il lettore imparerà a scalare le macchine virtuali, comprendendo i concetti di zone di disponibilità (availability zones), set di disponibilità (availability sets), domini di aggiornamento (update domains) e domini di errore (fault domains); scoprirà inoltre i set di scalabilità (scale sets) e la funzionalità di scalabilità automatica (autoscale), con lo scopo di rispondere efficacemente alle variazioni dei carichi di lavoro.
+
+### 5.2.2 — Pianificare manutenzione e tempi di inattività
+
+Quando ospitiamo i nostri carichi di lavoro su **Azure Virtual Machines**, dobbiamo accettare un principio fondamentale: l'hardware fisico sottostante non è infallibile e la piattaforma stessa va aggiornata periodicamente. Un buon piano di disponibilità non si limita quindi a sperare che nulla vada storto, ma prevede in anticipo cosa accadrà nei tre scenari tipici di interruzione. Capire *come* Azure reagisce in ciascun caso ci permette di dimensionare correttamente le contromisure (ridondanza, set di disponibilità, zone) e di sapere quale impatto attendersi sulle nostre macchine virtuali.
+
+Un piano completo deve coprire tre categorie distinte di eventi: la manutenzione hardware non pianificata, i tempi di inattività imprevisti e la manutenzione pianificata. Sono scenari diversi non solo per causa, ma soprattutto per il *tipo di impatto* che producono sulla VM, ed è proprio questa differenza che ne giustifica una trattazione separata.
+
+**Manutenzione hardware non pianificata** _(stepTitle)_
+
+Questo evento si verifica quando la piattaforma Azure *prevede* che l'hardware, o un qualsiasi componente della piattaforma associato a una macchina fisica, stia per guastarsi. Il punto chiave è che qui non c'è ancora stato un guasto: Azure agisce in modo predittivo, prima che il problema diventi reale.
+
+Quando la piattaforma anticipa un possibile guasto, emette un evento di manutenzione hardware non pianificata e ricorre alla tecnologia di **Live Migration** per spostare le macchine virtuali dall'hardware in via di degrado verso una macchina fisica integra. Il vantaggio di questo approccio è che la Live Migration preserva lo stato della VM: l'operazione mette in pausa la macchina virtuale solo per un breve istante, senza riavviarla. L'effetto collaterale da tenere presente è che le prestazioni potrebbero risultare ridotte prima o dopo l'evento, ma il servizio nel suo complesso non si interrompe in modo significativo.
+
+**Tempi di inattività imprevisti** _(stepTitle)_
+
+A differenza del caso precedente, qui il guasto è già avvenuto: l'hardware o l'infrastruttura fisica della nostra macchina virtuale si guasta in modo inatteso, senza che la piattaforma abbia potuto prevederlo. Rientrano in questa categoria, ad esempio, i guasti alla rete locale, i guasti ai dischi locali o altri problemi a livello di rack.
+
+Quando rileva il guasto, la piattaforma Azure migra automaticamente (operazione di *healing*) la macchina virtuale verso un host fisico integro all'interno dello stesso datacenter. La differenza sostanziale rispetto alla Live Migration è l'impatto: durante la procedura di healing le macchine virtuali subiscono un tempo di inattività, perché vengono riavviate (reboot), e in alcuni casi si può verificare la perdita del disco temporaneo. Questo spiega perché non dobbiamo mai salvare dati persistenti sul disco temporaneo di una VM.
+
+**Manutenzione pianificata** _(stepTitle)_
+
+Gli eventi di manutenzione pianificata sono gli aggiornamenti periodici che Microsoft applica alla piattaforma Azure sottostante. Lo scopo è migliorare l'affidabilità, le prestazioni e la sicurezza complessive dell'infrastruttura della piattaforma su cui girano le nostre macchine virtuali. A differenza dei due scenari precedenti, qui non si tratta di reagire a un guasto, ma di un'attività programmata e proattiva da parte di Microsoft.
+
+**Confronto dei tre scenari** _(stepTitle)_
+
+La tabella seguente riassume le differenze tra i tre eventi, evidenziando causa, tecnologia utilizzata e impatto sulla VM. È questa distinzione che guida le scelte di progettazione della disponibilità.
+
+| **Scenario** | **Causa** | **Tecnologia / Azione** | **Impatto sulla VM** |
+|---|---|---|---|
+| **Manutenzione hardware non pianificata** | Guasto hardware *previsto* (non ancora avvenuto) | Live Migration (preserva lo stato della VM) | Breve pausa, nessun riavvio; possibile calo di prestazioni prima/dopo |
+| **Tempi di inattività imprevisti** | Guasto hardware/infrastruttura *già avvenuto* (rete, disco, rack) | Healing automatico verso un host integro nello stesso datacenter | Tempo di inattività con riavvio (reboot); possibile perdita del disco temporaneo |
+| **Manutenzione pianificata** | Aggiornamenti periodici della piattaforma da parte di Microsoft | Patch programmate dell'host software e dell'hardware | Aggiornamenti programmati dell'infrastruttura sottostante |
+
+> **Nota**: Microsoft non aggiorna automaticamente il sistema operativo della macchina virtuale né gli altri software in esecuzione su di essa. Abbiamo il pieno controllo, e quindi la piena responsabilità, di questi aggiornamenti. Microsoft applica invece periodicamente le patch all'host software e all'hardware sottostanti, per garantire affidabilità ed elevate prestazioni della piattaforma.
+_(infoBox)_
+
+### 5.2.3 — Creare i set di disponibilità
+
+Un set di disponibilità (availability set) è una funzionalità logica che permette di garantire che un gruppo di macchine virtuali correlate venga distribuito insieme all'interno del datacenter Azure. L'obiettivo di fondo è eliminare il singolo punto di guasto: senza questo raggruppamento, nulla impedirebbe ad Azure di collocare tutte le macchine virtuali di un'applicazione sullo stesso server fisico o sullo stesso rack: in caso di guasto hardware o di manutenzione, l'intera applicazione cadrebbe in un colpo solo. Il set di disponibilità distribuisce invece le macchine su più infrastrutture e si occupa anche di non aggiornare tutte le macchine nello stesso momento durante un aggiornamento del sistema operativo host nel datacenter.
+
+**Caratteristiche dei set di disponibilità** _(stepTitle)_
+
+Prima di progettare un set di disponibilità è importante capire come si comporta e quali vincoli impone. Le caratteristiche principali sono le seguenti:
+
+- Tutte le macchine virtuali in un set di disponibilità dovrebbero svolgere lo stesso identico insieme di funzionalità. Il set ha senso solo se le macchine sono intercambiabili: se una cade, le altre devono poter assorbire il carico al suo posto.
+- Tutte le macchine virtuali in un set di disponibilità dovrebbero avere lo stesso software installato, proprio per garantire questa intercambiabilità.
+- Azure assicura che le macchine virtuali di un set di disponibilità vengano eseguite su più server fisici, rack di calcolo, unità di storage e switch di rete differenti. In questo modo, se si verifica un guasto hardware o un guasto del software Azure, viene colpito solo un sottoinsieme delle macchine virtuali del set. L'applicazione resta attiva e continua a essere disponibile per i clienti.
+- È possibile creare una macchina virtuale e un set di disponibilità nello stesso momento.
+- Una macchina virtuale può essere aggiunta a un set di disponibilità soltanto al momento della sua creazione. Per cambiare il set di disponibilità di una macchina virtuale esistente, è necessario eliminarla e poi ricrearla. Questo è un vincolo importante da tenere presente in fase di progettazione, perché un errore non è correggibile "a caldo".
+- I set di disponibilità si possono creare tramite il portale di Azure, i modelli **Azure Resource Manager** (ARM), gli script o gli strumenti API.
+
+> **Nota**: aggiungere le macchine virtuali a un set di disponibilità non protegge le applicazioni dai guasti del sistema operativo o specifici dell'applicazione. Per la protezione a livello applicativo occorre adottare altre tecniche di disaster recovery e di backup.
+_(infoBox)_
+
+**Aspetti da valutare nell'uso dei set di disponibilità** _(stepTitle)_
+
+I set di disponibilità sono una capacità essenziale quando si vogliono costruire soluzioni cloud affidabili. Nella pianificazione conviene tenere a mente alcuni principi generali, ciascuno dei quali risponde a un'esigenza precisa di affidabilità:
+
+- **Considerare la ridondanza**. Per ottenere ridondanza nella configurazione, è necessario collocare più macchine virtuali in un set di disponibilità. Una sola macchina nel set non offre alcuna protezione: serve almeno una replica che subentri in caso di guasto.
+- **Considerare la separazione dei livelli applicativi**. Ogni livello (tier) dell'applicazione dovrebbe trovarsi in un set di disponibilità separato. Questa separazione aiuta a mitigare il singolo punto di guasto su tutte le macchine: così, ad esempio, un problema sul livello web non coinvolge contemporaneamente anche il livello dati.
+- **Considerare il bilanciamento del carico**. Per ottenere alta disponibilità e buone prestazioni di rete, conviene creare un set di disponibilità con bilanciamento del carico tramite **Azure Load Balancer**. Il Load Balancer distribuisce il traffico in ingresso tra le istanze funzionanti dei servizi definite nel set di disponibilità bilanciato.
+- **Considerare i dischi gestiti**. È possibile usare i dischi gestiti di Azure (**Azure managed disks**) con le macchine virtuali nei set di disponibilità, per lo storage a livello di blocco.
+
+### 5.2.4 — Update domain e fault domain
+
+Per garantire alta disponibilità e tolleranza ai guasti durante il deployment e l'aggiornamento delle applicazioni, i set di disponibilità di **Azure Virtual Machines** si basano su due concetti chiave: gli *update domain* (domini di aggiornamento) e i *fault domain* (domini di errore). L'idea di fondo è semplice ma potente: distribuire le macchine virtuali in modo che un singolo evento — sia esso pianificato (un aggiornamento) o imprevisto (un guasto hardware) — non possa mai mettere fuori uso tutte le istanze contemporaneamente.
+
+Ogni macchina virtuale inserita in un set di disponibilità viene assegnata automaticamente a un update domain e a un fault domain. È proprio questa doppia assegnazione che permette ad Azure di "spalmare" il carico su unità logiche e fisiche diverse, riducendo il rischio di interruzioni del servizio.
+
+**Cosa sapere sugli update domain** _(stepTitle)_
+
+Un update domain è un gruppo di nodi che vengono aggiornati insieme durante un processo di aggiornamento del servizio (chiamato anche *roll out*). Il loro scopo è consentire ad Azure di eseguire aggiornamenti incrementali o "a rotazione" (rolling) su un deployment, evitando di riavviare tutto in una volta sola. In questo modo, mentre un gruppo di VM viene aggiornato e riavviato, le altre continuano a servire le richieste.
+
+Ecco le caratteristiche principali degli update domain:
+
+- Ogni update domain contiene un insieme di macchine virtuali e l'hardware fisico associato che possono essere aggiornati e riavviati nello stesso momento.
+- Durante la manutenzione pianificata, viene riavviato un solo update domain alla volta. Questo è il meccanismo che protegge l'applicazione: le altre istanze restano operative.
+- Quando crei un set di disponibilità puoi specificare da 1 a 20 update domain. Se non indichi alcun valore, Azure ne imposta cinque come impostazione predefinita.
+- Il numero di update domain è immutabile dopo la creazione: per cambiarlo devi eliminare e ricreare il set di disponibilità.
+
+> **Importante**: poiché il conteggio degli update domain non si può modificare a posteriori, vale la pena pianificarlo con attenzione al momento della creazione del set di disponibilità.
+_(infoBox)_
+
+**Cosa sapere sui fault domain** _(stepTitle)_
+
+Un fault domain è un gruppo di nodi che rappresenta un'unità fisica di errore. Il modo più intuitivo per visualizzarlo è pensare a un fault domain come a un insieme di nodi che appartengono allo stesso rack fisico. Se quel rack subisce un problema, tutto ciò che vi è ospitato viene coinvolto: ecco perché distribuire le VM su più fault domain è cruciale.
+
+- Un fault domain definisce un gruppo di macchine virtuali che condividono un insieme comune di hardware (o *switch*) e, di conseguenza, un singolo punto di errore. Un esempio tipico è un rack server alimentato dallo stesso set di switch di rete o di alimentazione.
+- Due fault domain lavorano insieme per mitigare l'impatto di guasti hardware, interruzioni di rete, cali di alimentazione o aggiornamenti software. Distribuendo le istanze su domini distinti, un problema che colpisce un rack non si propaga all'altro.
+
+**Uno scenario pratico con due fault domain** _(stepTitle)_
+
+Vediamo come questi concetti si combinano in pratica. Immaginiamo uno scenario con due fault domain, ciascuno dei quali ospita due macchine virtuali. Le macchine virtuali di ogni fault domain appartengono a set di disponibilità diversi:
+
+- Il set di disponibilità **web** contiene due macchine virtuali, una prelevata da ciascun fault domain.
+- Il set di disponibilità **SQL** contiene due macchine virtuali diverse, anch'esse una per ciascun fault domain.
+
+Il risultato è che, sia il livello web sia il livello SQL, hanno sempre almeno una istanza attiva anche se uno dei due fault domain dovesse guastarsi completamente. Questa è la logica con cui i set di disponibilità garantiscono la continuità del servizio.
+
+![Due fault domain con due macchine virtuali ciascuno in set di disponibilità diversi](img/update-fault-domains-c1ceee00.png) _(dimensioni: 578×312 px)_
+*Figura 94: Due fault domain con due macchine virtuali ciascuno. Le macchine virtuali di ogni fault domain sono distribuite in set di disponibilità differenti (web e SQL).* _(caption)_
+
+### 5.2.5 — Zone di disponibilità
+
+Le zone di disponibilità (availability zones) sono un'offerta di alta disponibilità pensata per proteggere applicazioni e dati dai guasti che possono colpire un intero datacenter. Mentre i set di disponibilità lavorano "dentro" un singolo datacenter (proteggendo da guasti hardware ed eventi di manutenzione a livello di rack), le zone di disponibilità alzano il livello di protezione a un'intera area geografica: distribuiscono le risorse su edifici fisicamente separati all'interno della stessa region. L'idea di fondo è semplice: se un datacenter va offline (per un'interruzione elettrica, un incendio, un allagamento), gli altri continuano a funzionare e l'applicazione resta disponibile.
+
+Per ottenere questo risultato si collocano (colocate) le risorse di calcolo, archiviazione, rete e dati all'interno di una zona e si replicano nelle altre zone. In questo modo l'architettura non dipende più da un unico punto fisico.
+
+**Come funziona la distribuzione su più zone** _(stepTitle)_
+
+Immagina di creare tre o più macchine virtuali distribuendole su tre zone diverse all'interno di una region di Azure. Il risultato è che le macchine virtuali sono effettivamente ripartite su tre fault domain e tre update domain distinti. Questo è il punto chiave: usando le zone ottieni "gratuitamente" l'isolamento sia dai guasti fisici (fault domain) sia dagli aggiornamenti pianificati (update domain), perché la piattaforma Azure riconosce questa distribuzione e garantisce che le macchine virtuali in zone diverse non vengano mai aggiornate nello stesso momento. È il motivo per cui le zone offrono uno SLA più alto rispetto ai semplici set di disponibilità.
+
+**Cosa sapere sulle zone di disponibilità** _(stepTitle)_
+
+Ecco le caratteristiche fondamentali da tenere a mente:
+
+- Le zone di disponibilità sono posizioni fisiche uniche all'interno di una region di Azure.
+- Ogni zona è composta da uno o più datacenter dotati di alimentazione, raffreddamento e rete indipendenti. L'indipendenza di queste infrastrutture è ciò che garantisce che il guasto di una zona non si propaghi alle altre.
+- Per assicurare la resilienza, in tutte le region abilitate esiste un minimo di tre zone separate.
+- La separazione fisica delle zone all'interno di una region è ciò che protegge applicazioni e dati dai guasti di un datacenter.
+- I servizi zone-redundant replicano le applicazioni e i dati attraverso le zone di disponibilità per proteggere dai single point of failure (punti singoli di guasto).
+
+**Cosa considerare quando si usano le zone** _(stepTitle)_
+
+I servizi di Azure che supportano le zone di disponibilità si dividono in due categorie. La differenza sta in chi gestisce la distribuzione: con i servizi zonal sei tu a "fissare" ogni risorsa a una zona specifica, mentre con i servizi zone-redundant è la piattaforma a replicare automaticamente i dati su tutte le zone.
+
+| **Categoria** | **Descrizione** | **Esempi** |
+| --- | --- | --- |
+| **Zonal services** | I servizi _zonal_ di Azure ancorano (pin) ogni risorsa a una zona specifica. | - **Azure Virtual Machines** - **Azure Managed Disks** |
+| **Zone-redundant services** | Per i servizi di Azure che sono zone-redundant, la piattaforma replica automaticamente su tutte le zone. | - **Azure Storage** in modalità zone-redundant - **Azure SQL Database** |
+
+> **Nota**: gli indirizzi IP standard possono essere configurati come zone-redundant (consigliato per l'alta disponibilità), zonal (ancorati a una zona specifica) oppure non-zonal (a livello di region), a seconda della scelta di deployment.
+_(infoBox)_
+
+> **Suggerimento**: per ottenere una continuità operativa (business continuity) completa su Azure, progetta l'architettura della tua applicazione combinando le zone di disponibilità con le coppie di region (regional pairs). Le zone proteggono dai guasti all'interno di una region, mentre le coppie di region estendono la protezione a livello geografico in caso di disastro su scala regionale.
+_(infoBox)_
+
+### 5.2.6 — Confronto tra scalabilità verticale e orizzontale
+
+Una configurazione robusta per una macchina virtuale deve prevedere il supporto alla scalabilità. La scalabilità consente di adeguare il throughput di una macchina virtuale in modo proporzionale alla disponibilità delle risorse hardware associate. In pratica, una macchina virtuale scalabile è in grado di assorbire l'aumento delle richieste senza che ne risentano i tempi di risposta o la capacità di elaborazione. Il motivo per cui questo aspetto è cruciale è semplice: i carichi di lavoro reali non sono costanti: variano nel corso della giornata, della settimana o in occasione di picchi imprevisti, e una macchina dimensionata in modo rigido finisce per essere o sovradimensionata (e quindi costosa) o insufficiente (e quindi lenta). Per la maggior parte delle operazioni di scalabilità esistono due approcci possibili: quello *verticale* e quello *orizzontale*.
+
+**Cosa sapere sulla scalabilità verticale** _(stepTitle)_
+
+La scalabilità verticale, nota anche come *scale up e scale down*, consiste nell'aumentare o diminuire la **dimensione** (size) della macchina virtuale in risposta al carico di lavoro. In altre parole, con la scalabilità verticale si rende una singola macchina virtuale più potente (scale up) oppure meno potente (scale down), agendo sulle risorse che le sono assegnate, come CPU e memoria. Il numero di macchine resta sempre uno: ciò che cambia è la loro "taglia".
+
+![Scalabilità verticale di una macchina virtuale](img/vertical-scaling-cdafa792.png) _(dimensioni: 304×167 px)_
+*Figura 95: Scalabilità verticale: una singola macchina virtuale aumenta o diminuisce di dimensione tramite scale up o scale down.* _(caption)_
+
+Ecco alcuni scenari in cui la scalabilità verticale può rivelarsi vantaggiosa:
+
+- Se hai un servizio basato su una macchina virtuale che risulta sottoutilizzata in determinati periodi, ad esempio nel fine settimana, puoi sfruttare la scalabilità verticale per ridurne la dimensione e abbattere così i costi mensili.
+- Puoi applicare la scalabilità verticale per aumentare la dimensione della macchina virtuale e sostenere una domanda più elevata, senza dover creare macchine virtuali aggiuntive.
+
+**Cosa sapere sulla scalabilità orizzontale** _(stepTitle)_
+
+La scalabilità orizzontale, indicata anche come *scale out e scale in*, viene utilizzata per modificare il **numero** di macchine virtuali presenti nella configurazione, in modo da adattarsi al variare del carico di lavoro. Quando si applica la scalabilità orizzontale, si ha un aumento (scale out) oppure una diminuzione (scale in) del numero di istanze di macchina virtuale. La logica qui è diversa: invece di rendere "più grande" una singola macchina, si aggiungono o si rimuovono macchine che lavorano in parallelo per distribuire il carico.
+
+![Scalabilità orizzontale di un insieme di macchine virtuali](img/horizontal-scaling-3e457e75.png) _(dimensioni: 342×187 px)_
+*Figura 96: Scalabilità orizzontale: vengono aggiunte macchine virtuali (scale out) per sostenere il carico di lavoro.* _(caption)_
+
+**Aspetti da valutare nella scelta tra scalabilità verticale e orizzontale** _(stepTitle)_
+
+Quando si decide quale approccio adottare, è utile ragionare sulle implicazioni pratiche di ciascuna soluzione, pensando a quale possa effettivamente supportare meglio lo scenario in questione (ad esempio il sito web aziendale). I principali aspetti da considerare sono i seguenti:
+
+- **Considera le limitazioni**. In generale, la scalabilità orizzontale presenta meno vincoli rispetto a quella verticale. Una soluzione di scalabilità verticale dipende infatti dalla disponibilità di hardware più potente, che raggiunge rapidamente un limite massimo e può variare da regione a regione. Inoltre, la scalabilità verticale di norma richiede l'arresto e il riavvio della macchina virtuale, con il risultato di limitare temporaneamente l'accesso alle applicazioni o ai dati.
+- **Considera la flessibilità**. Quando si opera nel cloud, la scalabilità orizzontale è più flessibile. Una soluzione di scalabilità orizzontale consente potenzialmente di eseguire migliaia di macchine virtuali per gestire le variazioni di carico di lavoro e di throughput.
+- **Considera il reprovisioning**. Il *reprovisioning* è il processo che consiste nel rimuovere una macchina virtuale esistente e sostituirla con una nuova. Un piano di disponibilità ben strutturato deve individuare in anticipo i punti in cui potrebbe rendersi necessario il reprovisioning e prevedere le possibili interruzioni del servizio. Se il reprovisioning può essere necessario, occorre stabilire se vi siano dati da conservare e da migrare verso la nuova macchina.
+
+Per riepilogare le differenze chiave tra i due approcci, la seguente tabella mette a confronto i parametri principali:
+
+| **Caratteristica** | **Scalabilità verticale (scale up/down)** | **Scalabilità orizzontale (scale out/in)** |
+|---|---|---|
+| **Cosa cambia** | La dimensione (size) di una singola macchina virtuale | Il numero di istanze di macchine virtuali |
+| **Direzione** | Scale up (più potente) / scale down (meno potente) | Scale out (più istanze) / scale in (meno istanze) |
+| **Limitazioni** | Dipende dalla disponibilità di hardware più grande; limite superiore rapido; variabile per regione | Meno vincoli; più scalabile nel tempo |
+| **Continuità del servizio** | Richiede in genere arresto e riavvio della macchina | Le istanze esistenti restano attive durante la variazione |
+| **Flessibilità nel cloud** | Inferiore | Superiore (potenzialmente migliaia di istanze) |
+
+> **Nota**: la scalabilità verticale è spesso la via più rapida e semplice quando serve solo "più potenza" su una macchina singola, ma è la scalabilità orizzontale a offrire la maggiore resilienza ed elasticità nel cloud, perché distribuisce il carico su più istanze ed evita il punto unico di fallimento rappresentato da una sola macchina.
+_(infoBox)_
+
+### 5.2.7 — Implementare i Virtual Machine Scale Sets
+
+Un **Azure Virtual Machine Scale Set** è una risorsa di **Azure Compute** che permette di distribuire e gestire un insieme di macchine virtuali *identiche*. L'idea di fondo è semplice ma potente: invece di configurare e mantenere ogni VM una per una, definisci una sola volta la configurazione e lasci che la piattaforma replichi automaticamente quante istanze servono. Configurando tutte le macchine allo stesso modo, ottieni il vero *autoscaling* (scalabilità automatica): il numero di istanze cresce quando la domanda applicativa aumenta e si riduce quando la domanda cala.
+
+Il vantaggio pratico è che non devi più effettuare il *pre-provisioning* delle macchine virtuali, cioè predisporle in anticipo immaginando il picco massimo di carico. Diventa molto più semplice costruire servizi su larga scala pensati per carichi di lavoro a elevata capacità di calcolo (large compute), big data e workload containerizzati. Quando il carico aumenta vengono aggiunte nuove istanze; quando diminuisce le istanze vengono rimosse. Questo processo di aggiunta e rimozione può essere manuale, automatico oppure una combinazione dei due approcci.
+
+> **Perché conviene**: paghi solo per le istanze effettivamente attive in un dato momento. Riducendo le macchine nei periodi di basso carico ottimizzi i costi, mentre nei picchi mantieni le prestazioni aggiungendo capacità senza intervento manuale.
+_(infoBox)_
+
+**Caratteristiche degli Azure Virtual Machine Scale Sets** _(stepTitle)_
+
+Vale la pena ricordare le proprietà principali di questa risorsa, perché spiegano sia il "cosa" sia il "perché" la si sceglie:
+
+- Gli scale set supportano l'uso di **Azure Load Balancer** per la distribuzione del traffico di base a livello 4 (layer-4), e di **Azure Application Gateway** per una distribuzione più avanzata a livello 7 (layer-7) e per la terminazione TLS/SSL. In pratica il bilanciatore distribuisce le richieste in ingresso tra le diverse istanze dello scale set.
+- Puoi usare gli scale set per eseguire più istanze della tua applicazione contemporaneamente. Se una delle istanze di macchina virtuale ha un problema, i clienti continuano ad accedere all'applicazione tramite un'altra istanza, con un'interruzione minima. È questo il meccanismo che migliora l'*alta disponibilità* del servizio.
+- L'*autoscaling* è integrato: poiché la domanda dei clienti può variare nel corso della giornata o della settimana, lo scale set aumenta e diminuisce automaticamente il numero di macchine virtuali per adeguarsi al carico reale.
+
+**Le due modalità di orchestrazione: Uniform e Flexible** _(stepTitle)_
+
+Esistono due tipi di modalità di orchestrazione (orchestration mode) per gli scale set. La modalità va scelta al momento della creazione dello scale set e ne determina il comportamento. La differenza chiave riguarda quanto le istanze devono essere identiche tra loro.
+
+| **Modalità** | **Caratteristiche delle istanze** | **Quando usarla** |
+|---|---|---|
+| **Uniform** | Tutte le istanze di macchina virtuale vengono create dalla stessa immagine del sistema operativo di base e dalla stessa configurazione. | Workload omogenei e a larga scala in cui serve il massimo dell'automazione su istanze identiche. |
+| **Flexible** | Le VM possono usare immagini, dimensioni (size) o configurazioni diverse all'interno dello stesso scale set. | Scenari che richiedono maggiore eterogeneità e controllo sulle singole istanze. |
+
+> **Importante**: la modalità di orchestrazione deve essere scelta quando lo scale set viene creato e condiziona le opzioni disponibili in seguito. Valuta quindi in anticipo se ti serve l'uniformità totale (Uniform) o la flessibilità di mescolare configurazioni diverse (Flexible).
+_(infoBox)_
+
+### 5.2.8 — Creare i Virtual Machine Scale Sets
+
+I **Virtual Machine Scale Sets** si creano direttamente nel portale di Azure. In fase di creazione decidi quante macchine virtuali vuoi e di quale dimensione, e indichi le preferenze relative all'uso delle istanze **Azure Spot**, dei **Azure managed disks** (dischi gestiti) e delle politiche di allocazione. Capire queste impostazioni serve a configurare un set che bilanci correttamente costi, prestazioni e resilienza fin dal primo deployment.
+
+Nel portale di Azure ci sono diversi parametri da configurare per portare a termine la creazione di un Virtual Machine Scale Sets.
+
+![Creazione di un Virtual Machine Scale Set nel portale di Azure](img/implement-scale-sets-61516afb.png) _(dimensioni: 831×592 px)_
+*Figura 97: La pagina di creazione dei Virtual Machine Scale Sets nel portale di Azure.* _(caption)_
+
+**Impostazioni di base (scheda Basics)** _(stepTitle)_
+
+Le impostazioni principali definiscono la natura del set e delle macchine virtuali che ne faranno parte:
+
+- **Orchestration mode** (modalità di orchestrazione): determina come lo scale set gestisce le macchine virtuali. La modalità **Flexible** è quella predefinita e consigliata per i nuovi deployment, perché offre maggiore flessibilità nella gestione delle singole VM. Per la maggior parte dei nuovi carichi di lavoro conviene accettare il valore predefinito Flexible, a meno che tu non abbia un requisito specifico che imponga istanze identiche tra loro.
+- **Image** (immagine): seleziona il sistema operativo di base o l'applicazione da installare sulla VM. È il punto di partenza che definisce cosa eseguirà ciascuna istanza.
+- **VM Architecture** (architettura della VM): Azure consente di scegliere tra macchine virtuali basate su **x64** o su **Arm64** per eseguire le applicazioni. Le VM x64 garantiscono la massima compatibilità software, mentre le VM Arm64 offrono fino al 50% di rapporto prezzo/prestazioni migliore rispetto alle VM x64 equivalenti. La scelta dipende quindi dal compromesso tra compatibilità e convenienza che il tuo carico di lavoro richiede.
+- **Size** (dimensione): seleziona la dimensione della VM più adatta al carico di lavoro da eseguire. La dimensione scelta determina fattori come potenza di elaborazione, memoria e capacità di archiviazione. Azure mette a disposizione un'ampia gamma di dimensioni per molti tipi di utilizzo e applica una tariffa oraria basata sulla dimensione della VM e sul sistema operativo.
+
+**Impostazioni avanzate (scheda Advanced)** _(stepTitle)_
+
+Sotto la scheda **Advanced** puoi configurare anche il comportamento di distribuzione delle istanze:
+
+- **Spreading algorithm** (algoritmo di distribuzione): determina come le VM dello scale set vengono bilanciate tra i **fault domain**. Questo parametro incide direttamente sulla resilienza del set in caso di guasti hardware.
+
+La scelta dell'algoritmo di distribuzione si riduce a due opzioni che si comportano in modo diverso quando i fault domain disponibili sono pochi:
+
+| **Algoritmo** | **Comportamento** | **Quando i fault domain sono meno di cinque** |
+|---|---|---|
+| **Max spreading** | Le VM vengono distribuite sul maggior numero possibile di fault domain in ciascuna zona. | Il deployment dello scale set viene comunque completato con successo. |
+| **Fixed spreading** | Le VM vengono sempre distribuite su esattamente cinque fault domain. | Il deployment dello scale set fallisce, perché non riesce a soddisfare il vincolo dei cinque fault domain. |
+
+> **Importante**: Microsoft consiglia di usare **Max spreading** per la propria implementazione, perché evita che il deployment fallisca quando in una zona sono disponibili meno di cinque fault domain.
+_(infoBox)_
+
+### 5.2.9 — Implementare la scalabilità automatica
+
+Una delle caratteristiche più potenti dei **Virtual Machine Scale Sets** è la capacità di aumentare o diminuire automaticamente il numero di istanze di macchina virtuale che eseguono la tua applicazione. Questo meccanismo si chiama *scalabilità automatica* (autoscaling) e ti permette di adattare dinamicamente la configurazione per rispondere alle variazioni del carico di lavoro.
+
+Il valore di questo approccio sta tutto nell'equilibrio tra prestazioni e costi. Quando la domanda è bassa, la scalabilità automatica riduce al minimo il numero di istanze inutili che restano accese: paghi solo per quello che serve davvero. Quando la domanda cresce, vengono aggiunte automaticamente nuove istanze, in modo che i tuoi clienti continuino a ricevere un livello di prestazioni accettabile senza alcun intervento manuale.
+
+![Scale set che scala tra un numero minimo e massimo di VM](img/autoscale-45b054e0.png) _(dimensioni: 751×219 px)_
+*Figura 98: Un'implementazione di Virtual Machine Scale Sets che scala automaticamente tra un minimo (ad esempio due VM) e un massimo (ad esempio cinque VM) in base alla domanda del carico di lavoro.* _(caption)_
+
+**Aspetti da considerare quando si usa la scalabilità automatica** _(stepTitle)_
+
+Prima di applicare l'autoscaling a uno scenario reale, ad esempio il sito web della tua azienda, vale la pena ragionare sui diversi modi in cui questa funzionalità può tornarti utile.
+
+- **Capacità regolata automaticamente**: puoi creare regole di scalabilità che definiscono il livello di prestazioni accettabile per garantire una buona esperienza al cliente. Quando le soglie definite vengono raggiunte, le regole di autoscaling intervengono automaticamente per adeguare la capacità del tuo scale set. Il punto chiave è che sei tu a stabilire cosa significa "prestazione accettabile", e il sistema fa il resto.
+- **Scale out (scalabilità orizzontale in aumento)**: se la domanda verso la tua applicazione cresce, aumenta anche il carico sulle istanze esistenti. Se questo aumento è costante nel tempo, e non un picco momentaneo, puoi configurare le regole per incrementare il numero di istanze. La distinzione tra carico persistente e picco temporaneo è importante: non vuoi che il sistema reagisca a ogni breve variazione.
+- **Scale in (scalabilità orizzontale in riduzione)**: di sera o nel fine settimana la domanda potrebbe calare. Se la riduzione del carico si mantiene costante per un certo periodo, puoi configurare le regole per diminuire il numero di istanze. L'azione di scale-in abbatte i costi di esecuzione dello scale set, perché mantieni attive solo le istanze necessarie a soddisfare la domanda attuale.
+- **Eventi pianificati**: oltre a reagire al carico, puoi pianificare eventi per aumentare o diminuire la capacità in momenti prestabiliti. È utile quando conosci in anticipo i picchi prevedibili, come l'inizio della giornata lavorativa o una campagna promozionale a orario fisso.
+- **Riduzione dell'overhead di gestione**: usare i Virtual Machine Scale Sets con la scalabilità automatica diminuisce il carico di lavoro amministrativo necessario per monitorare e ottimizzare le prestazioni dell'applicazione. È il sistema a occuparsi di osservare i parametri e ad adeguarsi, liberandoti da un monitoraggio manuale continuo.
+
+> **Nota**: la scalabilità automatica può combinare regole basate su metriche (che reagiscono al carico effettivo) ed eventi pianificati (che agiscono a orari fissi). Le due strategie non si escludono e spesso vengono usate insieme per coprire sia i picchi prevedibili sia quelli imprevisti.
+_(infoBox)_
+
+### 5.2.10 — Configurare la scalabilità automatica
+
+Quando crei un'implementazione di **Azure Virtual Machine Scale Sets** tramite il portale di Azure, devi decidere come il set deve variare il numero di macchine virtuali nel tempo. Hai due strade: regolare manualmente la capacità oppure affidarti alla scalabilità automatica (autoscale). La logica di fondo è semplice: un set di macchine ha senso solo se sa adattarsi al carico, perché aggiungere istanze quando il traffico cresce evita rallentamenti, mentre rimuoverle quando il carico cala riduce i costi. Per ottenere prestazioni ottimali conviene definire sempre un numero minimo, massimo e predefinito di istanze da utilizzare: in questo modo poni dei limiti chiari entro cui il sistema può muoversi in autonomia.
+
+Nel portale di Azure puoi selezionare la modalità di scalabilità (scaling mode).
+
+![Impostazioni per la scelta del metodo di scalabilità](img/scale-methods.png) _(dimensioni: 651×252 px)_
+*Figura 99: Le impostazioni per selezionare il metodo di scalabilità nel portale di Azure.* _(caption)_
+
+**Modalità di scalabilità (scaling mode)** _(stepTitle)_
+
+Le due modalità disponibili rispondono a esigenze diverse: la prima ti dà controllo totale ma richiede interventi manuali, la seconda delega ad Azure la reattività al carico.
+
+- **Aggiornamento manuale della capacità (Manually update the capacity)**: mantiene un numero fisso di istanze. Imposti il valore di **Instance count** sul numero di macchine virtuali desiderate nel set di scalabilità (da 0 a 1000). Puoi inoltre configurare la **Scale-in policy**, ovvero l'ordine con cui le macchine virtuali vengono selezionate per l'eliminazione quando il set viene ridotto. Ad esempio, potresti bilanciare le rimozioni tra le zone di disponibilità e poi eliminare la macchina virtuale con l'ID istanza più alto.
+- **Scalabilità automatica (Autoscaling)**: scala in base a una metrica della CPU oppure secondo una pianificazione temporale.
+
+**Configurare la scalabilità automatica** _(stepTitle)_
+
+La scalabilità automatica si basa su una condizione di scalabilità (scaling condition): è la regola che descrive quando aggiungere o togliere istanze e di quante alla volta. Definire bene questi parametri è importante, perché soglie troppo aggressive farebbero oscillare continuamente il numero di macchine, mentre soglie troppo prudenti renderebbero il set lento a reagire ai picchi di traffico.
+
+![Impostazioni per la configurazione delle istanze di VM e dell'autoscale](img/implement-autoscale-74d25345.png) _(dimensioni: 551×648 px)_
+*Figura 100: Le impostazioni per configurare le istanze di macchina virtuale e la scalabilità automatica nel portale di Azure.* _(caption)_
+
+I parametri principali da impostare sono i seguenti:
+
+- **Default instance count (numero di istanze predefinito).** Il numero iniziale di macchine virtuali distribuite nel set di scalabilità (da 0 a 1000).
+- **Instance limit (limite di istanze).** Il numero minimo di istanze fino al quale questa condizione può ridurre il set e il numero massimo fino al quale può espanderlo. Questi limiti definiscono i confini entro cui l'autoscale è autorizzato a operare.
+- **Scale out (espansione).** La soglia percentuale di utilizzo della CPU che fa scattare la regola di espansione automatica, insieme al numero di istanze da aggiungere ogni volta che la regola si attiva.
+- **Scale in (riduzione).** La soglia percentuale di utilizzo della CPU che fa scattare la regola di riduzione automatica, insieme al numero di istanze da rimuovere ogni volta che la regola si attiva.
+- **Query duration (durata della query).** È l'intervallo di tempo su cui il motore di autoscale calcola la media di utilizzo della metrica, guardando indietro nel passato. Questa finestra di osservazione serve a far stabilizzare la metrica, così da evitare che picchi momentanei provochino scalabilità ingiustificate.
+- **Schedule (pianificazione).** Permette di specificare date di inizio e di fine. Puoi anche ripetere la pianificazione in giorni specifici, utile ad esempio per prepararti in anticipo a un carico previsto in determinati orari o giorni della settimana.
+
+> **Suggerimento**: combinare i limiti minimo e massimo con una soglia di CPU ben tarata e una query duration adeguata è ciò che rende l'autoscale efficace: i limiti impediscono comportamenti estremi, la soglia governa la reattività e la durata della query filtra i falsi allarmi.
+_(infoBox)_
