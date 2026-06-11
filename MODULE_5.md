@@ -866,3 +866,202 @@ I parametri principali da impostare sono i seguenti:
 
 > **Suggerimento**: combinare i limiti minimo e massimo con una soglia di CPU ben tarata e una query duration adeguata è ciò che rende l'autoscale efficace: i limiti impediscono comportamenti estremi, la soglia governa la reattività e la durata della query filtra i falsi allarmi.
 _(infoBox)_
+
+## 5.3 — Configurare i piani di Azure App Service
+
+### 5.3.1 — Introduzione
+
+Gli amministratori di Azure devono essere in grado di scalare un'applicazione web. Lo scaling consente a un'applicazione di restare reattiva nei periodi di forte richiesta e, allo stesso tempo, aiuta a contenere i costi riducendo le risorse impiegate quando la domanda cala. Si immagini di lavorare per una grande catena alberghiera ed essere responsabili del sito web: i clienti lo visitano per effettuare nuove prenotazioni e consultare i dettagli di quelle in corso. In alcuni periodi dell'anno il volume di traffico cresce, perché gli utenti cercano hotel per le vacanze in occasione delle festività; in altri momenti il traffico diminuisce. Questi schemi di utilizzo sono in larga parte prevedibili.
+
+In questa sezione si impara a implementare i piani di **Azure App Service**. Si vedrà come piani diversi offrano differenti opzioni di prezzo e di scaling e quale impatto la scelta del piano abbia sulle prestazioni. L'obiettivo è acquisire gli elementi necessari per selezionare il piano di App Service più adatto alla propria applicazione, scegliendo il tier di prezzo appropriato e scalando il piano in funzione della domanda.
+
+### 5.3.2 — Implementare i piani di Azure App Service
+
+Un piano di **App Service** definisce l'insieme di risorse di calcolo (compute) su cui viene eseguita un'applicazione web. Possiamo pensare a queste risorse come l'equivalente di una "server farm" nell'hosting web tradizionale: invece di gestire fisicamente i server, deleghiamo ad Azure la fornitura della CPU, della memoria e dello storage necessari. Il punto chiave da capire è che il piano è il contenitore di capacità computazionale, mentre le applicazioni sono ciò che gira al suo interno. Una o più applicazioni possono infatti essere configurate per essere eseguite sulle stesse risorse di calcolo, cioè all'interno dello stesso piano di App Service.
+
+**Cosa sapere sui piani di App Service** _(stepTitle)_
+
+Quando crei un piano di App Service in una determinata region, Azure provisiona in quella region un set di risorse di calcolo dedicate al piano. Tutte le applicazioni che collochi nel piano vengono eseguite proprio su quelle risorse. Questo spiega perché la scelta della region e del dimensionamento non sia un dettaglio: determina dove fisicamente "vivono" le tue app e quanta potenza hanno a disposizione.
+
+Ogni piano di App Service definisce le seguenti impostazioni:
+
+- **Sistema operativo**: Linux o Windows.
+- **Region**: la region del piano, ad esempio West US, Central India, North Europe e così via.
+- **Tier di prezzo (pricing tier)**: determina quali funzionalità di App Service ottieni e quanto paghi per il piano. I tier disponibili dipendono dal sistema operativo selezionato al momento della creazione.
+- **Numero di istanze VM**: è determinato dal piano scelto.
+- **Dimensione delle istanze VM**: definita da CPU, memoria e storage remoto.
+
+Un aspetto importante è che il piano non è statico: puoi continuare ad aggiungere nuove applicazioni a un piano esistente, a patto che il piano disponga ancora di risorse sufficienti per gestire il carico crescente. In altre parole, finché c'è capacità libera, riutilizzi le risorse già pagate.
+
+**Considerazioni nell'uso dei piani di App Service** _(stepTitle)_
+
+Prima di decidere come organizzare le tue applicazioni nei piani, è utile ragionare su costi, condivisione e isolamento. Pensa, ad esempio, alle condizioni che potrebbero applicarsi all'esecuzione e allo scaling del sito web di un hotel.
+
+- **Valuta il risparmio sui costi**. Poiché paghi per le risorse di calcolo che il piano alloca (e non per le singole app), puoi potenzialmente risparmiare collocando più applicazioni nello stesso piano di App Service. Il costo segue il piano, non il numero di app ospitate.
+- **Valuta più applicazioni in un singolo piano**. Creare un unico piano per più applicazioni semplifica la configurazione e la manutenzione delle istanze di macchina virtuale condivise. Lo svantaggio è che, condividendo le stesse istanze VM, devi gestire con attenzione le risorse e la capacità del piano per evitare che un'app affami le altre.
+- **Valuta la capacità del piano**. Prima di aggiungere una nuova applicazione a un piano esistente, stima i requisiti di risorse della nuova app e verifica la capacità residua del piano.
+
+> **Importante**: il sovraccarico (overloading) di un piano di App Service può potenzialmente causare downtime sia per le applicazioni nuove sia per quelle già esistenti.
+_(infoBox)_
+
+- **Valuta l'isolamento dell'applicazione**. Conviene isolare un'applicazione in un nuovo piano di App Service quando:
+  - L'applicazione è particolarmente onerosa in termini di risorse (resource-intensive).
+  - Vuoi scalare l'applicazione in modo indipendente rispetto alle altre app del piano esistente.
+  - L'applicazione ha bisogno di risorse in una region geografica differente.
+
+### 5.3.3 — Determinare i prezzi del piano di App Service
+
+Il livello di prezzo (pricing tier) scelto per un piano di **App Service** non è soltanto una questione di costo mensile: determina quali funzionalità sono disponibili, quanta potenza di calcolo ottieni e in che modo le applicazioni possono scalare. In pratica, scegliere il tier giusto significa bilanciare ciò che serve davvero (prestazioni, isolamento, ridondanza) con quanto si è disposti a spendere. I tier disponibili sono: Free, Shared, Basic, Standard, Premium (con le varianti PremiumV2 e PremiumV3), Isolated e IsolatedV2.
+
+**Come le applicazioni vengono eseguite e scalano nei piani** _(stepTitle)_
+
+Il piano di App Service è l'unità di scala (scale unit) delle applicazioni: è il piano, non la singola app, a definire le risorse di calcolo. Questo è il concetto chiave da cui derivano tutte le scelte di prezzo. Se il piano è configurato per eseguire cinque istanze di macchina virtuale, allora tutte le applicazioni ospitate in quel piano girano su tutte e cinque le istanze. Allo stesso modo, se il piano è impostato per l'autoscaling, tutte le app del piano vengono scalate orizzontalmente (scale-out) insieme, in base alle regole di autoscale definite.
+
+Da qui una conseguenza pratica importante: le app che condividono lo stesso piano condividono anche le sue risorse. Raggruppare nello stesso piano app con esigenze molto diverse può portare a sprechi (un piano troppo grande per app piccole) o a colli di bottiglia (app che si contendono CPU e memoria).
+
+**Le tre categorie di calcolo: condiviso, dedicato e isolato** _(stepTitle)_
+
+I tier di prezzo si raggruppano in tre categorie, che si distinguono soprattutto per il modello di calcolo (chi usa quale macchina virtuale) e per il grado di isolamento:
+
+- **Calcolo condiviso (Shared compute)**:
+  - I due tier base, Free e Shared, eseguono l'app sulla stessa VM di Azure usata da altre app di App Service, comprese app di altri clienti.
+  - A ogni app viene assegnata una quota di CPU sulle risorse condivise, e queste risorse non possono scalare orizzontalmente (no scale-out).
+  - Sono pensati esclusivamente per sviluppo e test.
+- **Calcolo dedicato (Dedicated compute)**:
+  - I tier Basic, Standard, Premium, PremiumV2 e PremiumV3 eseguono le app su VM di Azure dedicate.
+  - Solo le app dello stesso piano condividono quelle risorse di calcolo: nessun altro cliente è coinvolto. Più alto è il tier, più istanze di VM sono disponibili per lo scale-out.
+- **Isolato (Isolated)**:
+  - I tier Isolated e IsolatedV2 eseguono VM di Azure dedicate all'interno di reti virtuali di Azure dedicate.
+  - Oltre all'isolamento del calcolo, aggiungono l'isolamento di rete.
+  - Offrono le massime capacità di scale-out.
+
+> **Nota**: la differenza fondamentale tra Shared e Dedicated/Isolated è chi usa l'hardware. Nei tier condivisi (Free/Shared) la tua app gira su VM utilizzate anche da altri clienti e non può scalare; nei tier dedicati e isolati le VM sono riservate alle tue app e abilitano lo scale-out. Per questo Free e Shared sono adatti solo a sviluppo e test, mentre i carichi di produzione richiedono almeno Basic o superiore.
+_(infoBox)_
+
+**Confronto sintetico dei tier** _(stepTitle)_
+
+La tabella seguente mette a confronto alcune funzionalità rappresentative dei diversi tier. È utile per capire a colpo d'occhio cosa si guadagna salendo di livello: in particolare la disponibilità di slot di staging, le opzioni di scalabilità automatica, il numero massimo di istanze e i backup giornalieri.
+
+| **Funzionalità** | **Free F1** | **Basic B1** | **Standard S1** | **Premium P1V3** | **Isolated V2** |
+| --- | --- | --- | --- | --- | --- |
+| **Utilizzo** | Sviluppo, test | Sviluppo, test | Carichi di produzione | Scala e prestazioni elevate | Carichi isolati a livello di rete |
+| **Slot di staging** | N/D | N/D | 5 | 20 | 20 |
+| **Auto scale** | N/D | Manuale | Regole | Regole, Elastic | Regole |
+| **Istanze di scala** | N/D | 3 | 10 | 30 | 200 |
+| **Backup giornalieri** | N/D | N/D | 10 | 50 | 50 |
+
+**Free e Shared** _(stepTitle)_
+
+I piani Free e Shared sono i tier base e girano sulle stesse VM di Azure usate da altre applicazioni, alcune delle quali possono appartenere ad altri clienti. Sono destinati unicamente a sviluppo e test. Per questi piani non è previsto alcuno SLA (Service Level Agreement), e la misurazione dei consumi avviene per singola applicazione (per-application metering): un dettaglio importante perché, a differenza dei tier dedicati dove si paga la VM, qui si misura il consumo di ogni app.
+
+**Basic** _(stepTitle)_
+
+Il piano Basic è pensato per applicazioni con requisiti di traffico contenuti, che non hanno bisogno di funzionalità avanzate di autoscaling e gestione del traffico. Il prezzo dipende dalla dimensione e dal numero di istanze in esecuzione. Include un supporto integrato di bilanciamento del carico di rete (network load balancing) che distribuisce automaticamente il traffico tra le istanze. Con ambienti di runtime Linux, il piano Basic supporta **Web App for Containers**.
+
+**Standard** _(stepTitle)_
+
+Il piano Standard è progettato per i carichi di lavoro di produzione. Anche qui il prezzo dipende dalla dimensione e dal numero di istanze, ed è presente il bilanciamento del carico di rete integrato. La differenza che lo rende adatto alla produzione è l'autoscaling: il piano Standard può regolare automaticamente il numero di istanze di VM in esecuzione per adeguarsi al traffico. Con runtime Linux supporta anch'esso **Web App for Containers**.
+
+**Premium** _(stepTitle)_
+
+Il piano Premium è pensato per app di produzione che richiedono prestazioni e scalabilità superiori. Il tier Premium attuale è PremiumV3, che offre macchine virtuali delle serie Dav4 e Ddv4 e archiviazione su SSD. PremiumV3 supporta sia SKU di calcolo standard sia SKU memory-optimized per carichi che richiedono molta memoria, e abilita sia l'autoscaling basato su regole sia lo scaling automatico. È il tier consigliato per le nuove distribuzioni.
+
+**Isolated** _(stepTitle)_
+
+Il piano Isolated è destinato ai carichi mission-critical che necessitano di isolamento di rete. Il tier preferito è IsolatedV2, che offre hardware più recente, fino a 200 istanze, ambienti privati e sicurezza avanzata. IsolatedV2 è raccomandato per i nuovi carichi di lavoro grazie alle prestazioni migliori e a un modello di prezzo più semplice.
+
+**Selezionare un piano di App Service** _(stepTitle)_
+
+I piani di App Service disponibili si possono consultare nel portale di Azure e la scelta si basa su due tipi di requisiti: hardware (CPU, memoria, numero di istanze di scala) e funzionalità (backup, slot di staging, ridondanza di zona). Tenerli entrambi presenti evita di scegliere un piano potente ma privo della funzionalità che serve, o viceversa.
+
+> **Suggerimento**: quando selezioni un piano di servizio, valuta sia i requisiti hardware sia quelli relativi alle funzionalità.
+_(infoBox)_
+
+Per esplorare i piani dal portale:
+
+- Nel portale di Azure cerca e seleziona **App Service plans**.
+- Avvia la creazione di un nuovo piano di App Service con **Create**.
+- Seleziona **Explore pricing plans** per visualizzare i piani disponibili.
+
+### 5.3.4 — Aumentare e ampliare (scale up / scale out) App Service
+
+Quando la domanda sulla tua applicazione cresce, devi poter aumentare le risorse a disposizione. In **App Service** esistono due modi distinti per farlo: aumentare la "potenza" delle macchine che eseguono l'app (scale up) oppure aumentare il "numero" di macchine che la eseguono (scale out). La differenza è importante perché risponde a due esigenze diverse: scale up serve quando ti servono più CPU/memoria o nuove funzionalità, scale out serve quando devi gestire più traffico contemporaneamente. Entrambe le operazioni possono essere eseguite manualmente oppure in modo automatico, modalità che prende il nome di *scalabilità automatica* (autoscale).
+
+**Come funziona la scalabilità in App Service** _(stepTitle)_
+
+- Il metodo **scale up** (aumentare) incrementa la quantità di CPU, memoria e spazio su disco. Lo scale up non si limita alle risorse hardware: ti dà accesso anche a funzionalità aggiuntive come macchine virtuali dedicate, domini e certificati personalizzati, slot di staging, scalabilità automatica e altro ancora. Si esegue lo scale up cambiando il *piano tariffario* (pricing tier) del piano di App Service in cui è ospitata l'applicazione. In altre parole, paghi di più per ottenere una macchina più capace e più funzionalità.
+- Il metodo **scale out** (ampliare) aumenta il numero di istanze di macchina virtuale che eseguono l'applicazione. Puoi ampliare fino al numero massimo di istanze previsto dal tuo piano tariffario. Se sfrutti gli App Service Environment nel tier **Isolated**, puoi spingere il conteggio delle istanze in scale-out fino a 100. Il numero di istanze può essere configurato manualmente oppure automaticamente (autoscale).
+- Con la scalabilità automatica (autoscale) puoi aumentare automaticamente il numero di istanze del metodo scale-out. L'autoscale si basa su regole e pianificazioni predefinite: ad esempio "aggiungi un'istanza quando la CPU supera il 70%" oppure "tieni più istanze nelle ore di punta".
+- Il piano di App Service può essere scalato verso l'alto e verso il basso in qualsiasi momento, semplicemente cambiando il piano tariffario del piano.
+
+**Aspetti da considerare quando si usa la scalabilità** _(stepTitle)_
+
+Di seguito i principali vantaggi dell'adozione della scalabilità per il piano e per le applicazioni. È utile ragionare su questi punti pensando, ad esempio, a un sito web di un albergo che deve gestire picchi di prenotazioni.
+
+- **Valuta di regolare manualmente i tier del piano**. Conviene partire da un piano tariffario più basso e fare scale up solo quando servono più funzionalità di App Service, per poi tornare indietro (scale down) quando quelle funzionalità non servono più, tenendo così sotto controllo i costi complessivi.
+
+  Considera questo scenario di crescita progressiva: inizi a testare la tua web app con il tier **Free** di App Service, dove non paghi nulla per usare il servizio. Dopo un po', decidi di aggiungere un nome DNS personalizzato alla web app, quindi scali il piano al tier **Shared**. In seguito scopri di aver bisogno di creare un binding SSL, perciò scali al tier **Basic**. Più avanti ti serve un ambiente di staging, quindi scali al tier **Standard**. Quando ti servono più core, più memoria o più spazio di archiviazione, puoi salire a una dimensione di macchina virtuale più grande all'interno dello stesso tier.
+
+  Lo stesso processo di scalabilità funziona anche al contrario: se decidi di non aver più bisogno delle capacità o delle funzionalità di un tier superiore, scali il piano verso un tier inferiore e risparmi denaro.
+- **Valuta l'autoscale per servire gli utenti e ridurre i costi**. L'autoscale ti permette di continuare a servire gli utenti anche quando l'applicazione subisce un throughput elevato. Configurando le regole e le condizioni di preferenza, controlli quante risorse vengono offerte in un dato momento. Il vantaggio economico è duplice: quando il carico sull'applicazione diminuisce, l'autoscale riduce automaticamente le risorse sottoscritte, facendoti risparmiare.
+- **Valuta che non serve ridistribuire l'applicazione**. Quando modifichi le impostazioni di scalabilità, non devi cambiare il codice né ridistribuire le applicazioni. L'applicazione delle nuove impostazioni di scala richiede solo pochi secondi e ha effetto su tutte le applicazioni presenti nel piano di App Service.
+- **Valuta la scalabilità degli altri servizi Azure**. Se la tua applicazione App Service dipende da altri servizi Azure, come **Azure SQL Database** o **Azure Storage**, puoi scalare queste risorse separatamente. Il piano di App Service non gestisce queste risorse, quindi vanno dimensionate in modo indipendente.
+
+> **Importante**: scale up e scale out sono operazioni distinte. Lo scale up cambia il piano tariffario (macchine più potenti e più funzionalità), mentre lo scale out cambia il numero di istanze (più macchine per gestire più traffico). Spesso si usano in combinazione.
+_(infoBox)_
+
+### 5.3.5 — Configurare la scalabilità automatica di App Service
+
+La scalabilità automatica (*autoscale*) consente di mantenere in esecuzione esattamente la quantità di risorse necessaria per gestire il carico dell'applicazione. Il vantaggio è duplice: si possono aggiungere risorse per assorbire i picchi di carico e, allo stesso tempo, si risparmia denaro rimuovendo le risorse inutilizzate quando il carico diminuisce. In altre parole, l'infrastruttura si adatta dinamicamente alla domanda, invece di restare sovradimensionata (spreco di costi) o sottodimensionata (rischio di degrado delle prestazioni).
+
+**Come funziona l'autoscale** _(stepTitle)_
+
+L'autoscale di un piano di **App Service** non agisce in modo arbitrario: si basa su un insieme di regole e condizioni che definiscono *quando* e *come* variare il numero di istanze. Ecco gli elementi chiave da conoscere:
+
+- Per usare l'autoscale si specifica il numero **minimo** e **massimo** di istanze da eseguire, governato da un insieme di regole e condizioni.
+- Quando l'applicazione opera in condizioni di autoscale, il numero di istanze di macchina virtuale viene regolato automaticamente in base alle regole definite. Quando le condizioni di una regola sono soddisfatte, vengono attivate una o più azioni di scalabilità.
+- Un'**impostazione di autoscale** (*autoscale setting*) è ciò che il motore di autoscale usa per decidere se scalare verso l'esterno (*scale out*, aggiungere istanze) o verso l'interno (*scale in*, rimuovere istanze). Le impostazioni di autoscale sono raggruppate in **profili**.
+- Le **regole di autoscale** comprendono un *trigger* (la condizione che fa scattare l'azione) e un'*azione di scalabilità* (in o out). Il trigger può essere basato su metriche oppure su pianificazione temporale.
+
+![Creazione di una condizione di autoscale nel portale di Azure](img/web-app-autoscale-94c4da54.png) _(dimensioni: 1081×487 px)_
+*Figura 101: Creazione di una condizione di autoscale nel portale di Azure, con le impostazioni per la modalità di scalabilità e il numero di istanze.* _(caption)_
+
+I due tipi di trigger disponibili rispondono a esigenze diverse:
+
+- **Regole basate su metriche** (*Metric-based*): misurano il carico dell'applicazione e aggiungono o rimuovono macchine virtuali in funzione di quel carico, ad esempio «esegui questa azione quando l'utilizzo della CPU supera il 50%». Esempi di metriche sono il tempo CPU (*CPU time*), il tempo medio di risposta (*Average response time*) e il numero di richieste (*Requests*).
+- **Regole basate sul tempo** (*Time-based* o *schedule-based*): consentono di scalare quando si individuano pattern temporali ricorrenti nel carico e si desidera intervenire *prima* che si verifichi un possibile aumento o diminuzione del carico. Un esempio è «attiva un webhook ogni sabato alle 8:00 in un determinato fuso orario». Questo approccio è utile quando il carico è prevedibile (ad esempio orari di ufficio o eventi pianificati).
+
+Il motore di autoscale utilizza inoltre le **impostazioni di notifica**. Una impostazione di notifica definisce quali notifiche devono essere inviate quando si verifica un evento di autoscale, ossia quando vengono soddisfatti i criteri di un profilo di impostazione di autoscale. L'autoscale può notificare uno o più indirizzi e-mail oppure effettuare chiamate a uno o più webhook.
+
+**Considerazioni nella configurazione dell'autoscale** _(stepTitle)_
+
+Configurare l'autoscale in modo efficace richiede attenzione a diversi aspetti. Una configurazione superficiale può portare a costi imprevisti o a un'applicazione che non regge il carico. Ecco i punti da valutare con cura:
+
+- **Numero minimo di istanze**: impostare un conteggio minimo garantisce che l'applicazione sia sempre in esecuzione, anche in assenza di carico.
+- **Numero massimo di istanze**: impostare un conteggio massimo serve a limitare il costo orario complessivo, ponendo un tetto alla spesa.
+- **Margine di scalabilità adeguato**: assicurarsi che i valori minimo e massimo siano diversi tra loro e che vi sia un margine adeguato tra i due. La scalabilità automatica avviene tra il minimo e il massimo secondo le regole definite; senza margine non c'è spazio per scalare.
+- **Combinazione di regole di scalabilità**: usare sempre una combinazione di regola di *scale-out* e regola di *scale-in*, in modo da prevedere sia l'aumento sia la diminuzione delle istanze. Senza una regola di scale-out, l'applicazione potrebbe non reggere sotto carico crescente o degradare le prestazioni; senza una regola di scale-in, si rischiano costi inutili ed elevati quando il carico cala.
+- **Statistiche delle metriche**: scegliere con attenzione la statistica appropriata per le metriche diagnostiche, tra Media (*Average*), Minimo (*Minimum*), Massimo (*Maximum*) e Totale (*Total*).
+- **Numero di istanze predefinito**: selezionare sempre un valore predefinito sicuro. Il conteggio predefinito è importante perché l'autoscale porta il servizio a quel valore quando le metriche non sono disponibili.
+- **Notifiche**: configurare sempre le notifiche di autoscale. È fondamentale mantenere la consapevolezza di come l'applicazione si comporta al variare del carico.
+
+**La scalabilità automatica (Automatic scaling)** _(stepTitle)_
+
+Oltre all'autoscale basato su regole, **App Service** offre la **scalabilità automatica** (*Automatic scaling*, detta anche *Elastic scaling*) per i tier **PremiumV2** e **PremiumV3**. Si tratta di una funzionalità di scalabilità distinta, che funziona in modo diverso dalle regole di autoscale: qui non si definiscono regole, è la piattaforma a gestire tutto.
+
+- **Basata sul traffico HTTP**: la scalabilità automatica risponde direttamente alle richieste HTTP in ingresso, senza richiedere la configurazione di regole di scalabilità.
+- **Gestita dalla piattaforma**: Azure gestisce automaticamente le decisioni di scalabilità in base ai pattern di traffico, eliminando la necessità di configurare regole.
+- **Istanze sempre pronte** (*Always-ready instances*): mantiene istanze già «riscaldate» per gestire immediatamente i picchi di traffico.
+- **Disponibilità per tier**: disponibile solo sui tier PremiumV2 e PremiumV3.
+
+**Come scegliere tra Autoscale e Automatic scaling** _(stepTitle)_
+
+Le due modalità coprono scenari differenti. La tabella seguente riassume quando preferire l'una o l'altra.
+
+| **Modalità** | **Quando usarla** |
+|---|---|
+| **Autoscale basato su regole** | Hai bisogno di logica di scalabilità personalizzata, vuoi scalare in base a più metriche oppure ti serve la scalabilità basata su pianificazione temporale. |
+| **Automatic scaling** | Vuoi una gestione più semplice, non riesci a prevedere i pattern di carico oppure hai bisogno di una risposta rapida alle variazioni di traffico senza configurare regole. |
+
+> **Suggerimento**: se il carico della tua applicazione è prevedibile e vuoi il pieno controllo sui criteri di scalabilità, l'autoscale basato su regole è la scelta migliore; se invece il traffico è imprevedibile e preferisci delegare le decisioni alla piattaforma, la scalabilità automatica (sui tier Premium V2/V3) riduce notevolmente l'onere di configurazione.
+_(infoBox)_
