@@ -21,7 +21,8 @@ const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
   AlignmentType, LevelFormat, TabStopType,
   BorderStyle, WidthType, ShadingType, VerticalAlign, PageBreak,
-  Bookmark, PageReference, Footer, PageNumber, NumberFormat
+  PageReference, Footer, PageNumber, NumberFormat,
+  BookmarkStart, BookmarkEnd, bookmarkUniqueNumericIdGen
 } = require('docx');
 
 const C = {
@@ -30,6 +31,16 @@ const C = {
   white: 'FFFFFF', headerBg: '1F4E78', rowEven: 'F5F8FC',
   infoBoxBg: 'E8F0FB', codeBg: 'EEF3F8', codeText: '1B3A6B', border: 'CCCCCC',
 };
+
+// Segnalibri per i numeri di pagina del Sommario. NB: la classe high-level Bookmark di docx
+// assegna sempre w:id=1 (ogni istanza crea un generatore nuovo) -> tutti i PAGEREF
+// risolverebbero a pagina 1. Usiamo BookmarkStart/End con un id numerico UNIVOCO condiviso.
+const bkIdGen = bookmarkUniqueNumericIdGen();
+function bookmarkWrap(name, run) {
+  if (!name) return [run];
+  const nid = bkIdGen();
+  return [ new BookmarkStart(name, nid), run, new BookmarkEnd(nid) ];
+}
 
 // ─── RISOLUZIONE IMMAGINI (ricorsiva, per nome file) ──────────────────────────
 // I path nei .md sono semplificati (es. img/entra-users.png) ma i file risiedono
@@ -72,12 +83,12 @@ function body(text, opts={}, paraOpts={}) {
 function h2(text, bk) {
   const run = new TextRun({text, font:'Calibri', size:28, bold:true, color:C.sectionBlue});
   return new Paragraph({ spacing:{before:200,after:80}, keepNext:true, keepLines:true,
-    children:[ bk ? new Bookmark({id:bk, children:[run]}) : run ] });
+    children: bookmarkWrap(bk, run) });
 }
 function h3(text, bk) {
   const run = new TextRun({text, font:'Calibri', size:24, bold:true, color:C.tocEntry});
   return new Paragraph({ spacing:{before:140,after:60}, keepNext:true, keepLines:true,
-    children:[ bk ? new Bookmark({id:bk, children:[run]}) : run ] });
+    children: bookmarkWrap(bk, run) });
 }
 function stepTitle(text) {
   return new Paragraph({ spacing:{before:100,after:40}, keepNext:true, keepLines:true,
@@ -171,7 +182,7 @@ function moduloTitle(text, bk) {
   const run = new TextRun({text, font:'Calibri', size:48, bold:true, color:C.titleBlue});
   return new Paragraph({ spacing:{before:0,after:120}, keepNext:true, keepLines:true,
     border:{bottom:{style:BorderStyle.SINGLE, size:8, color:C.sectionBlue, space:4}},
-    children:[ bk ? new Bookmark({id:bk, children:[run]}) : run ] });
+    children: bookmarkWrap(bk, run) });
 }
 function moduloIntro(text) {
   return new Paragraph({ spacing:{before:80,after:120}, keepNext:true, keepLines:true,
