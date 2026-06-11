@@ -293,6 +293,8 @@ Se sono presenti più NSG e non si è certi delle regole applicate, è possibile
 
 ![Figura 33](img/nsg-effective-rules.png) _(dimensioni: 859×65 px)_
 
+*Figura 33 — Regole di sicurezza effettive (valide) di un NSG visualizzate nel portale di Azure.* _(caption)_
+
 > **Network Watcher**: Azure Network Watcher offre una visualizzazione consolidata delle regole NSG. La funzionalità **IP Flow Verify** valuta il traffico rispetto alle regole effettive e indica se una connessione specifica verrebbe consentita o negata.
 _(infoBox)_
 

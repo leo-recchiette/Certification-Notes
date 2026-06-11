@@ -41,7 +41,15 @@ Una corretta configurazione di identità, accessi e policy è fondamentale per s
 _(h2: Calibri 14pt grassetto #0078D4 keepNext)_
 
 
-### 2.1.1 — Esaminare Microsoft Entra ID
+### 2.1.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Il controllo delle identità è il punto di partenza della sicurezza nel cloud: prima ancora di gestire risorse, gruppi o accessi occorre un servizio che stabilisca con certezza chi è ciascun utente e che cosa può fare. In Azure questo ruolo è svolto da Microsoft Entra ID, il servizio di gestione di identità e accessi basato su cloud.
+
+In questa sezione esaminerai che cos'è Entra ID, in che cosa differisce da Active Directory Domain Services, le differenze tra i piani P1 e P2 e il ruolo di Microsoft Entra Domain Services per le applicazioni in cloud.
+
+
+### 2.1.2 — Esaminare Microsoft Entra ID
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Microsoft Entra ID (precedentemente Azure Active Directory) è il servizio di gestione delle identità e degli accessi basato su cloud di Microsoft. Consente a dipendenti, partner ed utenti di accedere in modo sicuro a risorse esterne (Microsoft 365, portale Azure, SaaS) e interne (app sulla rete aziendale e in cloud).
@@ -83,7 +91,7 @@ Lo schema di Entra ID è più semplice e flessibile rispetto a quello di AD DS, 
 - Lo schema è estendibile e le estensioni sono completamente reversibili, a differenza di AD DS.
 
 
-### 2.1.2 — Confronto tra Microsoft Entra ID e Active Directory Domain Services
+### 2.1.3 — Confronto tra Microsoft Entra ID e Active Directory Domain Services
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 AD DS è un servizio di directory tradizionale on-premise basato su protocolli Kerberos e LDAP, progettato per gestire oggetti in una rete locale. Microsoft Entra ID è invece un servizio cloud basato su HTTP/HTTPS, OAuth 2.0 e SAML, pensato per identità distribuite su internet.
@@ -94,7 +102,7 @@ AD DS è un servizio di directory tradizionale on-premise basato su protocolli K
 - I due servizi possono coesistere in ambienti ibridi tramite Microsoft Entra Connect (sincronizzazione delle identità).
 
 
-### 2.1.3 — Esaminare Microsoft Entra ID come servizio directory per le app cloud
+### 2.1.4 — Esaminare Microsoft Entra ID come servizio directory per le app cloud
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Microsoft Entra ID è il sistema di identità nativo per le applicazioni cloud e SaaS. Le applicazioni si registrano nel tenant Entra ID e ottengono un'identità (App Registration) con cui possono autenticare utenti, richiedere permessi e accedere ad altre risorse Azure tramite token OAuth 2.0.
@@ -104,7 +112,7 @@ Microsoft Entra ID è il sistema di identità nativo per le applicazioni cloud e
 - Le app possono essere registrate manualmente per ottenere Client ID e Client Secret da usare nei flussi OAuth.
 
 
-### 2.1.4 — Confrontare i piani P1 e P2 di Microsoft Entra ID
+### 2.1.5 — Confrontare i piani P1 e P2 di Microsoft Entra ID
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Microsoft Entra ID è disponibile in quattro livelli. I piani a pagamento aggiungono funzionalità avanzate di sicurezza e governance:
@@ -117,7 +125,7 @@ Microsoft Entra ID è disponibile in quattro livelli. I piani a pagamento aggiun
 > **Regola pratica P1 vs P2**: Usare P2 quando le domande menzionano "rischio" o "accesso privilegiato" (PIM, Identity Protection). P1 per tutto il resto (Conditional Access, gruppi dinamici, SSPR, Cloud App Discovery).
 
 
-### 2.1.5 — Esaminare Microsoft Entra Domain Services
+### 2.1.6 — Esaminare Microsoft Entra Domain Services
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Microsoft Entra Domain Services (Entra DS) è un servizio gestito che fornisce funzionalità di dominio tradizionali (join al dominio, criteri di gruppo, LDAP, Kerberos/NTLM) senza dover distribuire, gestire o applicare patch a domain controller. È utile per eseguire in cloud applicazioni legacy che non supportano autenticazione moderna.
@@ -151,7 +159,15 @@ Microsoft Entra Domain Services (Entra DS) è un servizio gestito che fornisce f
 _(h2: Calibri 14pt grassetto #0078D4 keepNext)_
 
 
-### 2.2.1 — Creare, configurare e gestire utenti
+### 2.2.1 — Introduzione
+_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
+
+Una volta compreso che cos'è Microsoft Entra ID, il passo successivo è popolarlo e governarlo: creare gli utenti, organizzarli in gruppi, gestire dispositivi e licenze e automatizzare l'assegnazione degli accessi. Un'identità ben strutturata è ciò che permette di concedere a ciascuno il minimo accesso necessario per svolgere il proprio lavoro (principio del privilegio minimo).
+
+In questa sezione imparerai a creare e gestire utenti e gruppi, a configurare la registrazione dei dispositivi, a gestire le licenze, a definire attributi di sicurezza personalizzati e a sfruttare la creazione automatica degli utenti.
+
+
+### 2.2.2 — Creare, configurare e gestire utenti
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Ogni utente che deve accedere alle risorse Azure necessita di un account in Microsoft Entra ID. L'account contiene tutte le informazioni per autenticare l'utente durante il login. Dopo l'autenticazione, Entra ID compila un token di accesso che autorizza l'utente e determina a quali risorse può accedere.
@@ -175,7 +191,7 @@ Ogni utente che deve accedere alle risorse Azure necessita di un account in Micr
 - A ogni utente si assegnano licenze Microsoft 365 / Entra ID direttamente o tramite appartenenza a gruppi.
 
 
-### 2.2.2 — Creare, configurare e gestire gruppi
+### 2.2.3 — Creare, configurare e gestire gruppi
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 I gruppi in Entra ID permettono di gestire l'accesso a risorse e applicazioni in modo centralizzato. Esistono due tipi principali:
@@ -194,7 +210,7 @@ I gruppi possono avere tre modalità di appartenenza:
 *Figura 4 — Visualizzazione dei gruppi nel portale Microsoft Entra ID con tipo gruppo (Security e Microsoft 365).* _(caption)_
 
 
-### 2.2.3 — Configurare e gestire la registrazione dei dispositivi
+### 2.2.4 — Configurare e gestire la registrazione dei dispositivi
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Con la proliferazione dei dispositivi personali (BYOD) i team IT devono bilanciare due obiettivi opposti: consentire agli utenti di lavorare da qualsiasi dispositivo, proteggendo allo stesso tempo le risorse aziendali. Esistono tre modalità di registrazione:
@@ -227,7 +243,7 @@ Con la proliferazione dei dispositivi personali (BYOD) i team IT devono bilancia
 Il writeback dei dispositivi (Device Writeback) non è più supportato ed è stato sostituito da Cloud Kerberos Trust. Questo approccio consente ai dispositivi Entra Join e Hybrid Join di autenticarsi alle risorse on-premise senza dover scrivere oggetti dispositivo in Active Directory locale — abilitando Windows Hello for Business senza infrastruttura aggiuntiva.
 
 
-### 2.2.4 — Gestire le licenze
+### 2.2.5 — Gestire le licenze
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Le licenze Microsoft si assegnano a ogni utente che deve accedere ai servizi a pagamento. La gestione avviene tramite l'interfaccia di amministrazione di Microsoft 365 o tramite PowerShell e Microsoft Graph API.
@@ -257,7 +273,7 @@ Le grandi aziende raramente acquistano P1 separatamente, perché è già incluso
 Alcuni servizi Microsoft non sono disponibili in tutte le aree geografiche. Prima di assegnare una licenza a un utente occorre impostare la posizione di utilizzo nel profilo utente. Per le licenze basate su gruppo, gli utenti senza posizione specificata ereditano la posizione della directory.
 
 
-### 2.2.5 — Creare attributi di sicurezza personalizzati
+### 2.2.6 — Creare attributi di sicurezza personalizzati
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Gli attributi di sicurezza personalizzati (Custom Security Attributes) sono coppie chiave-valore definite dall'amministratore e specifiche per il tenant, che possono essere aggiunte a utenti, gruppi, applicazioni e service principal.
@@ -284,7 +300,7 @@ Gli attributi di sicurezza personalizzati (Custom Security Attributes) sono copp
 - Non sono inclusi nelle attestazioni dei token SAML o nei JSON Web Token (JWT) — non possono essere usati direttamente nelle applicazioni che leggono i token per decidere i permessi.
 
 
-### 2.2.6 — Esplorare la creazione automatica degli utenti
+### 2.2.7 — Esplorare la creazione automatica degli utenti
 _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Il provisioning automatico degli utenti (SCIM Provisioning) permette di creare, aggiornare e disabilitare automaticamente gli account in applicazioni SaaS (Salesforce, ServiceNow, Workday, ecc.) in base agli account presenti in Entra ID, senza intervento manuale. La chiave è mantenere sempre aggiornati i sistemi di gestione delle identità: se un utente viene rimosso dal sistema HR, viene deprovisionato automaticamente da Entra ID, riducendo il rischio di account orfani.
@@ -588,20 +604,6 @@ La gerarchia completa dall'alto verso il basso è:
 > **Ereditarietà a cascata**: Policy e assegnazioni RBAC applicate a un livello superiore si propagano automaticamente a tutti i livelli inferiori. Questo modello permette di applicare standard di governance a tutta l'organizzazione con un minimo di configurazione, mantenendo al contempo la flessibilità di applicare impostazioni specifiche a singoli livelli della gerarchia.
 _(infoBox)_
 
-
-### Riepilogo 2.3
-_(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
-
-- Per usare Azure è necessaria una sottoscrizione, collegata a un account Azure (identità in Entra ID). Le sottoscrizioni hanno due confini: **fatturazione** (fatture separate per sottoscrizione) e **controllo degli accessi** (policy distinte per ambiente).
-- L'account gratuito Azure offre 12 mesi di servizi popolari, credito per i primi 30 giorni e 65+ servizi sempre gratuiti. L'account per studenti offre 100 $ di credito senza carta di credito.
-- Azure offre centinaia di servizi organizzati in dieci categorie principali (Calcolo, Rete, Archiviazione, Database, AI+ML, Identità+Sicurezza, DevOps+Gestione, IoT, Analisi, Integrazione), accessibili tramite portale, CLI, PowerShell e REST API.
-- L'infrastruttura fisica è organizzata gerarchicamente: Geography → Region → Availability Zone → Datacenter. I data center non sono accessibili direttamente.
-- Le zone di disponibilità garantiscono isolamento fisico all'interno di una regione (min. 3 zone per area abilitata). I servizi Azure si dividono in: **Zonali** (risorsa in zona specifica), **A ridondanza di zona** (replica automatica tra zone) e **Non a livello di area** (globali e resilienti per default).
-- Le Region Pairs abbinano aree distanti almeno 480 km per resilienza a eventi su larga scala: priorità di ripristino garantita, aggiornamenti scaglionati, data residency mantenuta. Non tutti i servizi replicano automaticamente.
-- Le aree sovrane (Azure Government, Azure China) sono istanze fisicamente e logicamente isolate per requisiti legali e di conformità.
-- La gerarchia di gestione (Tenant Root Group → Gruppi di gestione → Sottoscrizioni → Gruppi di risorse → Risorse) consente di applicare policy e controllo accessi in modo scalabile con ereditarietà automatica verso il basso.
-- Ogni risorsa appartiene a un solo gruppo di risorse; i gruppi non sono annidabili e non rinominabili; eliminarli elimina tutto il loro contenuto.
-- I gruppi di gestione sono annidabili fino a 6 livelli; una directory ne supporta al massimo 10.000; ogni gruppo/sottoscrizione ha un solo elemento padre.
 
 ---
 
