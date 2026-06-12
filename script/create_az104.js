@@ -3,7 +3,7 @@
 // AZ-104 — Generatore documento Word (.docx)
 //
 // ARCHITETTURA: questo script NON contiene il testo del documento. Legge i file
-// MODULE_1.md ... MODULE_6.md (unica fonte di verita') e li converte in .docx
+// chapters/MODULE_1.md ... chapters/MODULE_6.md (unica fonte di verita') e li converte in .docx
 // interpretando i marker di formattazione: _(stepTitle)_, _(infoBox)_, _(caption)_,
 // immagini ![alt](path) _(dimensioni: WxH px)_, tabelle markdown inline, blocchi di
 // codice indentati/fenced e i riferimenti [TABELLA: nomeFunzione] alle tabelle
@@ -11,9 +11,9 @@
 //
 // Per aggiornare il documento: modifica il .md e rigenera. Nessuna modifica al JS.
 //
-// Uso:  node create_az104.js            -> documento completo
-//       node create_az104.js --module 2 -> solo Modulo 2
-//       node create_az104.js --toc      -> solo copertina + sommario
+// Uso:  node script/create_az104.js            -> documento completo
+//       node script/create_az104.js --module 2 -> solo Modulo 2
+//       node script/create_az104.js --toc      -> solo copertina + sommario
 // ─────────────────────────────────────────────────────────────────────────────
 const fs = require('fs');
 const path = require('path');
@@ -35,7 +35,9 @@ const C = {
 // I path nei .md sono semplificati (es. img/entra-users.png) ma i file risiedono
 // in sottocartelle (es. img/Module 2 - .../entra-users.png). Risolviamo per
 // basename indicizzando ricorsivamente la cartella img/.
-const IMG_DIR = path.join(__dirname, 'img');
+// Lo script vive in <root>/script/: la radice del repo e' la cartella superiore.
+const ROOT = path.join(__dirname, '..');
+const IMG_DIR = path.join(ROOT, 'img');
 let _imgIndex = null;
 function buildImgIndex() {
   const index = {};
@@ -524,7 +526,7 @@ async function main() {
   // Parsifica tutti i moduli (servono per il Sommario completo in ogni modalita')
   const parsed = {};
   for (let m = 1; m <= 6; m++) {
-    const p = path.join(__dirname, `MODULE_${m}.md`);
+    const p = path.join(ROOT, 'chapters', `MODULE_${m}.md`);
     if (fs.existsSync(p)) {
       try { parsed[m] = parseModule(fs.readFileSync(p, 'utf8'), m); }
       catch (e) { console.error(`  [ERRORE] parsing MODULE_${m}.md: ${e.message}`); parsed[m] = null; }
@@ -593,9 +595,10 @@ async function main() {
   });
 
   const buffer = await Packer.toBuffer(doc);
-  const outPath = outputPath(mode, n);
+  const outName = outputPath(mode, n);
+  const outPath = path.join(ROOT, outName);   // output sempre nella radice del repo
   fs.writeFileSync(outPath, buffer);
-  console.log('Documento salvato: ' + outPath);
+  console.log('Documento salvato: ' + outName);
   console.log('Dimensione: ' + (buffer.length/1024).toFixed(1) + ' KB');
 }
 
