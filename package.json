@@ -2,10 +2,10 @@
   "name": "az-104-appunti",
   "version": "1.0.0",
   "description": "Note di studio per la certificazione **Microsoft AZ-104 (Azure Administrator)**, generate tramite script Node.js in formato Word (.docx).",
-  "main": "create_az104.js",
+  "main": "script/create_az104.js",
   "scripts": {
-    "build": "node create_az104.js",
-    "build:toc": "node create_az104.js --toc"
+    "build": "node script/create_az104.js",
+    "build:toc": "node script/create_az104.js --toc"
   },
   "repository": {
     "type": "git",
