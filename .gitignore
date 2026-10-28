@@ -1,0 +1,6 @@
+node_modules/
+*.docx
+*.pdf
+_debug.js
+_section*_new.md
+CLAUDE.md

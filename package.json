@@ -1,0 +1,25 @@
+{
+  "name": "ta-004-appunti",
+  "version": "1.0.0",
+  "description": "Note di studio per HashiCorp Certified: Terraform Associate (004), generate tramite script Node.js in formato Word (.docx) e PDF.",
+  "main": "script/create_ta004.js",
+  "scripts": {
+    "build": "node script/create_ta004.js",
+    "build:toc": "node script/create_ta004.js --toc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lx2pwnd/ta-004-appunti.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lx2pwnd/ta-004-appunti/issues"
+  },
+  "homepage": "https://github.com/lx2pwnd/ta-004-appunti#readme",
+  "dependencies": {
+    "docx": "^9.7.1"
+  }
+}
