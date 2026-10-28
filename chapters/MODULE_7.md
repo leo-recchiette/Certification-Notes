@@ -109,6 +109,10 @@ terraform apply
 
 ### 7.3.2 — Categorie di errori e approccio
 
+![Figura 11](img/tf-layers.png) _(dimensioni: 2400×810 px)_
+
+*Figura 11 — I livelli in cui può verificarsi un problema: Terraform Core, provider e API della piattaforma. Fonte: HashiCorp Developer.* _(caption)_
+
 | **Tipo di errore** | **Quando compare** | **Rimedio tipico** |
 |---|---|---|
 | **Sintassi / formattazione** | `validate`, `plan` | `terraform fmt` e `terraform validate` |

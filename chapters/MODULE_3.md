@@ -10,6 +10,10 @@ _Il ciclo di lavoro Write → Plan → Apply e i comandi che lo compongono: init
 
 Il workflow di base di Terraform si articola in tre fasi, ripetute in ciclo:
 
+![Figura 5](img/terraform-workflow-diagram.png) _(dimensioni: 737×280 px)_
+
+*Figura 5 — Il ciclo di lavoro di Terraform. Fonte: HashiCorp Developer.* _(caption)_
+
 1. **Write**: si scrive o modifica la configurazione.
 2. **Plan**: si verifica in anteprima cosa cambierà.
 3. **Apply**: si applicano le modifiche all'infrastruttura reale.

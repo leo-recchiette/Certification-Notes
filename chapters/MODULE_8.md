@@ -33,6 +33,10 @@ HCP Terraform supporta tre workflow per i workspace:
 
 Con le **remote operations** plan e apply girano nell'ambiente HCP Terraform, con le variabili e le credenziali del workspace. I log sono trasmessi alla CLI. Si evita di tenere credenziali di cloud sui client locali.
 
+![Figura 12](img/hcp-run-phases.png) _(dimensioni: 1323×512 px)_
+
+*Figura 12 — Le fasi di un run in HCP Terraform, con i punti in cui intervengono le run task. Fonte: HashiCorp Developer.* _(caption)_
+
 **Ciclo di un run** _(stepTitle)_
 
 1. **Pending**: il run è in coda.
@@ -47,6 +51,10 @@ Con le **remote operations** plan e apply girano nell'ambiente HCP Terraform, co
 
 ### 8.2.1 — Teams e permessi
 
+![Figura 13](img/hcp-project-team-access.png) _(dimensioni: 2059×2087 px)_
+
+*Figura 13 — Assegnazione dell'accesso a un project per un team. Fonte: HashiCorp Developer.* _(caption)_
+
 - Gli utenti sono organizzati in **team**; ai team si assegnano permessi a livello di **organizzazione**, **project** e **workspace**.
 - Esistono ruoli predefiniti sui workspace: *Read*, *Plan*, *Write*, *Admin* (e permessi personalizzati).
 - Il team **owners** ha pieno controllo dell'organizzazione.
@@ -58,6 +66,14 @@ Con le **remote operations** plan e apply girano nell'ambiente HCP Terraform, co
 ### 8.2.2 — Policy enforcement
 
 Le **policy** definiscono regole che i run devono rispettare (es. "vietati bucket pubblici", "solo certe regioni", "tag obbligatori").
+
+![Figura 14](img/hcp-validation-mechanisms.png) _(dimensioni: 960×540 px)_
+
+*Figura 14 — Meccanismi di validazione e enforcement disponibili in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
+
+![Figura 15](img/hcp-run-task-diagram.png) _(dimensioni: 960×263 px)_
+
+*Figura 15 — Le run task integrano servizi esterni nel ciclo di un run. Fonte: HashiCorp Developer.* _(caption)_
 
 | **Framework** | **Note** |
 |---|---|
@@ -76,11 +92,19 @@ Le policy sono raggruppate in **policy set** applicabili a progetti o workspace.
 
 Invece di credenziali statiche a lunga durata, HCP Terraform usa **OIDC** per ottenere da AWS, Azure, GCP o Vault **credenziali temporanee** per ogni run.
 
+![Figura 16](img/hcp-dynamic-credentials-apply.png) _(dimensioni: 1768×984 px)_
+
+*Figura 16 — Un run che ottiene credenziali AWS temporanee tramite dynamic provider credentials. Fonte: HashiCorp Developer.* _(caption)_
+
 - Riduce il rischio di fuga di segreti e semplifica la rotazione.
 - Si configura la relazione di fiducia tra il provider cloud e l'organizzazione/workspace HCP.
 - Si impostano variabili del workspace (es. `TFC_AWS_PROVIDER_AUTH`, `TFC_AWS_RUN_ROLE_ARN`).
 
 ### 8.2.4 — Health assessments e drift detection
+
+![Figura 17](img/hcp-drift-detection-overview.png) _(dimensioni: 2048×1208 px)_
+
+*Figura 17 — Panoramica di un workspace con health assessment e rilevamento del drift. Fonte: HashiCorp Developer.* _(caption)_
 
 - **Health assessments**: HCP Terraform verifica periodicamente il workspace.
   - **Drift detection**: rileva le differenze tra infrastruttura reale e configurazione.
@@ -88,6 +112,10 @@ Invece di credenziali statiche a lunga durata, HCP Terraform usa **OIDC** per ot
 - Notifica gli utenti (es. via email, Slack, webhook) quando qualcosa diverge.
 
 ### 8.2.5 — Explorer e change requests
+
+![Figura 18](img/hcp-explorer-health.png) _(dimensioni: 2692×1070 px)_
+
+*Figura 18 — L'Explorer mostra lo stato di salute dei workspace dell'organizzazione. Fonte: HashiCorp Developer.* _(caption)_
 
 - **Explorer**: vista centralizzata e interrogabile su workspace, moduli, provider e versioni dell'organizzazione (utile per audit e per trovare workspace obsoleti).
 - **Change requests**: consentono di richiedere modifiche a un workspace e tracciarne lo stato direttamente nell'interfaccia.
@@ -111,7 +139,19 @@ _(infoBox)_
 
 I **project** raggruppano i workspace (es. per team o applicazione) e consentono di assegnare permessi e variable set a livello di gruppo.
 
+![Figura 19](img/hcp-new-project.png) _(dimensioni: 2910×418 px)_
+
+*Figura 19 — Creazione di un nuovo project in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
+
 ### 8.3.3 — Variabili e variable set
+
+![Figura 20](img/hcp-create-variable-set.png) _(dimensioni: 2380×940 px)_
+
+*Figura 20 — Creazione di un variable set. Fonte: HashiCorp Developer.* _(caption)_
+
+![Figura 21](img/hcp-workspace-variables.png) _(dimensioni: 2936×1568 px)_
+
+*Figura 21 — Variabili di ambiente e variabili Terraform in un workspace. Fonte: HashiCorp Developer.* _(caption)_
 
 - Due categorie: **Terraform variables** (input) e **Environment variables** (per provider o CLI).
 - Ogni variabile può essere marcata **sensitive**: scrivibile ma non più leggibile.
@@ -121,6 +161,14 @@ I **project** raggruppano i workspace (es. per team o applicazione) e consentono
 ### 8.3.4 — Run trigger
 
 I **run trigger** collegano workspace tra loro: quando un workspace *sorgente* completa un apply, avvia automaticamente un run nel workspace *destinatario*. Servono a orchestrare dipendenze, ad esempio rete → applicazione.
+
+![Figura 22](img/hcp-run-trigger-workspaces.png) _(dimensioni: 1940×439 px)_
+
+*Figura 22 — Due workspace collegati: il run del workspace sorgente avvia quello destinatario. Fonte: HashiCorp Developer.* _(caption)_
+
+![Figura 23](img/hcp-run-triggers.png) _(dimensioni: 1629×809 px)_
+
+*Figura 23 — Configurazione dei run trigger. Fonte: HashiCorp Developer.* _(caption)_
 
 ---
 
@@ -153,6 +201,10 @@ terraform {
 
 ### 8.4.3 — Migrare lo state verso HCP Terraform
 
+![Figura 24](img/hcp-remote-run.png) _(dimensioni: 2048×2065 px)_
+
+*Figura 24 — Un run remoto avviato dalla CLI dopo la migrazione dello state. Fonte: HashiCorp Developer.* _(caption)_
+
 1. Creare l'organizzazione (e i workspace, se necessario).
 2. Eseguire `terraform login`.
 3. Aggiungere il blocco `cloud` e rimuovere il backend precedente.
@@ -162,6 +214,10 @@ terraform {
 ### 8.4.4 — Versione di Terraform
 
 Ogni workspace specifica la **versione di Terraform** usata per i run. Per aggiornare si modifica l'impostazione del workspace, dopo aver verificato la compatibilità.
+
+![Figura 25](img/hcp-configure-version.png) _(dimensioni: 2360×269 px)_
+
+*Figura 25 — Impostazione della versione di Terraform di un workspace. Fonte: HashiCorp Developer.* _(caption)_
 
 **Link di riferimento** _(stepTitle)_
 

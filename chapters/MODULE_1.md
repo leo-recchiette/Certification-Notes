@@ -10,6 +10,10 @@ _Questo modulo introduce il paradigma Infrastructure as Code, i vantaggi rispett
 
 L'Infrastructure as Code (IaC) consiste nel descrivere e gestire l'infrastruttura (reti, macchine virtuali, database, DNS, permessi) tramite **file di configurazione leggibili da una macchina**, invece di crearla a mano da console web o con comandi isolati. La configurazione diventa il documento che dichiara lo stato desiderato: uno strumento IaC la legge e la porta a realtà.
 
+![Figura 1](img/terraform-iac.png) _(dimensioni: 2400×870 px)_
+
+*Figura 1 — Infrastructure as Code: la configurazione descrive lo stato desiderato dell'infrastruttura. Fonte: HashiCorp Developer.* _(caption)_
+
 **Approccio dichiarativo e imperativo** _(stepTitle)_
 
 - **Dichiarativo**: si descrive il *risultato* voluto ("voglio 3 VM e una rete"). Lo strumento calcola da solo i passi per arrivarci. Terraform è dichiarativo (linguaggio HCL).
@@ -33,6 +37,10 @@ Nel modello tradizionale l'infrastruttura veniva creata a mano, ticket dopo tick
 ### 1.1.3 — Terraform e il suo ruolo
 
 Terraform è uno strumento IaC open source (ora sotto licenza BUSL) sviluppato da HashiCorp. Permette di definire risorse e servizi con il linguaggio dichiarativo **HCL** (HashiCorp Configuration Language) e di gestirne l'intero ciclo di vita. Funziona tramite **provider** (plugin) che traducono la configurazione in chiamate alle API di ogni piattaforma.
+
+![Figura 2](img/intro-terraform-workflow.png) _(dimensioni: 2038×1773 px)_
+
+*Figura 2 — Il workflow Terraform: Write, Plan, Apply. Fonte: HashiCorp Developer.* _(caption)_
 
 **Come funziona in breve** _(stepTitle)_
 
@@ -78,6 +86,10 @@ _(infoBox)_
 ### 1.3.1 — Un solo workflow, molte piattaforme
 
 Ogni cloud ha il proprio strumento IaC nativo (ARM/Bicep per Azure, CloudFormation per AWS, Deployment Manager per Google Cloud). Terraform è **cloud-agnostic**: il linguaggio e il workflow (`init`, `plan`, `apply`) restano uguali, cambiano solo i provider e i tipi di risorsa.
+
+![Figura 3](img/intro-terraform-apis.png) _(dimensioni: 2048×644 px)_
+
+*Figura 3 — Terraform gestisce piattaforme diverse tramite le loro API, usando i provider. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 1.3.2 — Multi-cloud e hybrid cloud
 

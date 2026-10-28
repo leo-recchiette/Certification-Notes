@@ -90,6 +90,10 @@ terraform {
 
 Terraform è composto da **Terraform Core** (binario CLI) e dai **provider plugin**, processi separati che comunicano con il core via RPC (gRPC).
 
+![Figura 4](img/terraform-plugin-overview.png) _(dimensioni: 4096×728 px)_
+
+*Figura 4 — Terraform Core comunica con i provider plugin, che a loro volta chiamano le API delle piattaforme. Fonte: HashiCorp Developer.* _(caption)_
+
 1. Core legge la configurazione e lo state.
 2. Costruisce il **grafo delle risorse** e calcola il piano.
 3. Per ogni operazione chiama il provider appropriato.

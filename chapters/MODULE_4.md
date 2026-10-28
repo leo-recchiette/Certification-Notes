@@ -125,6 +125,10 @@ terraform apply -target=module.network
 
 ### 4.3.1 — Input variable
 
+![Figura 6](img/terraform-variables-architecture-diagram.png) _(dimensioni: 663×320 px)_
+
+*Figura 6 — Le input variable parametrizzano la configurazione senza modificarne il codice. Fonte: HashiCorp Developer.* _(caption)_
+
 ```
 variable "region" {
   type        = string
@@ -315,6 +319,10 @@ resource "aws_instance" "web" {
 
 ### 4.8.1 — Validation delle variabili
 
+![Figura 7](img/validation-order-of-operations-dark.jpg) _(dimensioni: 1312×738 px)_
+
+*Figura 7 — Ordine di valutazione dei controlli: validation delle variabili, precondition, postcondition e check. Fonte: HashiCorp Developer.* _(caption)_
+
 ```
 variable "env" {
   type = string
@@ -397,6 +405,10 @@ Le variabili/output/risorse **ephemeral** esistono solo durante l'esecuzione e *
 ### 4.9.4 — Integrazione con HashiCorp Vault
 
 Il **provider Vault** permette a Terraform di leggere segreti da Vault tramite data source (es. `vault_kv_secret_v2`) o di generare **credenziali dinamiche** con scadenza (es. per database o cloud).
+
+![Figura 8](img/vault-secrets-overview.png) _(dimensioni: 1562×532 px)_
+
+*Figura 8 — Terraform legge i segreti da Vault tramite il provider Vault. Fonte: HashiCorp Developer.* _(caption)_
 
 ```
 data "vault_kv_secret_v2" "db" {

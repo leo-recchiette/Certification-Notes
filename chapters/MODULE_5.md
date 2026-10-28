@@ -19,6 +19,10 @@ Un **modulo** è un contenitore di risorse Terraform usate insieme: una director
 
 ### 5.1.2 — Sorgenti (source) dei moduli
 
+![Figura 9](img/registry-module-vpc.png) _(dimensioni: 2360×1170 px)_
+
+*Figura 9 — Pagina di un modulo nel Terraform Registry, con le istruzioni di utilizzo e la versione. Fonte: HashiCorp Developer.* _(caption)_
+
 | **Sorgente** | **Esempio** |
 |---|---|
 | **Percorso locale** | `source = "./modules/network"` |

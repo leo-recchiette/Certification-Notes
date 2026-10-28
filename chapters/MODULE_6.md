@@ -78,6 +78,10 @@ terraform {
 
 Il data source `terraform_remote_state` legge gli **output** del root module di un'altra configurazione.
 
+![Figura 10](img/hcp-remote-state-sharing.png) _(dimensioni: 2878×1398 px)_
+
+*Figura 10 — Condivisione dello state remoto tra workspace in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
+
 ```
 data "terraform_remote_state" "network" {
   backend = "azurerm"
