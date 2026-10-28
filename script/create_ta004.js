@@ -23,8 +23,8 @@ const { execFileSync } = require('child_process');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
   AlignmentType, LevelFormat, TabStopType,
-  BorderStyle, WidthType, ShadingType, VerticalAlign, PageBreak,
-  Footer, PageNumber, NumberFormat, TableOfContents
+  BorderStyle, WidthType, ShadingType, VerticalAlign, PageBreak, TableLayoutType,
+  Footer, PageNumber, NumberFormat, TableOfContents, ExternalHyperlink
 } = require('docx');
 
 const C = {
@@ -69,9 +69,10 @@ function loadImg(ref) {
 // ─── HELPER DI RESA (stile invariato rispetto allo STYLE_GUIDE) ───────────────
 const noSpacing = {before:0,after:0};
 const stdSpacing = {before:60,after:60};
+const JUSTIFY = AlignmentType.JUSTIFIED;   // testo giustificato a destra e a sinistra (corpo, elenchi, box)
 
 function body(text, opts={}, paraOpts={}) {
-  return new Paragraph({ spacing:stdSpacing, keepLines:true, ...paraOpts,
+  return new Paragraph({ alignment:JUSTIFY, spacing:stdSpacing, keepLines:true, ...paraOpts,
     children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText, ...opts})] });
 }
 function h2(text) {
@@ -86,9 +87,13 @@ function stepTitle(text) {
   return new Paragraph({ spacing:{before:100,after:40}, keepNext:true, keepLines:true,
     children:[new TextRun({text, font:'Calibri', size:22, bold:true, color:'000000'})] });
 }
+// text: stringa, oppure array di parti {text, url?} (da linkParts): le parti con url diventano link cliccabili.
 function bullet(text, level=0, paraOpts={}) {
-  return new Paragraph({ spacing:{before:40,after:40}, keepLines:true, numbering:{reference:'bullets',level}, ...paraOpts,
-    children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText})] });
+  const parts = Array.isArray(text) ? text : [{ text }];
+  return new Paragraph({ alignment:JUSTIFY, spacing:{before:40,after:40}, keepLines:true, numbering:{reference:'bullets',level}, ...paraOpts,
+    children: parts.map(p => p.url
+      ? new ExternalHyperlink({ link:p.url, children:[new TextRun({text:p.text, font:'Calibri', size:22, color:C.sectionBlue, underline:{}})] })
+      : new TextRun({text:p.text, font:'Calibri', size:22, color:C.bodyText})) });
 }
 function caption(text) {
   return new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:40,after:80}, keepLines:true,
@@ -104,7 +109,7 @@ function infoBox(label, text) {
   const children = [];
   if(label) children.push(new TextRun({text:label+' ', font:'Calibri', size:22, bold:true, color:C.sectionBlue}));
   children.push(new TextRun({text, font:'Calibri', size:22, color:C.bodyText}));
-  return new Paragraph({ spacing:stdSpacing, keepLines:true, indent:{left:360,right:360},
+  return new Paragraph({ alignment:JUSTIFY, spacing:stdSpacing, keepLines:true, indent:{left:360,right:360},
     border:{left:{style:BorderStyle.SINGLE, size:12, color:C.sectionBlue}},
     shading:{fill:C.infoBoxBg, type:ShadingType.CLEAR}, children });
 }
@@ -130,6 +135,40 @@ function figImg(data, ext, origW, origH, label) {
 }
 
 const FULL_WIDTH=8640;
+const BODY_HEIGHT=16838-1008*2;   // altezza utile della pagina (vedi pageProps)
+// Stima grossolana dell'altezza di una tabella in twip: Calibri 10pt ~95 twip per carattere,
+// ~244 twip per riga di testo, 160 twip di margini verticali e 240 orizzontali per cella.
+function estTableHeight(headers, rows, widths) {
+  const lines = (t, w) => Math.max(1, Math.ceil(String(t).length * 95 / (w - 240)));
+  return [headers, ...rows].reduce((h, r) => h + 160 + 244 * Math.max(...r.map((c, i) =>
+    lines(typeof c === 'object' ? c.text : c, widths[i]))), 0);
+}
+// Larghezze delle colonne in base al contenuto, come il layout automatico delle tabelle HTML:
+// ogni colonna riceve almeno la sua parola piu' lunga (al massimo meta' tabella) e lo spazio
+// che avanza va alle colonne con piu' testo. Con il layout fisso Word rispetta queste larghezze,
+// invece di restringere una colonna fino a spezzarne le parole. I percorsi (a/b/c) non contano
+// come parola unica: andrebbero comunque a capo.
+function tableWidths(headers, rows) {
+  // Larghezza stimata in twip di un testo Calibri 10pt (maiuscole, cifre e _ sono piu' larghe).
+  const textW = (s, bold) => [...s].reduce((w, ch) => w + (/[mwMW]/.test(ch) ? 155 : /[A-Z]/.test(ch) ? 118
+    : /[0-9_%]/.test(ch) ? 104 : /[a-z]/.test(ch) ? 92 : 75), 0) * (bold ? 1.06 : 1);
+  const PAD = 300;   // margini di cella (120+120) + tolleranza
+  const cols = headers.map((h, c) => [[h, true], ...rows.map(r => {
+    const cell = r[c] ?? '';
+    return typeof cell === 'object' ? [cell.text, cell.bold] : [String(cell), false];
+  })]);
+  const minW = cols.map(cells => Math.min(FULL_WIDTH * 0.5,
+    PAD + Math.max(...cells.flatMap(([t, b]) => t.split(/[\s/]+/).map(w => textW(w, b))))));
+  const maxW = cols.map((cells, c) => Math.max(minW[c], PAD + Math.max(...cells.map(([t, b]) => textW(t, b)))));
+  const sum = a => a.reduce((s, x) => s + x, 0);
+  const sMin = sum(minW), sMax = sum(maxW);
+  const w = sMax <= FULL_WIDTH ? maxW.map(x => x * FULL_WIDTH / sMax)
+    : sMin >= FULL_WIDTH ? minW.map(x => x * FULL_WIDTH / sMin)
+    : minW.map((x, c) => x + (maxW[c] - x) * (FULL_WIDTH - sMin) / (sMax - sMin));
+  const out = w.map(Math.floor);
+  out[out.length - 1] += FULL_WIDTH - sum(out);
+  return out;
+}
 function tableCell(text, opts={}) {
   const {fill=C.white, bold=false, color=C.bodyText, width, keepNext=false} = opts;
   const tblBorder={style:BorderStyle.SINGLE, size:1, color:C.border};
@@ -147,17 +186,21 @@ function makeTable(headers, rows, colWidths, opts={}) {
   // false quando dopo la tabella c'e' un'immagine/intestazione: cosi' la tabella non trascina
   // quel blocco a pagina nuova lasciando un buco sopra.
   const keepWithNext = opts.keepWithNext !== false;
-  const widths=colWidths||headers.map(()=>Math.floor(FULL_WIDTH/headers.length));
+  const widths=colWidths||tableWidths(headers, rows);
   const tblBorder={style:BorderStyle.SINGLE, size:1, color:C.border};
   const borders={top:tblBorder,bottom:tblBorder,left:tblBorder,right:tblBorder,insideH:tblBorder,insideV:tblBorder};
   // tableHeader: l'intestazione si ripete se la tabella e' costretta a spezzarsi.
   // cantSplit (riga) + keepNext (celle delle righe non finali): la tabella resta unita.
+  // Una tabella piu' alta di una pagina si spezza comunque: tenerla unita la sposterebbe solo
+  // a pagina nuova, lasciando quasi vuota la precedente. In quel caso l'intestazione resta
+  // agganciata alla prima riga e le altre righe scorrono normalmente.
+  const keepTogether = estTableHeight(headers, rows, widths) < BODY_HEIGHT * 0.85;
   const headerRow=new TableRow({ cantSplit:true, tableHeader:true,
     children:headers.map((h,i)=>tableCell(h,{fill:C.headerBg, bold:true, width:widths[i], keepNext:true})) });
   const lastIdx=rows.length-1;
   const dataRows=rows.map((row,ri)=>{
     const fill=ri%2===0?C.rowEven:C.white;
-    const rowKeepNext = ri<lastIdx ? true : keepWithNext;   // ultima riga: solo se richiesto
+    const rowKeepNext = ri<lastIdx ? keepTogether : keepWithNext;   // ultima riga: solo se richiesto
     return new TableRow({ cantSplit:true,
       children:row.map((cell,ci)=>{
         if(typeof cell==='object'&&cell.text!==undefined)
@@ -165,7 +208,8 @@ function makeTable(headers, rows, colWidths, opts={}) {
         return tableCell(cell,{fill, width:widths[ci], keepNext:rowKeepNext});
       }) });
   });
-  return new Table({ width:{size:FULL_WIDTH,type:WidthType.DXA}, columnWidths:widths, borders, rows:[headerRow,...dataRows] });
+  return new Table({ width:{size:FULL_WIDTH,type:WidthType.DXA}, columnWidths:widths, layout:TableLayoutType.FIXED,
+    borders, rows:[headerRow,...dataRows] });
 }
 
 function moduloTitle(text) {
@@ -176,7 +220,7 @@ function moduloTitle(text) {
     children:[new TextRun({text, font:'Calibri', size:48, bold:true, color:C.titleBlue})] });
 }
 function moduloIntro(text) {
-  return new Paragraph({ spacing:{before:80,after:120}, keepNext:true, keepLines:true,
+  return new Paragraph({ alignment:JUSTIFY, spacing:{before:80,after:120}, keepNext:true, keepLines:true,
     children:[new TextRun({text, font:'Calibri', size:22, italics:true, color:C.bodyText})] });
 }
 
@@ -191,8 +235,13 @@ const TABLE_FUNCS = {};
 
 // ─── COPERTINA ────────────────────────────────────────────────────────────────
 function coverPage() {
+  // Logo Terraform sopra il titolo (img/Cover/terraform-logo.png): se manca, copertina solo testuale.
+  const logoPath = resolveImg('terraform-logo.png');
+  const logo = logoPath ? [ new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:0,after:360},
+    children:[new ImageRun({data:fs.readFileSync(logoPath), transformation:{width:150, height:150}, type:'png'})] }) ] : [];
   return [
-    ...spacer(10),
+    ...spacer(logoPath ? 6 : 10),
+    ...logo,
     new Paragraph({ alignment:AlignmentType.CENTER, spacing:noSpacing,
       children:[new TextRun({text:'TA-004', font:'Calibri', size:96, bold:true, color:C.titleBlue})] }),
     new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:40,after:40},
@@ -210,14 +259,33 @@ function splitTag(s) {
   return { text: s, tag: null };
 }
 function stripStars(s) { return s.replace(/^\s*\*+/, '').replace(/\*+\s*$/, '').trim(); }
-function inlineText(s) {
-  return s
+// Corsivo *testo* -> testo, ma solo fuori dal codice inline (es. `*.auto.tfvars` resta intatto).
+function stripItalic(s) {
+  return s.split(/(`[^`]+`)/).map(seg => seg.startsWith('`') ? seg
+    : seg.replace(/(^|[^*\w])\*(?=\S)([^*]*?\S)\*(?=[^*\w]|$)/g, '$1$2')).join('');
+}
+function inlineRaw(s) {
+  return stripItalic(s
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')      // immagini inline residue
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')    // link [testo](url) -> testo
-    .replace(/\*\*([^*]+)\*\*/g, '$1')          // grassetto
+    .replace(/\*\*([^*]+)\*\*/g, '$1'))         // grassetto
     .replace(/`([^`]+)`/g, '$1')                // codice inline
-    .replace(/_\([^)]*\)_/g, '')                // marker residui
-    .trim();
+    .replace(/_\([^)]*\)_/g, '');               // marker residui
+}
+function inlineText(s) { return inlineRaw(s).trim(); }
+// Testo con link http(s) -> parti {text, url?} per i bullet (i link restano cliccabili nel .docx/.pdf).
+function linkParts(s) {
+  const parts = [];
+  let last = 0;
+  for (const m of s.matchAll(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g)) {
+    if (m.index > last) parts.push({ text: inlineRaw(s.slice(last, m.index)) });
+    parts.push({ text: inlineText(m[1]), url: m[2] });
+    last = m.index + m[0].length;
+  }
+  if (last < s.length) parts.push({ text: inlineRaw(s.slice(last)) });
+  if (parts.length && !parts[0].url) parts[0].text = parts[0].text.replace(/^\s+/, '');
+  if (parts.length && !parts[parts.length - 1].url) parts[parts.length - 1].text = parts[parts.length - 1].text.replace(/\s+$/, '');
+  return parts.filter(p => p.text);
 }
 
 function parseModule(md, modNum = 0) {
@@ -335,7 +403,9 @@ function parseModule(md, modNum = 0) {
         // Aggancia l'ultima riga al paragrafo seguente solo se e' la didascalia della tabella.
         const cap = peekNonBlank(i);
         const capTxt = cap < N ? splitTag(L[cap].trim()) : null;
-        const nextIsCaption = !!capTxt && (capTxt.tag === 'caption' || /^\*.+\*$/.test(capTxt.text));
+        // Solo *corsivo* senza marcatore: un **titolo** _(stepTitle)_ non e' una didascalia.
+        const nextIsCaption = !!capTxt && (capTxt.tag === 'caption' ||
+          (!capTxt.tag && /^\*[^*].*\*$/.test(capTxt.text)));
         elements.push(makeTable(headers, data, undefined, { keepWithNext: nextIsCaption }));
       } else { for (const r of rows) buf.push(r); }
       continue;
@@ -351,7 +421,7 @@ function parseModule(md, modNum = 0) {
       let txt = splitTag(bq.join(' ').trim()).text;
       let label = null;
       const lm = txt.match(/^\*\*(.+?)\*\*\s*:?\s*([\s\S]*)$/);
-      if (lm) { label = lm[1].trim() + ':'; txt = lm[2].trim(); }
+      if (lm) { label = inlineText(lm[1]) + ':'; txt = lm[2].trim(); }
       elements.push(infoBox(label, inlineText(txt)));
       continue;
     }
@@ -371,8 +441,9 @@ function parseModule(md, modNum = 0) {
       flush();
       glueLeadIn(['body']);   // un body introduttivo si aggancia al primo bullet (non bullet-a-bullet)
       const level = m[1].length >= 2 ? 1 : 0;
-      let t = inlineText(splitTag(m[3]).text);
-      if (/^\d+\.$/.test(m[2])) t = m[2] + ' ' + t;   // mantiene la numerazione
+      const src = splitTag(m[3]).text;
+      let t = /\]\(https?:/.test(src) ? linkParts(src) : inlineText(src);   // con link: parti cliccabili
+      if (/^\d+\.$/.test(m[2])) t = Array.isArray(t) ? [{ text: m[2] + ' ' }, ...t] : m[2] + ' ' + t;   // mantiene la numerazione
       elements.push(bullet(t, level));
       leadIn = { idx: elements.length - 1, kind: 'bullet', make: () => bullet(t, level, { keepNext: true }) };
       i++; continue;

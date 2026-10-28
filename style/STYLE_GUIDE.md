@@ -32,7 +32,7 @@ Rispettare questi marcatori garantisce che il contenuto venga reso con lo stile 
 | `## N.M — Titolo` | Intestazione di sezione (h2) + voce di Sommario |
 | `### N.M.K — Titolo` | Intestazione di sottosezione (h3) + voce di Sommario |
 | `**Titolo** _(stepTitle)_` | Titolo di step (grassetto nero) |
-| Paragrafo normale | Corpo testo (`**grassetto**`, `` `codice` `` e link `[testo](url)` sono ridotti a testo semplice) |
+| Paragrafo normale | Corpo testo (`**grassetto**`, `*corsivo*`, `` `codice` `` e link `[testo](url)` sono ridotti a testo semplice; gli asterischi dentro il codice inline, come in `` `*.auto.tfvars` ``, restano intatti) |
 | `- voce` oppure `* voce` | Punto elenco; con indentazione ≥ 2 spazi diventa sotto-livello |
 | `1. voce` | Punto elenco con il numero mantenuto nel testo |
 | `> **Etichetta**: testo` (+ riga `_(infoBox)_`) | Box informativo (etichetta in grassetto blu, bordo sinistro) |
@@ -83,6 +83,8 @@ Il meccanismo `[TABELLA: nomeFunzione]` esiste ancora (registro `TABLE_FUNCS` in
 - Linea sotto 'Sommario' e moduloTitle: `BorderStyle.SINGLE size 8 color #7B42BC space 4`
 - infoBox: sfondo `#F1E9FB`, bordo sinistro `SINGLE size 12 color #7B42BC`, indent left 360 right 360
 - Tabelle: intestazione sfondo `#4A2A85` testo bianco; righe pari `#F7F3FC`, dispari `#FFFFFF`; bordi `SINGLE size 1 color #CCCCCC`; `cantSplit: true` su tutte le righe
+- Larghezza delle colonne: calcolata dal contenuto da `tableWidths()` (come il layout automatico delle tabelle HTML: ogni colonna riceve almeno la sua parola più lunga, lo spazio che avanza va alle colonne con più testo) e applicata con layout fisso, così Word non spezza le parole; i percorsi `a/b/c` possono andare a capo
+- Una tabella resta unita su una pagina, salvo quando `estTableHeight()` la stima più alta di una pagina: in quel caso solo l'intestazione resta agganciata alla prima riga, e la tabella non lascia una pagina quasi vuota prima di sé
 - Tab stop sommario: `TabStopType.RIGHT position 9000 leader 'dot'` (allinea a destra il numero di pagina)
 
 ### Numeri di pagina
@@ -117,7 +119,7 @@ Non si chiamano a mano: il parser li invoca in base ai marcatori. Riferimento:
 
 Le immagini risiedono in `img/` (una sottocartella per modulo, es. `img/Module 4 - Configurazione/`) e si risolvono per **nome file**, che deve essere univoco. Dimensioni dal marcatore `_(dimensioni: L×A px)_`.
 
-Le figure provengono da HashiCorp Developer (didascalia con "Fonte: HashiCorp Developer") e sono numerate in modo continuo nelle didascalie: M1 1–3, M2 4, M3 5, M4 6–8, M5 9, M6 10, M7 11, M8 12–25.
+Le figure provengono da HashiCorp Developer (didascalia con "Fonte: HashiCorp Developer") e sono numerate in modo continuo nelle didascalie: M1 1–3, M2 4, M3 5–10, M4 11–13, M5 14, M7 15–16, M8 17–30 (il Modulo 6 non ha figure).
 
 ---
 
@@ -128,5 +130,6 @@ Le figure provengono da HashiCorp Developer (didascalia con "Fonte: HashiCorp De
 - `cantSplit: true` su tutte le righe di tabella; `keepNext: true` su h2/h3/stepTitle
 - `figImg()` scala automaticamente se la larghezza supera 6123000 EMU (~6.5 inch)
 - `stepTitle` usa nero `#000000` (non blu) per distinguersi da h2/h3
+- Corpo testo, punti elenco, infoBox e introduzione dei moduli sono giustificati (`AlignmentType.JUSTIFIED`); titoli, didascalie, codice e tabelle no
 - Il parser rimuove un eventuale **BOM UTF-8** in testa ai `.md` (un BOM rompe il riconoscimento del titolo `#`)
 - Salvare i `MODULE_*.md` in **UTF-8 senza BOM**

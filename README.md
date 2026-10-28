@@ -2,7 +2,7 @@
 
 Note di studio per la certificazione **HashiCorp Certified: Terraform Associate (004)**, in italiano, generate in formato Word (.docx) con esportazione automatica in **PDF** tramite uno script Node.js.
 
-Il contenuto segue la [exam content list](https://developer.hashicorp.com/terraform/tutorials/certification-004/associate-review-004) e il [percorso di studio](https://developer.hashicorp.com/terraform/tutorials/certification-004/associate-study-004) ufficiali HashiCorp. Il contenuto risiede nei file `chapters/MODULE_*.md` (**unica fonte di verità**): lo script `script/create_ta004.js` li legge e produce il documento.
+Il contenuto segue la [exam content list](https://developer.hashicorp.com/terraform/tutorials/certification-004/associate-review-004) e il [percorso di studio](https://developer.hashicorp.com/terraform/tutorials/certification-004/associate-study-004) ufficiali HashiCorp. Ogni modulo traduce in forma discorsiva le pagine collegate per il relativo obiettivo d'esame, nell'ordine del percorso di studio, e ogni sezione indica la pagina di origine. Il contenuto risiede nei file `chapters/MODULE_*.md` (**unica fonte di verità**): lo script `script/create_ta004.js` li legge e produce il documento.
 
 ---
 

@@ -8,6 +8,7 @@ Descrive la **Pagina 1 (Copertina)** del documento Word. Il **Sommario** (Pagina
 
 Generata dalla funzione `coverPage()` in `create_ta004.js` (contenuto statico):
 
+- **Logo Terraform** — `img/Cover/terraform-logo.png` (600×600 px, sfondo trasparente, colore #7B42BC), mostrato a 150×150 px, centrato sopra il titolo. Il PNG è disegnato dalle coordinate dell'icona ufficiale `terraform-color-24.svg` (pacchetto `@hashicorp/flight-icons`). Se il file manca, la copertina resta solo testuale.
 - **TA-004** — Calibri 48pt grassetto #2E1A59, centrato
 - **HashiCorp Certified: Terraform Associate** — Calibri 26pt grassetto #7B42BC, centrato
 - _Note di studio basate sulla exam content list e sui tutorial HashiCorp Developer_ — Calibri 13pt corsivo #555555, centrato
