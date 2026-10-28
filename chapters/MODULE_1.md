@@ -2,6 +2,9 @@
 
 _Questo modulo introduce il paradigma Infrastructure as Code, i vantaggi rispetto alla gestione manuale e il modo in cui Terraform gestisce ambienti multi-cloud, hybrid cloud e servizi eterogenei con un unico workflow._
 
+> **L'esame 004 in breve**: l'esame verifica **Terraform 1.12** e include contenuti su **HCP Terraform**. I tutorial usano provider specifici (AWS, Azure...), ma per l'esame non serve conoscere un provider in particolare. Rispetto al 003 i temi nuovi sono: **4f** (`depends_on` e la regola `create_before_destroy`), **4g** (validazione con custom condition), **4h** (ephemeral values e write-only arguments) e **8c** (organizzare workspace e project in HCP Terraform).
+_(infoBox)_
+
 ---
 
 ## 1.1 — Che cos'è l'Infrastructure as Code
@@ -76,6 +79,16 @@ Terraform è uno strumento IaC open source (ora sotto licenza BUSL) sviluppato d
 - **Multi-piattaforma**: un unico workflow per cloud, SaaS e sistemi on-premises.
 - **State**: tiene traccia delle risorse gestite e consente di rilevare differenze (drift).
 
+**I cinque motivi indicati dalla documentazione HashiCorp** _(stepTitle)_
+
+| **Motivo** | **Significato** |
+|---|---|
+| **Manage any infrastructure** | Migliaia di provider nel Registry; si possono anche scrivere provider propri |
+| **Track your infrastructure** | Il piano mostra le modifiche prima di applicarle; lo state fa da fonte di verità sull'ambiente |
+| **Automate changes** | Configurazione dichiarativa: Terraform calcola l'ordine (grafo) e crea in parallelo le risorse indipendenti |
+| **Standardize configurations** | I moduli rendono riutilizzabili componenti configurati in modo uniforme |
+| **Collaborate** | La configurazione sta in un VCS; HCP Terraform aggiunge state condiviso, accessi e policy |
+
 > **Attenzione**: Terraform non è uno strumento di *configuration management* (come Ansible, Chef, Puppet). Fa provisioning di infrastruttura; la configurazione del software all'interno delle macchine è un altro ambito, anche se i due approcci possono combinarsi.
 _(infoBox)_
 
@@ -102,12 +115,19 @@ _(infoBox)_
 
 ### 1.3.3 — Casi d'uso tipici
 
-- Provisioning di infrastruttura multi-tier (rete, compute, database).
-- Gestione di **ambienti multipli** (dev, staging, prod) a partire dagli stessi moduli.
-- Distribuzione **multi-cloud** per resilienza o per evitare il lock-in.
-- Gestione di servizi SaaS e configurazioni (DNS, monitoraggio, repository).
-- Integrazione in pipeline **CI/CD**.
-- Applicazione di policy e governance (con HCP Terraform / Sentinel / OPA).
+La pagina *Use cases* della documentazione elenca questi scenari:
+
+| **Caso d'uso** | **In sintesi** |
+|---|---|
+| **Multi-cloud deployment** | Un solo workflow e un solo linguaggio per più cloud: maggiore tolleranza ai guasti e meno lock-in |
+| **Application infrastructure deployment, scaling, and monitoring** | Gestire i livelli di un'applicazione multi-tier (web, database, cache) e il relativo monitoraggio |
+| **Self-service clusters** | I team centrali pubblicano moduli standard (es. nel registry privato) che gli altri team usano in autonomia |
+| **Policy compliance and management** | Policy as code (Sentinel, OPA) in HCP Terraform per impedire configurazioni non conformi |
+| **PaaS application setup** | Configurare piattaforme come Heroku e i relativi add-on |
+| **Software defined networking** | Automatizzare reti e servizi di rete (es. con Consul-Terraform-Sync) |
+| **Kubernetes** | Creare il cluster e gestirne le risorse (namespace, deployment) con i provider Kubernetes e Helm |
+| **Parallel environments** | Creare e distruggere rapidamente ambienti di test, staging o sviluppo identici alla produzione |
+| **Software demos** | Fornire una configurazione per creare l'ambiente di demo di un prodotto |
 
 **Link di riferimento** _(stepTitle)_
 

@@ -37,7 +37,16 @@ Un **modulo** è un contenitore di risorse Terraform usate insieme: una director
 > **Solo per il Registry**: l'argomento `version` è supportato **soltanto** per moduli del registry (pubblico o privato). Per i moduli locali o Git la versione si seleziona con il percorso o con `?ref=`.
 _(infoBox)_
 
-I moduli vengono scaricati da `terraform init` (o `terraform get`) nella cartella `.terraform/modules/`.
+**Formati da ricordare** _(stepTitle)_
+
+- Registry pubblico: `<NAMESPACE>/<NAME>/<PROVIDER>`, ad esempio `hashicorp/consul/aws`.
+- Registry privato: `<HOSTNAME>/<NAMESPACE>/<NAME>/<PROVIDER>`, cioè lo stesso formato con l'hostname davanti (es. `app.terraform.io/my-org/vpc/aws`).
+- **Sottodirectory**: `//` separa il repository dal percorso interno, ad esempio `git::https://example.com/network.git//modules/vpc?ref=v1.2.0`.
+- **Revisione Git**: `?ref=` accetta tag, branch o lo SHA di un commit.
+- **Shallow clone**: `?depth=1` scarica solo l'ultimo commit, utile con repository grandi.
+- Nel Registry il filtro **Partner** mostra i moduli revisionati da HashiCorp. Le versioni dei moduli seguono il **semantic versioning**.
+
+I moduli vengono scaricati da `terraform init` (o `terraform get`) nella cartella `.terraform/modules/`. I moduli locali non vengono copiati: Terraform li legge direttamente dal percorso.
 
 ---
 
@@ -57,8 +66,8 @@ variable "cidr" {
 }
 
 # modules/network/outputs.tf
-output "vnet_id" {
-  value = azurerm_virtual_network.main.id
+output "vnet_name" {
+  value = azurerm_virtual_network.main.name
 }
 ```
 
@@ -77,6 +86,14 @@ resource "azurerm_subnet" "app" {
 
 - Le risorse interne a un modulo **non sono accessibili** dal chiamante, a meno di un output esplicito.
 - I local value e i data source di un modulo sono privati.
+- Le variabili del modulo **senza `default`** diventano argomenti **obbligatori** del blocco `module`; quelle con default sono facoltative.
+- Il flusso è sempre esplicito: per usare una variabile del root module dentro un modulo figlio bisogna passarla come argomento (`cidr = var.cidr`). Allo stesso modo un modulo legge l'output di un altro solo tramite il root (`subnet_id = module.network.subnet_id`).
+
+| **Costrutto** | **Ambito** | **Analogia** |
+|---|---|---|
+| `variable` | Input del modulo | Parametri di una funzione |
+| `locals` | Interno al modulo | Variabili locali di una funzione |
+| `output` | Valore restituito al chiamante | Valore di ritorno di una funzione |
 
 ---
 
@@ -96,9 +113,18 @@ module "vpc" {
 
 Argomenti riservati del blocco `module`: `source`, `version`, `count`, `for_each`, `providers`, `depends_on`.
 
-- **count / for_each** su un modulo creano più istanze del modulo stesso.
+- **count / for_each** su un modulo creano più istanze del modulo stesso (`module.app[0]`, `module.app["eu"]`).
 - **providers** passa provider (anche con alias) al modulo.
-- Dopo aver aggiunto o modificato un `module`, occorre `terraform init` per scaricarlo.
+- **depends_on** fa dipendere l'intero modulo da altri oggetti.
+- Dopo aver aggiunto un `module`, o cambiato `source` o `version`, occorre `terraform init` (con `-upgrade` per aggiornare un modulo già installato).
+
+**Operazioni comuni sui moduli** _(stepTitle)_
+
+| **Esigenza** | **Come** |
+|---|---|
+| Ricreare una risorsa di un modulo | `terraform apply -replace='module.example.aws_instance.example'` (si può ripetere per più istanze) |
+| Spostare risorse dal root a un modulo senza ricrearle | Blocco `moved` (Modulo 6) |
+| Togliere un modulo senza distruggerne le risorse | Blocco `removed` con `from = module.example` e `destroy = false` (1.7+) |
 
 ### 5.3.2 — Struttura standard di un modulo
 
@@ -109,22 +135,56 @@ modulo/
 ├── outputs.tf       # output
 ├── versions.tf      # required_providers e required_version
 ├── README.md        # documentazione
+├── LICENSE          # licenza (importante per i moduli pubblicati)
+├── modules/         # eventuali moduli annidati
 └── examples/        # esempi d'uso
 ```
 
+Solo `main.tf`, `variables.tf` e `outputs.tf` sono la struttura minima consigliata; gli altri file sono raccomandati, soprattutto per i moduli da pubblicare. Il Registry usa il `README.md` e la descrizione di variabili e output per generare la documentazione del modulo.
+
 ### 5.3.3 — Provider nei moduli
 
-- I moduli **riutilizzabili** non dovrebbero contenere blocchi `provider`: dichiarano solo `required_providers` e ereditano la configurazione dal chiamante.
-- Con provider con alias si usa `configuration_aliases` nel modulo e `providers = {...}` nel chiamante.
-- Un modulo con un proprio blocco `provider` non è compatibile con `count`/`for_each`/`depends_on`.
+- I moduli **riutilizzabili** non dovrebbero contenere blocchi `provider`: dichiarano solo `required_providers` (con la versione **minima**, `>=`) e ricevono la configurazione dal chiamante.
+- **Ereditarietà implicita**: un modulo figlio eredita le configurazioni **default** (senza alias) dei provider del genitore.
+- **Passaggio esplicito**: le configurazioni con alias vanno passate con `providers`. Nel modulo si dichiarano con `configuration_aliases`.
+- Un modulo legacy con un proprio blocco `provider` non è compatibile con `count`, `for_each` e `depends_on`.
+
+```
+# nel modulo
+terraform {
+  required_providers {
+    aws = {
+      source                = "hashicorp/aws"
+      version               = ">= 5.0"
+      configuration_aliases = [aws.dst]
+    }
+  }
+}
+
+# nel chiamante
+module "replica" {
+  source = "./modules/replica"
+  providers = {
+    aws     = aws
+    aws.dst = aws.us
+  }
+}
+```
 
 ### 5.3.4 — Best practice di composizione
 
-- Moduli **piccoli e focalizzati** su un solo scopo.
-- Preferire una **struttura piatta** di moduli a gerarchie profonde.
-- Esporre solo le variabili utili e dare buoni valori di default.
-- Passare le dipendenze come variabili (inversione di controllo) anziché hardcodarle.
-- Documentare input e output e versionare con tag Git/semver.
+La documentazione raccomanda di tenere l'albero dei moduli **piatto**: un solo livello di moduli figli, collegati tra loro nel root module tramite espressioni. Questo stile si chiama **module composition**.
+
+| **Principio** | **Significato** |
+|---|---|
+| **Dependency inversion** | Il modulo riceve gli oggetti di cui ha bisogno (es. gli ID di VPC e subnet) come variabili, invece di crearli al proprio interno. Il root decide come collegare i moduli |
+| **Conditional creation** | Se un oggetto esiste già in alcuni ambienti e va creato in altri, il modulo lo riceve come input, invece di decidere da solo se crearlo |
+| **Assumptions and guarantees** | Le assunzioni sugli input si esprimono con validation e precondition, le garanzie sugli output con postcondition |
+| **Multi-cloud abstractions** | Moduli con la stessa interfaccia ma implementazioni per cloud diversi (es. un modulo DNS per ogni provider) |
+| **Data-only modules** | Moduli che non creano risorse ma leggono dati esistenti tramite data source e li espongono come output |
+
+- Moduli **piccoli e focalizzati** su un solo scopo; esporre solo le variabili utili con default sensati.
+- Documentare input e output e versionare con tag Git e semantic versioning.
 
 ---
 
@@ -145,7 +205,8 @@ module "vpc" {
 - Fissare la versione (o un range `~>`) rende la build riproducibile.
 - Per aggiornare i moduli entro i vincoli: `terraform init -upgrade`.
 - Per Git, la versione si fissa con `?ref=v1.2.0` (tag, branch o commit).
-- Il lock file `.terraform.lock.hcl` **non** registra i moduli, solo i provider.
+- Il lock file `.terraform.lock.hcl` **non** registra i moduli, solo i provider: a ogni `init` Terraform sceglie la versione più recente che rispetta il vincolo. Per una build sempre identica serve un vincolo di versione **esatto**.
+- Rieseguire `init` senza `-upgrade` non cambia i moduli già installati.
 
 **Link di riferimento** _(stepTitle)_
 

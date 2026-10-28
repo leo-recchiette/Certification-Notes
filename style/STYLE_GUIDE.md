@@ -115,7 +115,9 @@ Non si chiamano a mano: il parser li invoca in base ai marcatori. Riferimento:
 
 ## Immagini
 
-Le immagini (se presenti) risiedono in `img/` e si risolvono per **nome file**. Dimensioni dal marcatore `_(dimensioni: L×A px)_`. Al momento i moduli non contengono figure.
+Le immagini risiedono in `img/` (una sottocartella per modulo, es. `img/Module 4 - Configurazione/`) e si risolvono per **nome file**, che deve essere univoco. Dimensioni dal marcatore `_(dimensioni: L×A px)_`.
+
+Le figure provengono da HashiCorp Developer (didascalia con "Fonte: HashiCorp Developer") e sono numerate in modo continuo nelle didascalie: M1 1–3, M2 4, M3 5, M4 6–8, M5 9, M6 10, M7 11, M8 12–25.
 
 ---
 

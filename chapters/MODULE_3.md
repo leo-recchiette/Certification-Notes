@@ -32,6 +32,16 @@ Attorno a queste fasi ruotano comandi di supporto: `init` (preparazione), `valid
 > **Ordine tipico**: `init` → `fmt` → `validate` → `plan` → `apply`. Se si cambia backend, provider o moduli occorre rieseguire `init`.
 _(infoBox)_
 
+### 3.1.2 — Il workflow da soli, in team e con HCP Terraform
+
+La pagina *Core Workflow* descrive lo stesso ciclo in tre contesti:
+
+| **Fase** | **Singolo professionista** | **Team** | **Con HCP Terraform** |
+|---|---|---|---|
+| **Write** | Si modifica il codice in locale, con `plan` frequenti come feedback | Ognuno lavora su un branch del repository; le credenziali e lo state condiviso complicano l'uso in locale | Si lavora in un branch; HCP Terraform conserva state, variabili e credenziali |
+| **Plan** | Si rivede il piano nel terminale | Il piano entra nella **pull request** e viene revisionato | Ogni pull request avvia uno **speculative plan**, linkato nella PR |
+| **Apply** | `terraform apply` dalla propria macchina | Dopo il merge si applica (spesso da pipeline CI) | Dopo il merge HCP Terraform esegue il run; l'apply si conferma nell'interfaccia |
+
 ---
 
 ## 3.2 — Inizializzare la directory di lavoro
@@ -45,18 +55,26 @@ _(infoBox)_
 - **Scarica i moduli** referenziati in `.terraform/modules/`.
 - **Crea o aggiorna il lock file** `.terraform.lock.hcl`.
 
-È **idempotente**: può essere rieseguito in sicurezza.
+È **idempotente**: può essere rieseguito in sicurezza e non cancella mai configurazione o state. Rieseguito, installa solo i moduli aggiunti dopo l'ultimo `init`, senza toccare quelli già installati (salvo `-upgrade`).
 
 **Opzioni utili** _(stepTitle)_
 
 | **Opzione** | **Effetto** |
 |---|---|
-| `-upgrade` | Aggiorna provider e moduli alla versione più recente consentita dai vincoli |
+| `-upgrade` | Aggiorna provider e moduli alla versione più recente consentita dai vincoli, ignorando il lock file |
 | `-reconfigure` | Reinizializza il backend ignorando la configurazione salvata (senza migrare lo state) |
 | `-migrate-state` | Migra lo state esistente verso il nuovo backend |
+| `-force-copy` | Risponde "sì" alle domande di migrazione (implica `-migrate-state`) |
 | `-backend=false` | Salta l'inizializzazione del backend |
-| `-backend-config=...` | Passa parametri parziali di configurazione del backend |
+| `-backend-config=...` | Passa parametri parziali di configurazione del backend (file o `KEY=VALUE`) |
+| `-get=false` | Salta l'installazione dei moduli figli |
+| `-from-module=SOURCE` | Copia un modulo in una directory vuota prima di inizializzarla |
+| `-plugin-dir=PATH` | Installa i provider solo da quella cartella |
+| `-lockfile=readonly` | Verifica gli hash del lock file senza modificarlo |
 | `-input=false` | Disabilita i prompt interattivi (utile in CI) |
+
+> **Opzione globale -chdir**: `terraform -chdir=DIR <comando>` esegue qualsiasi comando come se ci si trovasse nella directory indicata. Va messa **prima** del sottocomando, ad esempio `terraform -chdir=infra plan`.
+_(infoBox)_
 
 ---
 
@@ -88,15 +106,31 @@ _(infoBox)_
 | `-/+` (o `+/-`) | Risorsa da **sostituire** (destroy e create) |
 | `<=` | Data source da leggere |
 
+**Planning mode** _(stepTitle)_
+
+Le modalità sono **mutuamente esclusive** e valgono sia per `plan` sia per `apply`:
+
+| **Modalità** | **Opzione** | **Obiettivo del piano** |
+|---|---|---|
+| **Normal** | (default) | Allineare l'infrastruttura reale alla configurazione |
+| **Destroy** | `-destroy` | Distruggere tutti gli oggetti gestiti, lasciando lo state vuoto (come `terraform destroy`) |
+| **Refresh-only** | `-refresh-only` | Aggiornare solo state e output alle modifiche fatte fuori da Terraform, senza toccare l'infrastruttura |
+
 **Opzioni importanti** _(stepTitle)_
 
 - `-out=tfplan`: salva il piano in un file; poi `terraform apply tfplan` applica **esattamente** quel piano.
 - `-var`, `-var-file`: valorizzano le variabili.
 - `-target=ADDR`: limita il piano a una risorsa (da usare solo in casi eccezionali).
-- `-refresh-only`: propone solo l'aggiornamento dello state con la realtà (modalità *refresh-only*).
-- `-destroy`: piano di distruzione.
-- `-replace=ADDR`: forza la sostituzione di una risorsa (alternativa moderna a `taint`).
+- `-replace=ADDR`: forza la sostituzione di una risorsa (alternativa moderna a `terraform taint`, deprecato).
+- `-refresh=false`: salta la sincronizzazione con gli oggetti remoti. È più veloce, ma ignora le modifiche esterne e il piano può risultare incompleto. Non si combina con `-refresh-only`.
+- `-parallelism=n`: numero di operazioni concorrenti (default 10).
 - `-detailed-exitcode`: exit code 0 = nessuna modifica, 1 = errore, 2 = modifiche presenti.
+
+**Rivedere un piano salvato** _(stepTitle)_
+
+- Il file di piano è binario: si legge con `terraform show tfplan`, oppure in JSON con `terraform show -json tfplan`.
+- Il JSON contiene, tra l'altro, la configurazione, le variabili usate, le `resource_changes`, i `planned_values` e lo `prior_state`.
+- Un piano salvato contiene **in chiaro** i valori sensibili e la configurazione del backend: va trattato come un dato riservato.
 
 ### 3.4.2 — Il grafo delle dipendenze
 
@@ -105,18 +139,42 @@ Terraform costruisce un **grafo aciclico diretto** (DAG) delle risorse. Le dipen
 - `terraform graph` emette il grafo in formato DOT.
 - In distruzione l'ordine è inverso rispetto alla creazione.
 
+**Tipi di nodo** _(stepTitle)_
+
+- **Resource node**: una singola risorsa (con `count`, un nodo per ogni istanza); contiene configurazione, diff e state.
+- **Provider configuration node**: il momento in cui il provider riceve la propria configurazione (es. le credenziali).
+- **Resource meta-node**: raggruppa le istanze di una risorsa con `count` > 1, senza azioni proprie.
+
+**Come viene costruito** _(stepTitle)_
+
+1. Si aggiungono i nodi delle risorse della configurazione, con eventuali diff e state.
+2. Si collegano i provisioner e si creano gli archi delle dipendenze esplicite (`depends_on`).
+3. Si aggiungono le risorse **orfane**: presenti nello state ma non più nella configurazione, quindi da distruggere.
+4. Si collegano le risorse ai nodi di configurazione dei provider.
+5. Si analizzano le espressioni per ricavare le dipendenze implicite tra risorse.
+6. Se una risorsa va sostituita, il suo nodo si divide in "distruggi" e "crea", perché i due ordini possono differire.
+7. Si verifica che il grafo non abbia **cicli** e abbia una sola radice.
+
+La visita del grafo è **in parallelo**: un nodo parte appena tutte le sue dipendenze sono completate, fino al limite di `-parallelism`.
+
 ---
 
 ## 3.5 — Applicare le modifiche
 
 ### 3.5.1 — terraform apply
 
-`terraform apply` esegue le modifiche previste dal piano. Senza file di piano, esegue prima un plan e chiede conferma digitando `yes`.
+`terraform apply` esegue le modifiche previste dal piano e funziona in due modalità:
 
-- `terraform apply tfplan`: applica un piano salvato, **senza** richiedere conferma.
-- `-auto-approve`: salta la conferma (CI/CD, ma con cautela).
+| **Modalità** | **Come** | **Comportamento** |
+|---|---|---|
+| **Automatic plan mode** | `terraform apply` | Crea un nuovo piano (accetta tutte le planning mode e le opzioni di `plan`) e chiede conferma digitando `yes` |
+| **Saved plan mode** | `terraform apply tfplan` | Esegue il piano salvato **senza** chiedere conferma: passare il file vale come approvazione. Non si possono aggiungere altre opzioni di pianificazione |
+
+- `-auto-approve`: salta la conferma (CI/CD, ma con cautela); con un piano salvato viene ignorato.
 - `-refresh-only`: applica solo l'aggiornamento dello state.
-- Se un'operazione fallisce, Terraform salva nello state ciò che è stato creato; la risorsa parziale può risultare **tainted** (da ricreare al prossimo apply).
+- `-replace=ADDR`: forza la sostituzione di un'istanza; si può ripetere per più risorse.
+- `-input=false` disabilita anche la richiesta di conferma, quindi senza piano salvato o `-auto-approve` l'apply fallisce.
+- Terraform **non fa rollback**: se un'operazione fallisce, ciò che è stato creato resta nello state. Una risorsa creata solo in parte risulta **tainted** e sarà ricreata al prossimo apply.
 - Al termine Terraform stampa gli **output** definiti.
 
 > **Concorrenza**: con un backend che supporta il **locking**, durante apply lo state viene bloccato; un secondo apply fallisce finché il lock non è rilasciato. `-lock=false` lo disabilita (sconsigliato).
@@ -132,6 +190,7 @@ _(infoBox)_
 
 - Utile per ambienti temporanei e per evitare costi inutili.
 - `terraform destroy -target=ADDR` elimina solo una risorsa e ciò che ne dipende.
+- **Rimuovere un blocco `resource`** dalla configurazione e fare `apply` distrugge quella risorsa: diventa orfana nello state e Terraform la elimina.
 - Per proteggere risorse critiche: `lifecycle { prevent_destroy = true }` (il piano fallisce se prevede la distruzione).
 - Per rimuovere una risorsa dalla gestione **senza** distruggerla, usare il blocco `removed` con `destroy = false` (vedi Modulo 6).
 
@@ -150,8 +209,11 @@ _(infoBox)_
 | `-diff` | Mostra le differenze |
 | `-write=false` | Non scrive i file |
 
-> **Nota**: `fmt` cambia solo la formattazione, non la semantica. Non verifica la validità della configurazione.
+> **Nota**: `fmt` cambia solo la formattazione, non la semantica. Analizza l'HCL quel tanto che basta per trovare errori di sintassi o blocchi malformati, ma non verifica la configurazione rispetto ai provider. Per questo, dopo `fmt` si esegue `terraform validate`.
 _(infoBox)_
+
+- Senza argomenti formatta i file della directory corrente; si può indicare un file o una directory.
+- Con `-` al posto del percorso legge da stdin e scrive su stdout.
 
 **Link di riferimento** _(stepTitle)_
 

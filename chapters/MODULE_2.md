@@ -12,7 +12,15 @@ I **provider** sono plugin che permettono a Terraform di dialogare con le API di
 
 - Ogni provider espone **resource type** (es. `aws_instance`) e **data source**.
 - I provider sono distribuiti da un registry (di default il **Terraform Registry**) con indirizzo del tipo `registry.terraform.io/hashicorp/aws`.
-- Sono tre i livelli di tier: **Official** (HashiCorp), **Partner** (verificati) e **Community**.
+- I provider sono rilasciati separatamente da Terraform e hanno numeri di versione propri.
+
+| **Tier** | **Chi lo mantiene** |
+|---|---|
+| **Official** | HashiCorp (namespace `hashicorp`, più alcuni come `IBM` e `ansible`) |
+| **Partner Premier** | Partner tecnologici che soddisfano requisiti aggiuntivi |
+| **Partner** | Aziende terze che lo scrivono, mantengono e validano sulle proprie API (HashiCorp Technology Partner Program) |
+| **Community** | Singoli maintainer o gruppi della community |
+| **Archived** | Provider Official o Partner non più mantenuti |
 
 ### 2.1.2 — Dichiarare i provider richiesti
 
@@ -35,6 +43,13 @@ terraform {
 }
 ```
 
+**Local name e source address** _(stepTitle)_
+
+- La chiave (`azurerm`, `random`) è il **local name**: è unica nel modulo ed è il nome con cui ci si riferisce al provider in tutto il resto del codice. Conviene usare il nome *preferito* del provider, cioè il prefisso dei suoi tipi di risorsa (`aws_instance` → `aws`).
+- La `source` ha la forma `[<HOSTNAME>/]<NAMESPACE>/<TYPE>`. Se l'hostname è omesso vale `registry.terraform.io`: `hashicorp/http` equivale a `registry.terraform.io/hashicorp/http` (il **fully-qualified address**).
+- Se si omette `source`, Terraform assume `registry.terraform.io/hashicorp/<LOCAL NAME>`. È un comportamento di retrocompatibilità: è sempre meglio indicare la source.
+- **Conflitto di nomi**: se due provider hanno lo stesso nome preferito (es. due provider `http` di namespace diversi), si usano local name composti come `hashicorp-http` e `mycorp-http`. A quel punto ogni risorsa deve indicare il meta-argomento `provider`.
+
 **Operatori dei vincoli di versione** _(stepTitle)_
 
 | **Operatore** | **Significato** | **Esempio** |
@@ -43,6 +58,11 @@ terraform {
 | `!=` | Esclude una versione | `!= 1.2.0` |
 | `>`, `>=`, `<`, `<=` | Confronti | `>= 1.2.0` |
 | `~>` | Incremento solo dell'ultima cifra indicata (*pessimistic constraint*) | `~> 1.2.0` ammette 1.2.x; `~> 1.2` ammette 1.x con x ≥ 2 |
+
+Il vincolo `version` è facoltativo: senza, Terraform accetta qualsiasi versione. HashiCorp raccomanda di indicarlo sempre.
+
+> **Best practice sulle versioni**: un modulo **riutilizzabile** dichiara solo la versione **minima** con cui funziona (`>= 4.0`) e non mette limiti massimi, altrimenti costringe chi lo usa ad aggiornare molti moduli insieme. Il modulo **root** (dove si esegue `terraform apply`) fissa anche il **massimo** con `~>`, per evitare aggiornamenti accidentali a versioni incompatibili.
+_(infoBox)_
 
 ### 2.1.3 — Il blocco provider e la configurazione
 
@@ -55,6 +75,11 @@ provider "azurerm" {
 }
 ```
 
+- Se non si scrive un blocco `provider`, Terraform crea una configurazione **vuota di default**; se il provider ha argomenti obbligatori, dà errore.
+- Gli argomenti possono usare espressioni, ma solo con valori **noti prima dell'apply** (variabili, valori letterali, data source). Non si può usare un attributo calcolato di una risorsa, come un IP assegnato in fase di creazione.
+- L'argomento `version` dentro il blocco `provider` è **deprecato**: le versioni si dichiarano in `required_providers`.
+- Un blocco può avere `alias` (vedi 2.3.2), ma non insieme a `version`.
+
 > **Sicurezza**: non inserire credenziali in chiaro nel codice. Usare variabili d'ambiente (`ARM_CLIENT_ID`, `AWS_ACCESS_KEY_ID`...), identità gestite, OIDC/dynamic credentials o un secret manager.
 _(infoBox)_
 
@@ -62,10 +87,14 @@ _(infoBox)_
 
 `terraform init` scarica i provider e scrive il file **`.terraform.lock.hcl`**, che registra la versione esatta selezionata e gli **hash** dei pacchetti. Ciò garantisce che tutti (colleghi, CI/CD) usino gli stessi provider.
 
-- Il lock file **va committato** in Git.
-- Per aggiornare i provider entro i vincoli: `terraform init -upgrade`.
-- Per aggiungere gli hash per altre piattaforme: `terraform providers lock -platform=linux_amd64 -platform=windows_amd64`.
-- Il lock file riguarda i **provider**, non i moduli.
+- Il lock file appartiene alla **configurazione intera**: sta nella directory del modulo root, dove si esegue Terraform.
+- Il lock file **va committato** in Git, così le modifiche alle dipendenze passano dalla code review.
+- Se una versione è già registrata nel lock file, `init` la riseleziona **anche se ne esiste una più recente**. Per aggiornare entro i vincoli: `terraform init -upgrade`.
+- **Checksum**: a ogni installazione Terraform verifica che il pacchetto corrisponda a uno degli hash registrati, altrimenti dà errore (approccio *trust on first use*). Gli hash `h1:` e `zh:` coprono le varie piattaforme.
+- Per aggiungere gli hash per altre piattaforme (utile con i mirror): `terraform providers lock -platform=linux_amd64 -platform=windows_amd64`.
+- `terraform init -lockfile=readonly` verifica gli hash senza modificare il file.
+- Quando un provider non serve più, `init` lo toglie dal lock file.
+- Il lock file riguarda **solo i provider**, non i moduli: per i moduli Terraform sceglie sempre la versione più recente che rispetta il vincolo.
 
 ### 2.1.5 — Versione di Terraform e blocco terraform
 
@@ -81,6 +110,29 @@ terraform {
 - `required_providers` vincola i **provider**; sono due vincoli indipendenti.
 - Per gestire più versioni della CLI sulla stessa macchina si usano strumenti come `tfenv`; in HCP Terraform la versione si sceglie per workspace.
 - Buona pratica: fissare un range (`~>`) per riprodurre i risultati e aggiornare in modo controllato (prima in un ambiente di test).
+- Le versioni seguono il formato `major.minor.patch`. Le nuove minor e patch sono retrocompatibili con la configurazione scritta per le versioni precedenti.
+
+**Versione registrata nello state** _(stepTitle)_
+
+- Lo state registra `terraform_version` (la versione che l'ha scritto per ultima) e `version` (il formato del file).
+- `terraform_version` si aggiorna quando si applica con una versione più recente; il formato cambia solo se una nuova versione lo richiede.
+- Una versione di Terraform **più vecchia** che non supporta il formato dello state dà errore: prima di aggiornare Terraform conviene fare un backup dello state.
+
+### 2.1.6 — Installazione dei provider
+
+`terraform init` trova e installa i provider richiesti. Le sorgenti possibili sono:
+
+| **Sorgente** | **Note** |
+|---|---|
+| **Terraform Registry** pubblico | Default (`registry.terraform.io`) |
+| **Registry privato** | Ad esempio quello di HCP Terraform; la source include l'hostname (`app.terraform.io/ORG/nome`) |
+| **Mirror** su filesystem o rete | Si configura nel blocco `provider_installation` del file di configurazione della CLI (`.terraformrc` / `terraform.rc`); `terraform providers mirror` popola un mirror locale |
+| **Plugin cache** | `plugin_cache_dir` nel file di configurazione della CLI (o `TF_PLUGIN_CACHE_DIR`): evita di riscaricare gli stessi provider in ogni directory |
+| `-plugin-dir=PATH` | Override occasionale: legge i plugin solo da quella cartella (utile per testare un provider in sviluppo) |
+
+- **Built-in provider**: il provider `terraform` è integrato nel binario e non va dichiarato in `required_providers`. Il suo indirizzo è `terraform.io/builtin/terraform` e fornisce il data source `terraform_remote_state` e la risorsa `terraform_data`.
+- **In-house provider**: un'organizzazione può distribuire provider propri tramite un registry privato che implementa il *provider registry protocol*, oppure tramite mirror locali.
+- Se si cambiano i provider della configurazione, bisogna rieseguire `terraform init`.
 
 ---
 
@@ -99,12 +151,27 @@ Terraform è composto da **Terraform Core** (binario CLI) e dai **provider plugi
 3. Per ogni operazione chiama il provider appropriato.
 4. Il provider traduce la richiesta in chiamate API verso la piattaforma e restituisce il risultato.
 
+| **Componente** | **Responsabilità** |
+|---|---|
+| **Terraform Core** (binario in Go, la CLI `terraform`) | Leggere e interpolare configurazione e moduli; gestire lo state; costruire il grafo delle risorse; eseguire il piano; comunicare con i plugin via RPC |
+| **Provider plugin** | Inizializzare le librerie per le chiamate API; autenticarsi verso la piattaforma; definire managed resource e data source; definire **funzioni** (provider-defined functions) |
+| **Provisioner plugin** | Eseguire comandi o script su una risorsa dopo la creazione o alla distruzione |
+
+Provider e provisioner sono tutti **plugin**: eseguibili separati invocati dal core via RPC. Alcuni provisioner sono integrati in Terraform, mentre i provider vengono scoperti e installati quando servono.
+
 ### 2.2.2 — Ciclo di vita del provider
 
 - **Download**: durante `terraform init`, dal registry o da una sorgente alternativa (mirror, filesystem).
 - **Configurazione**: all'avvio di plan/apply il provider riceve la propria configurazione.
 - **Esecuzione**: il core invia le operazioni sulle risorse (CRUD).
 - I provider vengono salvati in `.terraform/providers/` (cartella locale, da non committare).
+
+**Come init sceglie la versione** _(stepTitle)_
+
+- Se è già installata una versione accettabile, usa **la più recente installata** che rispetta il vincolo, anche se nel registry ce n'è una più nuova.
+- Se non c'è nulla di installato, scarica dal registry la versione accettabile più recente e la salva in `.terraform/providers/`.
+- Se il provider non è nel registry e non è installato, l'inizializzazione fallisce.
+- `terraform init -upgrade` ricontrolla il registry e scarica versioni più recenti ammesse dai vincoli.
 
 ### 2.2.3 — Namespace dei tipi di risorsa
 
@@ -176,10 +243,10 @@ Lo **state** è un file (di default `terraform.tfstate`, formato JSON) in cui Te
 
 **A cosa serve** _(stepTitle)_
 
-- **Mappare** il codice alle risorse reali (ID remoti).
-- **Tracciare i metadati**, come le dipendenze, per eliminare risorse nell'ordine giusto.
-- **Migliorare le prestazioni**: evitare di interrogare ogni risorsa a ogni operazione (cache degli attributi).
-- **Collaborare**: con un backend remoto lo state è condiviso dal team.
+- **Mapping to the real world**: collegare il codice alle risorse reali (ID remoti). Ogni oggetto remoto va associato a **un solo** indirizzo di risorsa.
+- **Metadata**: tracciare i metadati, come le dipendenze, per eliminare le risorse nell'ordine giusto anche quando sono già sparite dalla configurazione.
+- **Performance**: lo state fa da cache degli attributi. Su infrastrutture grandi si può saltare il refresh con `-refresh=false` e usare lo state come fonte.
+- **Syncing**: con un backend remoto lo state è condiviso dal team, e il locking evita scritture concorrenti.
 
 ### 2.4.2 — Cose da sapere sullo state
 
