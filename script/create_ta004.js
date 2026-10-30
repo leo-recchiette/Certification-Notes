@@ -14,6 +14,7 @@
 // Uso:  node script/create_ta004.js            -> documento completo
 //       node script/create_ta004.js --module 2 -> solo Modulo 2
 //       node script/create_ta004.js --toc      -> solo copertina + sommario
+//       node script/create_ta004.js --pocket   -> Pocket Guide (pocketguide/*.md)
 //       (dopo il .docx viene esportato anche un .pdf; aggiungi --no-pdf per saltarlo)
 // ─────────────────────────────────────────────────────────────────────────────
 const fs = require('fs');
@@ -74,6 +75,12 @@ const JUSTIFY = AlignmentType.JUSTIFIED;   // testo giustificato a destra e a si
 function body(text, opts={}, paraOpts={}) {
   return new Paragraph({ alignment:JUSTIFY, spacing:stdSpacing, keepLines:true, ...paraOpts,
     children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText, ...opts})] });
+}
+// Paragrafo che inizia con un'etichetta in grassetto (es. "**Domanda 1:** B — ..."): etichetta bold, resto normale.
+function bodyLead(label, text, paraOpts={}) {
+  const run = (t, bold) => new TextRun({text:t, font:'Calibri', size:22, color:C.bodyText, bold});
+  return new Paragraph({ alignment:JUSTIFY, spacing:stdSpacing, keepLines:true, ...paraOpts,
+    children:[run(label, true), run(text, false)] });
 }
 function h2(text) {
   return new Paragraph({ spacing:{before:200,after:80}, keepNext:true, keepLines:true, outlineLevel:1,
@@ -234,7 +241,7 @@ function tocTitle() {
 const TABLE_FUNCS = {};
 
 // ─── COPERTINA ────────────────────────────────────────────────────────────────
-function coverPage() {
+function coverPage(desc = 'Note di studio basate sulla exam content list e sui tutorial HashiCorp Developer') {
   // Logo Terraform sopra il titolo (img/Cover/terraform-logo.png): se manca, copertina solo testuale.
   const logoPath = resolveImg('terraform-logo.png');
   const logo = logoPath ? [ new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:0,after:360},
@@ -247,7 +254,7 @@ function coverPage() {
     new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:40,after:40},
       children:[new TextRun({text:'HashiCorp Certified: Terraform Associate', font:'Calibri', size:52, bold:true, color:C.sectionBlue})] }),
     new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:20,after:0},
-      children:[new TextRun({text:'Note di studio basate sulla exam content list e sui tutorial HashiCorp Developer', font:'Calibri', size:26, italics:true, color:C.subtle})] }),
+      children:[new TextRun({text:desc, font:'Calibri', size:26, italics:true, color:C.subtle})] }),
   ];
 }
 
@@ -325,7 +332,16 @@ function parseModule(md, modNum = 0) {
   let leadIn = null;   // ultimo body/bullet emesso: { idx, kind, make } per agganciarlo al blocco seguente
   const flush = () => {
     if (!buf.length) return;
-    const t = inlineText(buf.join(' '));
+    const raw = buf.join(' ').trim();
+    const lead = raw.match(/^\*\*([^*]+)\*\*(.*)$/);   // etichetta iniziale in grassetto
+    if (lead) {
+      const label = inlineText(lead[1]), rest = inlineRaw(lead[2]).replace(/\s+$/, '');
+      elements.push(bodyLead(label, rest));
+      leadIn = { idx: elements.length - 1, kind: 'body', make: () => bodyLead(label, rest, { keepNext: true }) };
+      buf = [];
+      return;
+    }
+    const t = inlineText(raw);
     if (t) { elements.push(body(t)); leadIn = { idx: elements.length - 1, kind: 'body', make: () => body(t, {}, { keepNext: true }) }; }
     buf = [];
   };
@@ -592,6 +608,7 @@ function exportToPdf(docxPath) {
 function parseArgs() {
   const args = process.argv.slice(2);
   const pdf = !args.includes('--no-pdf');   // di default, dopo il .docx esporta anche il PDF
+  if (args.includes('--pocket')) return { mode: 'pocket', pdf };
   if (args.includes('--toc')) return { mode: 'toc', pdf };
   const mi = args.indexOf('--module');
   if (mi !== -1 && args[mi + 1]) {
@@ -605,6 +622,7 @@ function parseArgs() {
   return { mode: 'full', pdf };
 }
 function outputPath(mode, n) {
+  if (mode === 'pocket') return 'TA-004_Pocket_Guide.docx';
   if (mode === 'toc')    return 'TA-004_Sommario.docx';
   if (mode === 'module') return `TA-004_Modulo_${n}.docx`;
   return 'TA-004_Note_di_Studio.docx';
@@ -619,35 +637,44 @@ const MODULI_LABELS = {
 async function main() {
   const { mode, n, pdf } = parseArgs();
   const modeLabel = mode === 'full' ? 'documento completo'
+                  : mode === 'pocket' ? 'Pocket Guide'
                   : mode === 'toc'  ? 'solo sommario'
                   : `solo ${MODULI_LABELS[n]}`;
   console.log(`Costruzione Terraform Associate (004) — ${modeLabel}...`);
 
+  // Sorgenti: chapters/MODULE_1..8.md, oppure (--pocket) i .md di pocketguide/ in ordine di nome.
+  const sources = mode === 'pocket'
+    ? fs.readdirSync(path.join(ROOT, 'pocketguide')).filter(f => f.endsWith('.md')).sort()
+        .map(f => path.join(ROOT, 'pocketguide', f))
+    : Array.from({ length: 8 }, (_, k) => path.join(ROOT, 'chapters', `MODULE_${k + 1}.md`));
+  const last = sources.length;
+
   // Parsifica tutti i moduli (servono per il Sommario completo in ogni modalita')
   const parsed = {};
-  for (let m = 1; m <= 8; m++) {
-    const p = path.join(ROOT, 'chapters', `MODULE_${m}.md`);
+  for (let m = 1; m <= last; m++) {
+    const p = sources[m - 1];
     if (fs.existsSync(p)) {
       try { parsed[m] = parseModule(fs.readFileSync(p, 'utf8'), m); }
-      catch (e) { console.error(`  [ERRORE] parsing MODULE_${m}.md: ${e.message}`); parsed[m] = null; }
+      catch (e) { console.error(`  [ERRORE] parsing ${path.basename(p)}: ${e.message}`); parsed[m] = null; }
     } else { parsed[m] = null; }
   }
-  const tocModules = [];
-  for (let m = 1; m <= 8; m++) if (parsed[m]) tocModules.push(parsed[m]);
 
   if (mode === 'module' && !parsed[n]) { console.error(`MODULE_${n}.md non trovato o non parsabile`); process.exit(1); }
 
   // Sezione 1: copertina + sommario (campo TOC nativo; senza numero di pagina nel footer).
-  const frontMatter = [...coverPage(), ...buildSommario()];
+  const cover = mode === 'pocket'
+    ? coverPage('Pocket Guide — traduzione italiana di TF004-PocketGuide (github.com/susu10-10)')
+    : coverPage();
+  const frontMatter = [...cover, ...buildSommario()];
 
   // Sezione 2: contenuto dei moduli. Interruzione di pagina tra un modulo e l'altro;
   // il primo modulo sfrutta gia' lo stacco di sezione (niente pagina bianca).
   const content = [];
   if (mode === 'module') {
     content.push(...parsed[n].elements);
-  } else if (mode === 'full') {
+  } else if (mode === 'full' || mode === 'pocket') {
     let first = true;
-    for (let m = 1; m <= 8; m++) if (parsed[m]) {
+    for (let m = 1; m <= last; m++) if (parsed[m]) {
       if (!first) content.push(new Paragraph({ spacing:noSpacing, children:[new PageBreak()] }));
       content.push(...parsed[m].elements);
       first = false;
