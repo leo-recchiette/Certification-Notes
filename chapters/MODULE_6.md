@@ -6,11 +6,9 @@ _Obiettivo 6 dell'esame: descrivere il backend local (6a), descrivere lo state l
 
 ## 6.1 — Lo state
 
-Terraform deve conservare uno state dell'infrastruttura gestita e della configurazione. Lo usa per mappare le risorse reali sulla configurazione, per tenere traccia dei metadati e per migliorare le prestazioni con le infrastrutture grandi.
+Terraform conserva uno state dell'infrastruttura gestita per mappare le risorse reali sulla configurazione, tenere traccia dei metadati e migliorare le prestazioni, e prima di ogni operazione lo aggiorna con un refresh (vedi §2.2).
 
 Per default lo state è conservato in un file locale chiamato `terraform.tfstate`. HashiCorp però raccomanda di conservarlo in HCP Terraform, per versionarlo, cifrarlo e condividerlo in modo sicuro con il team.
-
-Terraform usa lo state per decidere quali modifiche apportare all'infrastruttura. Prima di qualsiasi operazione esegue un refresh, che aggiorna lo state con l'infrastruttura reale.
 
 Lo scopo principale dello state di Terraform è conservare i legami (binding) tra gli oggetti di un sistema remoto e le istanze di risorsa dichiarate nella configurazione. Quando crea un oggetto remoto in risposta a una modifica della configurazione, Terraform ne registra l'identità associandola a una specifica istanza di risorsa. In seguito può aggiornare o eliminare quell'oggetto in risposta a modifiche future della configurazione. Perché Terraform abbia bisogno dello state, e perché non possa funzionare senza, è spiegato nella sezione 2.2.
 
@@ -20,7 +18,7 @@ I file di state sono semplicemente in formato JSON, ma la loro modifica diretta 
 
 L'uso e l'output dei comandi `state` sono strutturati per funzionare bene con gli strumenti Unix come grep e awk. Inoltre la CLI protegge gli utenti dai cambiamenti di formato dello state. Il progetto Terraform continuerà a far funzionare la CLI anche se il formato sottostante dello state cambia.
 
-Terraform si aspetta una corrispondenza uno a uno tra le istanze di risorsa configurate e gli oggetti remoti. Di solito la garantisce Terraform stesso: è lui a creare ogni oggetto e a registrarne l'identità nello state, o a distruggere un oggetto e poi rimuoverne il legame.
+La corrispondenza uno a uno tra istanze di risorsa e oggetti remoti (vedi §2.2.1) di solito la garantisce Terraform stesso, che crea ogni oggetto e ne registra l'identità, o lo distrugge e ne rimuove il legame.
 
 I legami nello state si possono anche aggiungere o rimuovere in altri modi. Si può importare un oggetto creato all'esterno con `terraform import`, o chiedere a Terraform di "dimenticare" un oggetto esistente con `terraform state rm`. In questi casi bisogna garantire da sé il rispetto della regola uno a uno. Ad esempio, si elimina a mano un oggetto che si è chiesto a Terraform di dimenticare, oppure lo si reimporta per legarlo a un'altra istanza di risorsa.
 
@@ -41,15 +39,11 @@ Quando Terraform gira in automazione, li si usa di solito subito dopo un `terraf
 
 ## 6.2 — Gestire le risorse nello state di Terraform
 
-Terraform conserva le informazioni sull'infrastruttura in un file di state. Il file di state tiene traccia delle risorse create dalla configurazione e le mappa sulle risorse reali.
-
-Terraform confronta la configurazione con il file di state e con l'infrastruttura esistente per creare i piani e apportare le modifiche all'infrastruttura. Quando si esegue `terraform apply` o `terraform destroy` su una configurazione inizializzata, Terraform scrive nel file di state i metadati della configurazione e aggiorna di conseguenza le risorse dell'infrastruttura. A volte può servire manipolare lo state del progetto al di fuori del workflow standard. Ad esempio, si può voler rimuovere una risorsa dal progetto senza distruggere la risorsa reale associata.
-
-Nel tutorial si creano un'istanza AWS e un security group, si esamina il file di state del progetto, e si usa Terraform per rimuovere infrastruttura dallo state del progetto.
+Il file di state mappa le risorse della configurazione su quelle reali (vedi §6.1). A volte serve manipolarlo fuori dal workflow standard, ad esempio per smettere di gestire una risorsa senza distruggerla. Nel tutorial si creano un'istanza e un security group, si esamina lo state e lo si modifica con la CLI.
 
 ### 6.2.1 — Creare l'infrastruttura e lo state
 
-La configurazione in `main.tf` distribuisce un'istanza EC2 Ubuntu accessibile pubblicamente sulla porta 8080. Usa il provider AWS per creare l'istanza EC2 e un security group che consente l'accesso pubblico:
+`main.tf` crea un'istanza EC2 Ubuntu e un security group che la rende accessibile sulla porta 8080:
 
 ```
 resource "aws_security_group" "sg_8080" {
@@ -70,20 +64,18 @@ resource "aws_security_group" "sg_8080" {
 }
 ```
 
-Dopo `terraform init` si applica la configurazione, approvando il run con `yes`.
+Si eseguono `terraform init` e `terraform apply`.
 
 ### 6.2.2 — Esaminare il file di state
 
-Dopo l'apply c'è un file di state locale, `terraform.tfstate`, che tiene traccia delle risorse create da Terraform. In una situazione reale non bisogna modificare a mano le informazioni del file di state, per evitare un drift inutile tra configurazione, state e infrastruttura. Qualsiasi modifica dello state potrebbe far distruggere e ricreare l'infrastruttura al successivo `terraform apply`.
+`terraform.tfstate` è lo state codificato in JSON; qualsiasi modifica manuale potrebbe causare drift e far ricreare l'infrastruttura al successivo apply.
 
 > **Attenzione**: i file di state non vanno modificati a mano.
 _(infoBox)_
 
-Il file è lo state codificato in JSON che Terraform scrive e legge a ogni operazione. La prima sezione contiene informazioni sull'applicazione Terraform.
-
 **Le risorse nello state** _(stepTitle)_
 
-La sezione `resources` del file di state contiene lo schema di tutte le risorse create con Terraform:
+La sezione `resources` contiene lo schema di ogni oggetto: `mode` vale `managed` per le risorse e `data` per i data source, `type` indica il tipo (qui `aws_ami` del provider aws). In `instances` ci sono gli attributi, come `security_groups`, registrati con il valore effettivo e non con l'espressione della configurazione:
 
 ```
 "resources": [
@@ -104,11 +96,7 @@ La sezione `resources` del file di state contiene lo schema di tutte le risorse 
 ]
 ```
 
-La prima chiave dello schema è `mode`, che indica il tipo di oggetto creato da Terraform: una risorsa (`managed`) o un data source (`data`). La chiave `type` indica il tipo di risorsa: qui `aws_ami` è un tipo disponibile nel provider aws.
-
-Il tipo `aws_instance` è una managed resource, con l'AMI presa dal data source `data.aws_ami`. La sezione `instances` di questa risorsa contiene gli attributi della risorsa. L'attributo `security_groups`, ad esempio, è registrato nello state in chiaro, invece che come stringa interpolata da una variabile come nel file di configurazione.
-
-Terraform registra nello state anche le dipendenze tra le risorse, con la logica integrata dell'albero delle dipendenze:
+Lo state registra anche le dipendenze, dichiarate con `depends_on` o dedotte (vedi §2.2.2); una modifica alle dipendenze forza la modifica della risorsa dipendente:
 
 ```
           "dependencies": [
@@ -117,32 +105,19 @@ Terraform registra nello state anche le dipendenze tra le risorse, con la logica
           ]
 ```
 
-Il file di state registra le dipendenze, imposte con un attributo `depends_on` o dedotte automaticamente da Terraform. Per questo qualsiasi modifica alle dipendenze forza una modifica della risorsa dipendente.
-
 ### 6.2.3 — Esaminare lo state con la CLI
 
-La CLI di Terraform permette di esaminare le risorse del file di state senza interagire direttamente con il file `.tfstate`. È così che va gestito lo state.
-
-- `terraform show` mostra in un formato leggibile le risorse contenute nello state.
-- `terraform state list` restituisce l'elenco dei nomi delle risorse e degli identificativi locali nel file di state. È utile nelle configurazioni più complesse, per trovare una risorsa specifica senza esaminare lo state con `terraform show`.
+`terraform show` mostra le risorse in formato leggibile, `terraform state list` ne elenca i nomi (vedi §7.6 e §7.7).
 
 ### 6.2.4 — Sostituire una risorsa con la CLI
 
-Di solito Terraform aggiorna l'infrastruttura solo se non corrisponde alla configurazione. Con l'opzione `-replace` delle operazioni `terraform plan` e `terraform apply` si possono ricreare in modo sicuro le risorse dell'ambiente, anche senza aver modificato la configurazione. È utile in caso di malfunzionamento di un sistema, quando un utente ha cambiato a mano un'impostazione di una risorsa, o quando bisogna aggiornare uno script di provisioning. Così si ricostruiscono risorse specifiche senza eseguire un `terraform destroy` completo della configurazione. `-replace` permette di indirizzare risorse specifiche, senza distruggere tutte le risorse del workspace per correggerne una.
-
-Nelle versioni più vecchie di Terraform si usava per un risultato simile il comando `terraform taint`. Quel comando è ora deprecato a favore dell'opzione `-replace`, che offre un workflow più semplice e meno soggetto a errori. L'opzione `-replace` è stata introdotta in Terraform 0.15.2.
-
-Con `terraform plan -replace="aws_instance.example"` si vedono le azioni che Terraform compirebbe sostituendo l'istanza: applicando la modifica, Terraform distruggerebbe l'istanza in esecuzione e ne creerebbe una nuova. `terraform apply -replace="aws_instance.example"` forza Terraform a distruggere e ricreare la risorsa. Il comando `terraform apply` con l'opzione `-replace` è il processo raccomandato da HashiCorp per gestire le risorse senza modificare a mano il file di state.
+`-replace` ricrea una risorsa senza cambiare la configurazione e sostituisce il deprecato `terraform taint` (vedi §3.8.4). `terraform plan -replace="aws_instance.example"` mostra la sostituzione, e `terraform apply -replace="aws_instance.example"` la esegue: è il processo raccomandato per gestire le risorse senza modificare a mano lo state.
 
 ### 6.2.5 — Spostare una risorsa in un altro file di state
 
-Alcuni sottocomandi `terraform state` sono utili in situazioni molto specifiche, e HashiCorp raccomanda di eseguire queste operazioni avanzate solo come ultima risorsa.
+I sottocomandi avanzati di `terraform state` vanno usati solo come ultima risorsa. `terraform state mv` sposta o rinomina risorse tra state, senza modificare la configurazione: è utile per combinare moduli o risorse di altri state senza ricrearli.
 
-Il comando `terraform state mv` sposta risorse da un file di state a un altro, e con `mv` si possono anche rinominare le risorse. Il comando aggiorna la risorsa nello state, ma non nel file di configurazione. Spostare le risorse è utile quando si vogliono combinare moduli o risorse da altri state, senza distruggere e ricreare l'infrastruttura.
-
-La sottodirectory `new_state` contiene una nuova configurazione Terraform, che crea una nuova istanza EC2 chiamata `aws_instance.example_new`. Con un data source, la configurazione usa lo stesso security group della configurazione root. Dopo `terraform init` e `terraform apply` in quella directory, c'è un secondo file di state, con una managed resource e un data source.
-
-Si sposta poi la nuova istanza EC2 appena creata, `aws_instance.example_new`, nel file di state della configurazione originale, nella directory superiore, indicata con l'opzione `-state-out`. Come nome di destinazione si usa lo stesso nome, perché nel file di state di destinazione non esiste una risorsa con quel nome:
+La directory `new_state` crea un'istanza `aws_instance.example_new`, che usa lo stesso security group tramite un data source. Dopo init e apply, la si sposta nello state della directory superiore con `-state-out`:
 
 ```
 $ terraform state mv -state-out=../terraform.tfstate aws_instance.example_new aws_instance.example_new
@@ -151,9 +126,7 @@ $ terraform state mv -state-out=../terraform.tfstate aws_instance.example_new aw
 > **Nota**: i nomi delle risorse devono essere univoci nel file di state di destinazione. Il comando `terraform state mv` può anche rinominare le risorse per renderle univoche.
 _(infoBox)_
 
-Tornati nella directory root, `terraform state list` conferma che la nuova istanza EC2, `aws_instance.example_new`, è presente nel file di state della configurazione originale. Senza aggiungere la risorsa spostata ai file di configurazione, si crea un piano. La nuova istanza è nello state ma non nella configurazione, quindi Terraform pianifica di distruggerla e di rimuovere la risorsa dal file di state.
-
-Si copia quindi in `main.tf` della directory root la definizione della risorsa:
+Nella directory root la risorsa è nello state ma non nella configurazione, quindi il plan propone di distruggerla. Si copia allora la definizione in `main.tf`:
 
 ```
 resource "aws_instance" "example_new" {
@@ -174,11 +147,11 @@ resource "aws_instance" "example_new" {
 }
 ```
 
-Applicando la configurazione, ora la configurazione corrisponde al file di state, e Terraform non fa nessuna modifica. Nella directory `new_state`, invece, `terraform destroy` non ha risorse da distruggere. Il security group è un data source, e la risorsa `aws_instance` è stata spostata in un altro file di state.
+Ora l'apply non fa modifiche, e in `new_state` `terraform destroy` non ha nulla da distruggere.
 
 ### 6.2.6 — Rimuovere una risorsa dallo state
 
-Il blocco `removed` rimuove risorse specifiche dallo state. Non distrugge l'infrastruttura, ma indica che la configurazione Terraform non gestirà più la risorsa. Nella directory root si commenta l'intero blocco `resource "aws_instance" "example_new"` di `main.tf`. Al suo posto si aggiunge un blocco `removed`, che dice a Terraform di rimuovere la risorsa dallo state senza distruggerla:
+Si commenta il blocco `aws_instance.example_new` e lo si sostituisce con un blocco `removed`, che toglie la risorsa dallo state senza distruggerla (vedi §6.8):
 
 ```
 removed {
@@ -193,28 +166,24 @@ removed {
 > **Suggerimento**: il blocco `removed` è stato introdotto in Terraform 1.7. Nelle versioni precedenti si rimuovevano le risorse dallo state con il comando `terraform state rm`.
 _(infoBox)_
 
-Prima di rimuovere la nuova istanza dallo state, conviene annotare il valore del suo campo `id`, che servirà per reimportarla. Poi si applica la configurazione. Con `terraform state list` si conferma che la risorsa `aws_instance.example_new` non esiste più nello state del progetto, ma la risorsa esiste ancora nell'account AWS.
-
-Per reimportare l'istanza nel progetto si decommenta il blocco `aws_instance.example_new` e si commenta il blocco `removed`. Poi si esegue `terraform import`, sostituendo `<INSTANCE_ID>` con l'id della risorsa annotato al passo precedente:
+Si annota l'`id` dell'istanza e si applica: `terraform state list` non la elenca più, ma esiste ancora in AWS. Per reimportarla si decommenta il blocco della risorsa, si commenta `removed` e si esegue:
 
 ```
 $ terraform import aws_instance.example_new <INSTANCE_ID>
 ```
 
-> **Suggerimento**: il tutorial usa `terraform import` per portare l'infrastruttura sotto la gestione di Terraform. Da Terraform 1.5 è supportato l'import guidato dalla configurazione. Permette di importare più risorse in una volta, di rivedere l'import nel workflow di plan e apply, e di generare la configurazione per le risorse importate (Modulo 7).
+> **Suggerimento**: da Terraform 1.5 si può usare al posto di `terraform import` l'import guidato dalla configurazione (vedi §7.1).
 _(infoBox)_
 
 ### 6.2.7 — Aggiornare lo state dopo una modifica dell'infrastruttura
 
-Il comando `terraform refresh` aggiorna il file di state quando le risorse fisiche cambiano al di fuori del workflow Terraform. Nel tutorial si elimina l'istanza EC2 originale dall'account AWS, con la AWS CLI o con la console AWS:
+`terraform refresh`, deprecato a favore di `-refresh-only` (vedi §6.3), aggiorna lo state quando le risorse cambiano fuori da Terraform. Nel tutorial si elimina l'istanza originale con la AWS CLI:
 
 ```
 $ aws ec2 terminate-instances --instance-ids $(terraform output -raw instance_id) --region $(terraform output -raw aws_region)
 ```
 
-Eliminando l'istanza si crea una differenza tra lo state e le risorse reali mappate su di esso, e il file di state non riflette più la realtà dell'ambiente. AWS può impiegare fino a cinque minuti per distruggere l'istanza. Si esegue allora `terraform refresh` per aggiornare il file di state, e `terraform state list` conferma che la risorsa originale `aws_instance.example` è stata eliminata dallo state.
-
-Il comando `terraform refresh` non aggiorna il file di configurazione, e `terraform plan` mostra gli aggiornamenti proposti all'infrastruttura. Si rimuovono quindi da `main.tf` la risorsa originale `aws_instance.example`, e da `outputs.tf` gli output che fanno riferimento all'istanza. Applicando la configurazione, si conferma che configurazione e file di state corrispondono, e gli output vengono rimossi dallo state. Terraform modifica gli output senza distruggere nessuna infrastruttura.
+Dopo qualche minuto `terraform refresh` rimuove `aws_instance.example` dallo state, ma non tocca la configurazione: si eliminano quindi la risorsa da `main.tf` e i relativi output da `outputs.tf`, e l'apply rimuove gli output senza distruggere nulla.
 
 > **Nota**: Terraform esegue automaticamente un refresh durante le operazioni di plan, apply e destroy. Tutti questi comandi riallineano lo state per default, e possono modificare il file di state.
 _(infoBox)_
@@ -270,8 +239,6 @@ Nelle versioni precedenti di Terraform, l'unico modo per aggiornare il file di s
 La modalità `-refresh-only` delle operazioni `terraform plan` e `terraform apply` rende più sicuro il confronto dello state di Terraform con l'infrastruttura reale, perché permette di rivedere le modifiche proposte al file di state. Così si evita di rimuovere per errore una risorsa esistente dallo state, e si ha l'occasione di correggere la configurazione.
 
 Un'operazione di apply refresh-only aggiorna anche gli output, se necessario. Se altri workspace usano il data source `terraform_remote_state` per accedere agli output del workspace corrente, la modalità `-refresh-only` permette di prevederne gli effetti a valle.
-
-Per proporre modifiche accurate all'infrastruttura, Terraform cerca prima di riallineare le risorse registrate nel file di state con l'infrastruttura reale. Le operazioni di plan e apply eseguono prima un refresh in memoria, per stabilire quali modifiche proporre. Una volta confermato un `terraform apply`, Terraform aggiorna l'infrastruttura e il file di state.
 
 Terraform continuerà a supportare il sottocomando `refresh` nelle versioni future, ma è deprecato, e HashiCorp incoraggia a usare al suo posto l'opzione `-refresh-only`, che permette di rivedere gli aggiornamenti al file di state. A differenza del sottocomando `refresh`, la modalità `-refresh-only` è supportata nei workspace che usano HCP Terraform come backend remoto, così il team può rivedere insieme le modifiche.
 
@@ -342,9 +309,7 @@ Ora il security group SSH dell'istanza è stato sostituito da un nuovo security 
 
 ### 6.4.3 — Eseguire un plan refresh-only
 
-Per default Terraform confronta il file di state con l'infrastruttura reale ogni volta che si esegue `terraform plan` o `terraform apply`. Il refresh aggiorna in memoria il file di state per riflettere la configurazione reale dell'infrastruttura. Così Terraform stabilisce le modifiche corrette da apportare alle risorse.
-
-Se si sospetta che la configurazione dell'infrastruttura sia cambiata al di fuori del workflow Terraform, si usa l'opzione `-refresh-only` per vedere quali sarebbero le modifiche al file di state. È più sicuro del sottocomando `refresh`, che sovrascrive automaticamente il file di state senza mostrare gli aggiornamenti. L'opzione `-refresh-only` è stata introdotta in Terraform 0.15.4, ed è preferibile al sottocomando `terraform refresh`.
+Plan e apply eseguono già un refresh in memoria (vedi §6.3). Se si sospetta una modifica fuori dal workflow Terraform, l'opzione `-refresh-only`, disponibile da Terraform 0.15.4 e preferibile al sottocomando `terraform refresh` (vedi §6.3.3), mostra le modifiche al file di state.
 
 Con `terraform plan -refresh-only` si determina il drift tra il file di state attuale e la configurazione reale. Terraform rileva differenze tra l'infrastruttura e lo state attuale. Vede che il security group originale, che consentiva l'accesso sulla porta 22, non è più associato all'istanza EC2. L'output del plan refresh-only indica che Terraform aggiornerà il file di state, per registrare nella configurazione dell'istanza EC2 il nuovo security group con accesso sulla porta 8080.
 
@@ -400,19 +365,11 @@ $ curl $(terraform output -raw public_ip):8080
 
 ## 6.5 — Spostare le risorse con la configurazione
 
-Man mano che la configurazione Terraform diventa più complessa, aggiornare le risorse diventa più rischioso: l'aggiornamento di una risorsa può causare modifiche impreviste ad altre parti dell'infrastruttura. Un modo per affrontare il problema è riorganizzare (refactoring) il codice Terraform esistente in moduli separati. Oltre a limitare l'ambito delle possibili modifiche, i moduli astraggono le risorse e rendono la configurazione più facile da capire.
-
-Quando si spostano risorse esistenti da un modulo padre a un modulo figlio, gli ID delle risorse di Terraform cambiano. Per questo bisogna dire a Terraform che si intende spostare le risorse e non sostituirle. Altrimenti Terraform distrugge e ricrea le risorse con il nuovo ID.
-
-Il blocco di configurazione `moved` permette di registrare gli spostamenti delle risorse nella configurazione stessa. Con il blocco `moved` si possono pianificare, vedere in anteprima e validare gli spostamenti delle risorse, e quindi riorganizzare la configurazione in modo sicuro.
-
-Nel tutorial si creano diverse risorse AWS, poi le si dividono in un modulo di calcolo e in un modulo per i security group. Si usa il blocco `moved` per riorganizzare la configurazione e aggiornare gli ID delle risorse, rivedendo le modifiche allo state corrispondenti prima di applicare la nuova configurazione.
+Riorganizzare la configurazione in moduli limita l'ambito delle modifiche (vedi §5.2.1), ma cambia gli ID delle risorse: senza indicazioni Terraform le distruggerebbe e ricreerebbe. Il blocco `moved` registra gli spostamenti nella configurazione, e permette di pianificarli e validarli (vedi §6.7). Nel tutorial si dividono le risorse in un modulo di calcolo e uno per i security group.
 
 ### 6.5.1 — Riorganizzare la configurazione
 
-Dopo aver inizializzato e applicato la configurazione di esempio, si verifica con `curl` che l'istanza risponda sulla porta 8080. In questo esempio le risorse da gestire sono poche. Un ambiente operativo però può contenerne molte di più, ed essere difficile da gestire in un unico file di configurazione. Organizzando le risorse in moduli, la configurazione diventa flessibile, riutilizzabile e componibile.
-
-Si crea una nuova sottodirectory `compute` nella directory `modules`. Nel file `modules/compute/variables.tf` si definiscono le input variable del modulo, con cui lo si configurerà:
+Dopo init e apply, `curl` conferma che l'istanza risponde sulla porta 8080. Si crea il modulo `modules/compute`, con le sue variabili:
 
 ```
 variable "security_group" {
@@ -424,7 +381,7 @@ variable "public_subnets" {
 }
 ```
 
-Poi si spostano il data source dell'AMI e la risorsa dell'istanza EC2 da `main.tf` a `modules/compute/main.tf`, e si aggiorna la configurazione perché usi le variabili appena definite:
+Si spostano in `modules/compute/main.tf` il data source dell'AMI e l'istanza EC2, che ora usano le variabili:
 
 ```
 resource "aws_instance" "example" {
@@ -449,7 +406,7 @@ resource "aws_instance" "example" {
 }
 ```
 
-Infine si crea il file `modules/compute/outputs.tf`, con un output per l'indirizzo IP dell'istanza, da passare come variabile a un altro modulo:
+e si aggiunge un output con l'IP dell'istanza:
 
 ```
 output "public_ip" {
@@ -460,7 +417,7 @@ output "public_ip" {
 
 **Usare i moduli nella configurazione** _(stepTitle)_
 
-Nella configurazione root, la risorsa dell'istanza EC2 si sostituisce con il modulo locale appena creato. Il security group, prima gestito dal modulo locale `./modules/security_group`, si sostituisce con il modulo security-group di AWS del Terraform Registry. Si rimuove quindi da `main.tf` il blocco `module "security_group"`, e si aggiungono in fondo alla configurazione due nuovi blocchi `module`:
+Nel root, l'istanza diventa il modulo locale e il security group, prima gestito da `./modules/security_group`, il modulo security-group di AWS del Registry:
 
 ```
 module "web_security_group" {
@@ -500,15 +457,15 @@ module "ec2_instance" {
 }
 ```
 
-Nel file `outputs.tf` della directory root, l'output `public_ip` ora usa l'output del modulo di calcolo (`value = module.ec2_instance.public_ip`).
+In `outputs.tf`, `public_ip` usa ora `module.ec2_instance.public_ip`.
 
 ### 6.5.2 — Rivedere le modifiche pianificate
 
-Si reinizializza la configurazione con `terraform init` per installare i nuovi moduli, e si genera un piano con `terraform plan`. Le modifiche ai moduli eliminerebbero e ricreerebbero le risorse, con possibili interruzioni del servizio. Il tutorial usa allora il blocco `moved` di Terraform per riorganizzare la configurazione in moduli senza distruggere le risorse esistenti.
+Dopo `terraform init`, `terraform plan` propone di eliminare e ricreare le risorse, con possibili interruzioni del servizio.
 
 ### 6.5.3 — Spostare le risorse con il blocco moved
 
-Con il blocco `moved` si comunicano a Terraform tutte le modifiche agli indirizzi delle risorse nella configurazione. Terraform valida anche queste modifiche, così l'output delle operazioni è più chiaro e si possono rivedere i piani in sicurezza prima di applicarli. Nel `main.tf` root si aggiungono blocchi `moved` per le risorse spostate al passo precedente:
+Nel `main.tf` root si aggiungono i blocchi `moved`:
 
 ```
 moved {
@@ -532,11 +489,11 @@ moved {
 }
 ```
 
-Si riapplica la configurazione, per spostare le risorse nei nuovi moduli e aggiornarne gli ID, confermando con `yes` dopo aver verificato che Terraform sposterà le risorse invece di sostituirle. L'ID dell'istanza nella configurazione è cambiato, ma la risorsa no. Il security group e le sue regole sono stati aggiornati sul posto durante lo spostamento, perché il nuovo modulo ha valori di default per alcuni attributi che il vecchio modulo non aveva.
+Il nuovo apply sposta le risorse invece di sostituirle: cambia l'ID dell'istanza, non l'istanza. Il security group e le regole vengono aggiornati sul posto, perché il nuovo modulo ha default diversi per alcuni attributi.
 
 ### 6.5.4 — Rinominare e spostare una risorsa
 
-Il blocco `moved` serve anche a rinominare risorse esistenti. Nel `main.tf` root si rinomina il modulo `vpc` in `learn_vpc`, e si aggiornano i riferimenti nel resto della configurazione:
+`moved` serve anche a rinominare: si rinomina il modulo `vpc` in `learn_vpc`, aggiornando i riferimenti:
 
 ```
 module "learn_vpc" {
@@ -562,8 +519,6 @@ module "ec2_instance" {
 }
 ```
 
-In fondo al file si aggiunge il blocco `moved` per la modifica della VPC:
-
 ```
 moved {
   from = module.vpc
@@ -571,7 +526,7 @@ moved {
 }
 ```
 
-Si esegue `terraform init` per aggiornare il nome del modulo VPC, poi si applicano le modifiche, confermando dopo aver verificato che non ci sono modifiche alle risorse.
+Dopo `terraform init` l'apply non modifica nessuna risorsa.
 
 > **Nota**: è fortemente consigliato conservare tutti i blocchi `moved` nella configurazione, come registro delle modifiche. Rimuovendo un blocco `moved`, Terraform pianifica di eliminare la risorsa esistente invece di spostarla.
 _(infoBox)_
@@ -963,17 +918,7 @@ Per rimuovere una risorsa dallo state di Terraform senza distruggerla, si sostit
 4. si eliminano tutti i riferimenti agli attributi della risorsa. Per trovarli nella configurazione si può eseguire il comando `terraform validate`;
 5. si esegue `terraform apply` e si conferma quando richiesto.
 
-L'esempio rimuove la risorsa `aws_instance.example` dallo state, senza distruggerla:
-
-```
-removed {
-  from = aws_instance.example
-
-  lifecycle {
-    destroy = false
-  }
-}
-```
+Il blocco `removed` che rimuove `aws_instance.example` dallo state senza distruggerla è lo stesso visto in §6.6.4.
 
 In alternativa si può usare il comando `terraform state rm` per rimuovere una risorsa dallo state. È consigliato però il blocco `removed`, perché permette di vedere in anteprima i risultati dell'operazione ed è quindi un modo più sicuro di rimuovere le risorse. Per tornare a gestire la risorsa con Terraform bisogna importarla di nuovo nella configurazione (Modulo 7).
 
@@ -996,7 +941,7 @@ La modalità di run predefinita di HCP Terraform esegue un plan e poi lo applica
 
 ### 6.10.2 — Destroy mode
 
-La destroy mode fa creare a Terraform un piano che distrugge tutti gli oggetti, indipendentemente dalle modifiche alla configurazione. Dalla CLI si usa `terraform plan -destroy` o `terraform destroy`. Dall'API si usa l'opzione `is-destroy`. Dall'interfaccia si usa la pagina **Destruction and Deletion** delle impostazioni del workspace.
+La destroy mode crea un piano che distrugge tutti gli oggetti (vedi §3.8.3). Dalla CLI si usa `terraform plan -destroy` o `terraform destroy`. Dall'API si usa l'opzione `is-destroy`. Dall'interfaccia si usa la pagina **Destruction and Deletion** delle impostazioni del workspace.
 
 ### 6.10.3 — Plan only / speculative plan
 
@@ -1031,7 +976,7 @@ Dall'API si imposta il campo `allow-empty-apply` a `true`. Dall'interfaccia si s
 
 ### 6.10.6 — Refresh-only mode
 
-La refresh-only mode richiede un workspace che usi almeno la CLI di Terraform v0.15.4, e si prova con il tutorial della sezione 6.3. Fa creare a Terraform un piano che aggiorna lo state di Terraform per riflettere le modifiche fatte agli oggetti remoti al di fuori di Terraform. È utile se si è verificato un drift dello state, e si vuole riallineare il file di state agli oggetti remoti modificati. Applicare un run refresh-only non provoca altre modifiche agli oggetti remoti. La modalità si avvia così:
+La refresh-only mode richiede un workspace che usi almeno la CLI di Terraform v0.15.4, e si prova con il tutorial della sezione 6.3. Crea un piano che riallinea lo state agli oggetti remoti modificati fuori da Terraform, senza toccare gli oggetti (vedi §3.8.3). La modalità si avvia così:
 
 - dalla CLI, con `terraform plan -refresh-only` o `terraform apply -refresh-only`;
 - dall'API, con l'opzione `refresh-only`;
@@ -1142,13 +1087,11 @@ Quando si applica un piano salvato in precedenza in un file, Terraform usa la co
 
 ### 6.11.3 — Inizializzare il backend
 
-Quando si cambia la configurazione di un backend, bisogna rieseguire `terraform init` per validarlo e configurarlo, prima di poter eseguire plan, apply od operazioni sullo state.
-
-Dopo l'inizializzazione, Terraform crea in locale una directory `.terraform/`. Contiene la configurazione del backend più recente, compresi gli eventuali parametri di autenticazione forniti alla CLI di Terraform. Questa directory non va inclusa in Git, perché può contenere credenziali sensibili del backend remoto.
+Quando si cambia la configurazione di un backend, bisogna rieseguire `terraform init` prima di qualsiasi altra operazione (vedi §3.4.4). La directory locale `.terraform/` contiene poi la configurazione del backend più recente, compresi eventuali parametri di autenticazione, e quindi non va inclusa in Git (vedi §3.3.4).
 
 La configurazione del backend locale è diversa e del tutto separata dal file `terraform.tfstate`, che contiene i dati di state sull'infrastruttura reale e che Terraform conserva nel backend remoto.
 
-Quando si cambia backend, Terraform offre la possibilità di migrare lo state nel nuovo backend. Così si adottano nuovi backend senza perdere lo state esistente.
+Quando si cambia backend, Terraform offre di migrare lo state esistente (vedi §6.11.5).
 
 > **Importante**: prima di migrare a un nuovo backend è fortemente consigliato fare a mano un backup dello state, copiando il file `terraform.tfstate` in un'altra posizione.
 _(infoBox)_
@@ -1300,7 +1243,7 @@ Entrambe le protezioni si possono aggirare con l'opzione `-force`, se si è sicu
 
 ### 6.13.3 — Il lock dello state
 
-I backend hanno il compito di supportare il lock dello state, quando possibile. Non tutti i backend supportano il locking, e la documentazione di ogni backend indica se lo supporta o no. Il locking è descritto nella sezione 6.14.
+I backend supportano il lock dello state quando possibile; il locking è descritto in §6.14.
 
 - Fonte: [State storage and locking](https://developer.hashicorp.com/terraform/language/v1.12.x/state/backends)
 

@@ -239,7 +239,7 @@ HCP Terraform supporta anche i run di distruzione, i run refresh-only e diverse 
 
 HCP Terraform mostra l'avanzamento di ogni run attraverso i suoi stati: pending, plan, policy check, apply e completamento. In alcuni stati il run può richiedere una conferma prima di continuare o terminare. Nell'elenco dei workspace della pagina principale, ogni workspace mostra lo stato del run che sta elaborando, o, se non c'è un run in corso, quello dell'ultimo run completato.
 
-Per importare risorse in HCP Terraform è consigliato usare i blocchi `import`, introdotti in Terraform 1.5. HCP Terraform non supporta l'esecuzione remota del comando `terraform import`. Per questo comando il workspace fa solo da backend remoto dello state, e tutta l'esecuzione avviene sulle proprie postazioni o sui worker di CI. `terraform import` gira in locale, quindi le variabili d'ambiente definite nel workspace non sono disponibili. Le variabili d'ambiente richieste dal provider da cui si importa vanno definite nell'ambiente di esecuzione locale.
+Per importare risorse in HCP Terraform è consigliato usare i blocchi `import`, introdotti in Terraform 1.5. HCP Terraform non supporta l'esecuzione remota del comando `terraform import`: il comando gira in locale, con il workspace usato solo come backend dello state (come con l'Execution Mode Local, vedi §8.3.1), quindi le variabili d'ambiente definite nel workspace non sono disponibili. Le variabili d'ambiente richieste dal provider da cui si importa vanno definite nell'ambiente di esecuzione locale.
 
 - Fonte: [Remote operations](https://developer.hashicorp.com/terraform/cloud-docs/workspaces/run/remote-operations)
 
@@ -282,21 +282,15 @@ Il comando `terraform login` funziona con qualsiasi server che supporti il proto
 
 ## 8.6 — Collaborare con HCP Terraform
 
-Nei tutorial precedenti della raccolta Get Started su AWS si è usato Terraform per creare, gestire e distruggere l'infrastruttura dalla macchina locale (sezioni 3.2 e 3.12). Gestire i workspace Terraform dalla macchina locale crea un singolo punto di guasto, e rende difficile collaborare con il team sui progetti di infrastruttura.
-
-HCP Terraform permette di collaborare sui progetti di infrastruttura all'interno dell'organizzazione. Offre un ambiente di esecuzione remota sicuro, in cui gestire insieme le modifiche all'infrastruttura. Conserva inoltre in modo sicuro lo state e le variabili di Terraform, compresi token API e chiavi di accesso. La CLI di Terraform si integra con HCP Terraform, quindi i run remoti si avviano dalla macchina locale.
-
-Nel tutorial si migra il workspace locale in HCP Terraform e si usa il workflow CLI-driven per avviare i run. HCP Terraform supporta anche il provisioning con un workflow API-driven, o con il workflow VCS-driven, che avvia i run per ogni modifica a un repository configurato.
+Gestire i workspace dalla macchina locale, come nei tutorial delle sezioni 3.2 e 3.12, crea un singolo punto di guasto e rende difficile collaborare. HCP Terraform offre esecuzione remota e conserva in modo sicuro state e variabili (vedi §8.1). Nel tutorial si migra il workspace locale in HCP Terraform e si usa il workflow CLI-driven (vedi §8.4); esistono anche i workflow API-driven e VCS-driven.
 
 ### 8.6.1 — Creare le risorse e accedere a HCP Terraform
 
-Nel tutorial precedente si era distrutta l'infrastruttura, quindi si riapplica la configurazione per ricreare la VPC e le risorse correlate. Poi si migra lo state del workspace locale in HCP Terraform.
-
-Serve un account HCP Terraform. Dopo l'iscrizione si riceve un'email per confermare l'indirizzo, e il link di conferma porta alla pagina **Organizations**, dove con **Create organization** si crea una nuova organizzazione. Poi si accede all'account HCP Terraform dalla CLI con `terraform login`. Rispondendo `yes`, Terraform apre una finestra del browser per creare un token API. Lo si genera seguendo il workflow nel browser, e lo si incolla nel terminale quando Terraform lo chiede. Terraform non mostra il token sullo schermo, e lo salva in chiaro nel file `credentials.tfrc.json` per i comandi successivi.
+Si riapplica la configurazione per ricreare la VPC e le risorse correlate. Dopo l'iscrizione e la conferma dell'email si crea un'organizzazione dalla pagina **Organizations**, poi ci si autentica con `terraform login` (vedi §8.5): il token API generato nel browser si incolla nel terminale e viene salvato in chiaro in `credentials.tfrc.json`.
 
 ### 8.6.2 — Collegare il workspace a HCP Terraform
 
-Per collegare il workspace a HCP Terraform bisogna aggiornare la configurazione e reinizializzare il workspace dalla riga di comando. I workspace HCP Terraform funzionano come i workspace Terraform locali, ma eseguono le operazioni di Terraform e conservano lo state in HCP Terraform. HCP Terraform supporta anche il raggruppamento dei workspace in project, per gestirne più facilmente accessi e impostazioni. Si aggiorna il blocco `terraform` in `terraform.tf`, aggiungendo un blocco `cloud` che collega il workspace locale a HCP Terraform, con il nome della propria organizzazione al posto di `your-organization-name`:
+I workspace HCP Terraform eseguono le operazioni e conservano lo state in HCP Terraform, e si possono raggruppare in project. In `terraform.tf` si aggiunge un blocco `cloud` (vedi §8.9.3), con la propria organizzazione al posto di `your-organization-name`:
 
 ```
 terraform {
@@ -322,11 +316,11 @@ terraform {
 
 **Migrare in HCP Terraform** _(stepTitle)_
 
-Configurata l'integrazione, si esegue `terraform init` per reinizializzare la configurazione e copiare lo state in HCP Terraform, confermando la migrazione con `yes`. Quando si esegue `terraform init` dopo aver aggiunto un blocco `cloud`, Terraform crea il nuovo project e il nuovo workspace se non esistono già, o usa quelli esistenti.
+`terraform init` copia lo state in HCP Terraform dopo la conferma con `yes`, creando project e workspace se non esistono (vedi §8.9.4).
 
 **Configurare le credenziali AWS** _(stepTitle)_
 
-`terraform init` ha creato il project **Learn Terraform** e il workspace `learn-terraform-aws-get-started` nell'organizzazione. Perché HCP Terraform possa autenticarsi con il provider AWS e creare le risorse, bisogna configurare il workspace con le credenziali AWS. Nella pagina **Variables** del workspace, sotto **Workspace Variables**, si aggiungono `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` come **Environment Variables**, marcandole come **Sensitive**.
+Sono stati creati il project **Learn Terraform** e il workspace `learn-terraform-aws-get-started`. Nella pagina **Variables** del workspace si aggiungono `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` come **Environment Variables** sensitive.
 
 ![Figura 17](img/hcp-workspace-variables.png) _(dimensioni: 2936×1568 px)_
 
@@ -334,7 +328,7 @@ Configurata l'integrazione, si esegue `terraform init` per reinizializzare la co
 
 **Applicare la configurazione** _(stepTitle)_
 
-Ora si aggiorna e si applica la configurazione con HCP Terraform. Si decommentano in `main.tf` la configurazione dell'istanza EC2 e in `outputs.tf` l'output `instance_hostname`:
+Si decommentano l'istanza EC2 in `main.tf` e l'output `instance_hostname` in `outputs.tf`:
 
 ```
 resource "aws_instance" "app_server" {
@@ -357,9 +351,7 @@ output "instance_hostname" {
 }
 ```
 
-`terraform apply` avvia un run in HCP Terraform, e alla richiesta di conferma si risponde `yes`. Terraform esegue plan e apply in remoto, in HCP Terraform, e trasmette l'output nella finestra del terminale. Ora Terraform conserva lo state del workspace in remoto, in HCP Terraform, e all'URL stampato da Terraform si vede il run in HCP Terraform. Con il workflow CLI-driven si eseguono i comandi di Terraform dalla macchina locale, e HCP Terraform li esegue e ne trasmette l'output alla CLI. In HCP Terraform si possono anche rivedere i risultati dei run di plan e apply e configurare il workspace.
-
-Per pulire l'ambiente, `terraform destroy` fa distruggere a HCP Terraform tutte le risorse che gestisce nel workspace. Poi si elimina il workspace dalla scheda **Settings > Destruction and Deletion** con **Delete from HCP Terraform**. Anche il project si può eliminare dalla sua pagina **Settings**.
+`terraform apply` esegue plan e apply in remoto e trasmette l'output nel terminale; il run si vede anche all'URL stampato. Per pulire si esegue `terraform destroy`, poi si eliminano il workspace da **Settings > Destruction and Deletion** e il project dalle sue impostazioni.
 
 - Fonte: [Collaborate using HCP Terraform](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-hcp-terraform)
 
@@ -430,7 +422,7 @@ terraform {
 
 L'organizzazione indicata nel blocco `cloud` deve già esistere, il workspace invece no: HCP Terraform lo crea se necessario. Se si usa un workspace esistente, non deve avere state esistenti.
 
-> **Nota**: i workspace di HCP Terraform si comportano in modo diverso dai workspace della CLI di Terraform. I workspace della CLI permettono di avere più file di state nella stessa directory, per usare una configurazione per più ambienti. I workspace di HCP Terraform contengono tutto il necessario per gestire un dato insieme di infrastruttura, e funzionano come directory di lavoro separate.
+> **Nota**: i workspace di HCP Terraform si comportano in modo diverso dai workspace della CLI di Terraform (vedi §8.11.4).
 _(infoBox)_
 
 ### 8.7.3 — Autenticarsi e migrare il file di state
@@ -511,7 +503,7 @@ La documentazione rimanda a un articolo esterno con un esempio di script Python 
 
 Lo strumento CLI `tf-migrate` migra automaticamente lo state in HCP Terraform e Terraform Enterprise. Non è incluso in HCP Terraform, e il suo binario va scaricato e installato separatamente.
 
-In HCP Terraform l'infrastruttura si organizza in due modi. I workspace sono ideali per gestire un'infrastruttura autonoma di un solo modulo root. Gli Stack sono ideali per gestire più moduli di infrastruttura e ripeterla su larga scala. Per convertire un workspace esistente in uno Stack, si usa la CLI Terraform migrate, che migra state e configurazione del workspace in uno Stack di HCP Terraform.
+Per convertire un workspace esistente in uno Stack (vedi §8.2.6) si usa la CLI Terraform migrate, che migra state e configurazione del workspace in uno Stack di HCP Terraform.
 
 - Fonte: [Migrate Terraform state to HCP Terraform or Terraform Enterprise](https://developer.hashicorp.com/terraform/cloud-docs/migrate)
 
@@ -582,7 +574,7 @@ La migrazione dei dati si completa quando richiesto, secondo uno di questi scena
 
 Si esegue `terraform init` e si seguono le richieste della CLI per migrare i dati di state conservati in locale o in un backend di state. HCP Terraform richiede che tutti i workspace abbiano un nome, quindi durante la migrazione Terraform potrebbe chiedere anche di rinominare i workspace.
 
-I workspace della sola CLI di Terraform rappresentano più ambienti associati alla stessa configurazione, come production, staging e development. I workspace di HCP Terraform invece possono rappresentare configurazioni del tutto indipendenti, e devono avere nomi univoci nell'organizzazione. Per questo Terraform chiede di rinominare i workspace secondo uno schema relativo ai nomi esistenti, che indichi che i workspace condividono la configurazione. Una strategia comune è `<COMPONENT>-<ENVIRONMENT>-<REGION>`, ad esempio `networking-prod-us-east` e `networking-staging-us-east`.
+I workspace HCP Terraform, a differenza di quelli della CLI, devono avere nomi univoci nell'organizzazione (vedi §8.11.4), quindi Terraform chiede di rinominarli secondo uno schema che indichi che condividono la configurazione. Una strategia comune è `<COMPONENT>-<ENVIRONMENT>-<REGION>`, ad esempio `networking-prod-us-east` e `networking-staging-us-east`.
 
 **Migrare dal backend remote** _(stepTitle)_
 
@@ -634,28 +626,15 @@ Terraform legge il file `.terraformignore` nella radice della directory di confi
 
 ## 8.10 — Aggiornare la versione di Terraform in HCP Terraform
 
-Ogni workspace HCP Terraform ha una versione di Terraform assegnata, che usa per tutte le remote operations del workspace. Configurare la versione di Terraform garantisce un comportamento coerente tra i run, e così è facile collaborare alla gestione dell'infrastruttura. Quando si decide di aggiornare Terraform, HCP Terraform offre workflow che permettono di verificare la modifica in modo sicuro.
-
-Nel tutorial si aggiorna da Terraform 0.12 a 0.13 una configurazione gestita da HCP Terraform. Si usa lo speculative plan di HCP Terraform per validare l'aggiornamento, e il run con apply vuoto per aggiornare la versione dello state.
+Ogni workspace usa una versione di Terraform assegnata per tutte le remote operations, così i run sono coerenti. Nel tutorial si aggiorna una configurazione da Terraform 0.12 a 0.13, validando l'aggiornamento con uno speculative plan e aggiornando lo state con un run ad apply vuoto.
 
 ### 8.10.1 — Creare il workspace
 
-Nell'organizzazione HCP Terraform, dalla pagina **Workspaces** si sceglie **New > Workspace**, si seleziona il **Default Project** dell'organizzazione e si crea il workspace. Lo si configura così:
-
-1. si sceglie **Version control workflow**;
-2. come provider di controllo versione si sceglie GitHub, autenticandosi con il proprio account se è la prima volta;
-3. si seleziona il repository `learn-terraform-versions` di cui si è fatto il fork;
-4. si lascia invariato il nome del workspace;
-5. in **Advanced options** si verifica che siano attivi gli **Automatic speculative plans**;
-6. si crea il workspace.
+Da **Workspaces > New > Workspace**, nel **Default Project**, si crea un workspace con il **Version control workflow**: GitHub come provider, il fork del repository `learn-terraform-versions`, il nome proposto e, in **Advanced options**, gli **Automatic speculative plans** attivi.
 
 ### 8.10.2 — Aggiornare la versione del workspace
 
-La configurazione del repository usa un vincolo di versione che impone Terraform 0.12 per tutti i run. Il workspace HCP Terraform però è configurato per usare l'ultima versione, come mostrano i dettagli del workspace.
-
-Quando si crea un nuovo workspace, HCP Terraform seleziona automaticamente la versione più recente di Terraform disponibile. Se si migra in HCP Terraform un progetto esistente dalla CLI, HCP Terraform configura il workspace per usare la stessa versione del binario di Terraform usato per la migrazione. HCP Terraform permette di cambiare la versione usata da un workspace nella pagina delle impostazioni del workspace. Così si controlla come e quando i progetti usano versioni più recenti di Terraform.
-
-Facendo clic sulla versione del workspace si apre la pagina delle impostazioni generali. Nel selettore della versione si sceglie la versione 0.12.31, per soddisfare il vincolo di versione della configurazione, e si salvano le impostazioni.
+La configurazione impone Terraform 0.12, mentre il workspace usa l'ultima versione: un nuovo workspace riceve la più recente disponibile, uno migrato dalla CLI la versione del binario usato per la migrazione. La versione si cambia nelle impostazioni generali del workspace: qui si sceglie 0.12.31.
 
 ![Figura 19](img/hcp-configure-version.png) _(dimensioni: 2360×269 px)_
 
@@ -663,14 +642,12 @@ Facendo clic sulla versione del workspace si apre la pagina delle impostazioni g
 
 ### 8.10.3 — Creare l'infrastruttura e aggiornare il vincolo di versione
 
-Si avvia un nuovo run con **Start new run** dal menu **Actions** del workspace, e lo si applica con **Confirm & Apply**. A questo punto il workspace di esempio funziona, ma usa una versione di Terraform obsoleta.
-
-La configurazione funziona solo con le versioni di Terraform della serie 0.12. Per aggiornare il progetto bisogna modificare sia la versione del workspace sia il vincolo di versione della configurazione.
+Si avvia un run con **Actions > Start new run** e lo si applica con **Confirm & Apply**. Per aggiornare il progetto vanno cambiati sia la versione del workspace sia il vincolo della configurazione.
 
 > **Nota**: nello scenario del tutorial l'unico problema di compatibilità è il vincolo di versione della configurazione. Gli aggiornamenti delle configurazioni di produzione possono richiedere più modifiche, per cui vanno consultate le guide di aggiornamento di Terraform.
 _(infoBox)_
 
-Si clona il fork del repository e in `main.tf` si aggiorna il vincolo `required_version` a `~> 0.13.0`:
+In `main.tf` si porta `required_version` a `~> 0.13.0`:
 
 ```
 terraform {
@@ -687,7 +664,7 @@ terraform {
 }
 ```
 
-Per verificare che la configurazione sia ancora valida con la nuova versione di Terraform, si apre una pull request nel repository, che avvia uno speculative plan. Si crea un nuovo branch, si aggiungono le modifiche all'area di stage, se ne fa il commit e infine il push:
+Si apre poi una pull request, che avvia uno speculative plan:
 
 ```
 $ git checkout -b upgrade_terraform_013
@@ -698,21 +675,15 @@ $ git push -u origin upgrade_terraform_013
 
 ### 8.10.4 — Testare la nuova versione di Terraform
 
-Nell'interfaccia web di GitHub si apre una pull request con le modifiche verso il proprio fork. All'apertura della pull request, HCP Terraform crea uno speculative plan che mostra le modifiche della pull request. Il plan fallisce, perché il vincolo di versione della configurazione è aggiornato, ma il workspace usa ancora la versione 0.12.31. Con il link **Details** accanto al plan fallito si vedono i dettagli in HCP Terraform: come previsto, la versione di Terraform usata per il plan non soddisfa la configurazione.
-
-Per i run normali Terraform usa la versione configurata per il workspace. Per uno speculative plan si può invece scegliere una versione specifica di Terraform, per testare le modifiche sensibili alla versione. Dal menu sotto l'output del run si sceglie la versione 0.13.7, e con **Retry run** si verifica che la configurazione funzioni con una versione più recente. Nei dettagli del plan HCP Terraform indica che per questo plan si è usata una versione diversa da quella configurata per il workspace. Il run riesce e non mostra modifiche pianificate, il che conferma che la configurazione è compatibile con Terraform 0.13.
+Lo speculative plan della pull request fallisce, perché il workspace usa ancora 0.12.31, come mostrano i **Details** in HCP Terraform. Per uno speculative plan si può però scegliere un'altra versione di Terraform (vedi §6.10.3): con 0.13.7 e **Retry run** il plan riesce senza modifiche, e la configurazione risulta compatibile con Terraform 0.13.
 
 ### 8.10.5 — Aggiornare la versione del workspace e lo state
 
-Nella pagina delle impostazioni del workspace si aggiorna la versione a 0.13.7 e si salva, poi si fa il merge della pull request, che aggiorna il vincolo di versione nel branch main. La pull request unita non modifica le risorse, quindi Terraform avvia e completa il run automaticamente. Non chiede di applicare la configurazione per aggiornare lo state, perché non ci sono modifiche. L'ultimo file di state del workspace mostra ancora la versione di state 4 e la versione di Terraform 0.12.31.
+Si imposta la versione 0.13.7 nel workspace e si fa il merge della pull request. Il run che segue non ha modifiche, quindi termina senza apply, e lo state resta alla versione 4 di Terraform 0.12.31.
 
 **Un apply per completare l'aggiornamento** _(stepTitle)_
 
-Ora il workspace può usare Terraform 0.13 per i run, ma l'aggiornamento non è completo. Terraform 0.13 ha introdotto modifiche al formato del file di state, quindi bisogna applicare un run nel workspace per aggiornare la versione dello state e completare l'aggiornamento.
-
-Per default HCP Terraform non applica i run senza modifiche alle risorse, ma offre il tipo di run con apply vuoto (empty apply), che aiuta negli aggiornamenti di versione major (sezione 6.10.5). Si avvia un run con **Start new run** dal menu **Actions**, scegliendo **Allow empty apply** come tipo di run. Il run con apply vuoto permette a HCP Terraform di aggiornare la versione dello state, anche se non ci sono modifiche da fare alle risorse. Confermando e applicando il run vuoto, HCP Terraform aggiorna il file di state del workspace con la nuova versione di Terraform, 0.13.7.
-
-Ora la configurazione usa Terraform 0.13 invece di 0.12, e il file di state del workspace HCP Terraform è aggiornato di conseguenza. Il workspace soddisfa i requisiti minimi del formato di state per Terraform 0.14 e successivi.
+Terraform 0.13 ha cambiato il formato dello state, quindi serve un apply. Da **Actions > Start new run** si sceglie il tipo **Allow empty apply** (vedi §6.10.5): confermandolo, HCP Terraform aggiorna lo state alla versione 0.13.7, che soddisfa i requisiti minimi del formato di state per Terraform 0.14 e successivi.
 
 - Fonte: [Upgrade Terraform version in HCP Terraform](https://developer.hashicorp.com/terraform/tutorials/cloud/cloud-versions)
 
@@ -771,7 +742,7 @@ I project permettono di organizzare i workspace in gruppi (sezione 8.15). Nelle 
 
 I workspace si creano dall'interfaccia di HCP Terraform, con l'API Workspaces o con l'integrazione della CLI con HCP Terraform. Nell'infrastruttura esistente si possono cercare risorse da importare nel workspace, per gestirle con Terraform.
 
-Gli health assessment sono disponibili nelle edizioni Standard e Premium di HCP Terraform. HCP Terraform può eseguire health assessment automatici in un workspace, per valutare se l'infrastruttura reale soddisfa i requisiti definiti nella configurazione Terraform. Comprendono due tipi di valutazione:
+Nelle edizioni Standard e Premium HCP Terraform può eseguire health assessment automatici, che valutano se l'infrastruttura reale soddisfa i requisiti della configurazione (vedi §8.24). Comprendono due tipi di valutazione:
 
 - la **drift detection** stabilisce se l'infrastruttura reale corrisponde alla configurazione Terraform;
 - la **validazione continua** stabilisce se le custom condition della configurazione del workspace continuano a passare dopo che Terraform ha creato l'infrastruttura.
@@ -784,11 +755,7 @@ Gli health assessment si possono imporre a tutti i workspace idonei, o lasciare 
 
 ## 8.12 — Collegare i workspace con i run trigger
 
-I run trigger di HCP Terraform permettono di collegare i workspace: un apply riuscito in un workspace sorgente mette in coda un run nel workspace collegato. Ad esempio, aggiungere nuove subnet alla configurazione di rete potrebbe attivare un aggiornamento della configurazione dell'applicazione, per ridistribuire i server sulle nuove subnet.
-
-Quando si gestisce un'infrastruttura complessa con HCP Terraform, organizzare la configurazione in workspace diversi aiuta a gestire e progettare meglio l'infrastruttura. Configurando i run trigger tra i workspace si costruiscono pipeline di infrastruttura, come parte della strategia complessiva di deployment.
-
-Nel tutorial si configurano un workspace che gestisce la rete e un secondo che gestisce l'applicazione. Si configura poi un run trigger, così ogni modifica al workspace di rete mette in coda un passo di apply nel workspace dell'applicazione.
+Un run trigger fa sì che un apply riuscito in un workspace sorgente metta in coda un run nel workspace collegato (vedi §8.13): ad esempio, nuove subnet nella configurazione di rete possono far ridistribuire i server dell'applicazione. Così si costruiscono pipeline di infrastruttura. Nel tutorial un workspace gestisce la rete, un altro l'applicazione.
 
 ![Figura 20](img/hcp-run-trigger-workspaces.png) _(dimensioni: 1940×439 px)_
 
@@ -796,14 +763,7 @@ Nel tutorial si configurano un workspace che gestisce la rete e un secondo che g
 
 ### 8.12.1 — I repository
 
-Il **repository di rete** contiene la configurazione Terraform dell'infrastruttura di rete:
-
-- `main.tf` configura il provider aws, le risorse della VPC, il load balancer e l'infrastruttura di rete correlata;
-- `terraform.tf` configura le versioni del provider e di Terraform;
-- `variables.tf` dichiara le variabili, tra cui la region e il numero di subnet pubbliche e private;
-- `outputs.tf` dichiara gli output, che il workspace dell'applicazione userà nella propria configurazione.
-
-Il **repository dell'applicazione** è organizzato come quello di rete, con una differenza importante. In cima a `main.tf` usa un blocco `terraform_remote_state` per recuperare gli output del workspace di rete. I blocchi di dati di remote state permettono di condividere dati tra workspace in HCP Terraform. Insieme al run trigger configurato più avanti, il blocco permette al workspace dell'applicazione di reagire alle modifiche del workspace di rete:
+Il repository di rete ha `main.tf` (provider, VPC, load balancer), `terraform.tf`, `variables.tf` (region e numero di subnet) e `outputs.tf`, con gli output usati dall'applicazione. Il repository dell'applicazione è uguale, ma in cima a `main.tf` legge quegli output con `terraform_remote_state` (vedi §8.14):
 
 ```
 data "terraform_remote_state" "network" {
@@ -818,7 +778,7 @@ data "terraform_remote_state" "network" {
 }
 ```
 
-Il blocco si collega a HCP Terraform per recuperare gli output del workspace indicato, compresa la configurazione delle subnet e del load balancer. Più avanti in `main.tf`, la risorsa `"aws_instance" "app"` usa questi dati per configurare la subnet e i security group corretti di ogni istanza EC2:
+La risorsa `"aws_instance" "app"` li usa per subnet e security group:
 
 ```
   subnet_id              = data.terraform_remote_state.network.outputs.private_subnet_ids[count.index % length(data.terraform_remote_state.network.outputs.private_subnet_ids)]
@@ -830,18 +790,11 @@ _(infoBox)_
 
 ### 8.12.2 — Configurare i workspace
 
-Nell'interfaccia web di HCP Terraform si può creare un'organizzazione apposita per l'esempio, per separarlo dall'infrastruttura di produzione. Il **workspace di rete** si crea con **+ New Workspace** e il **Version control workflow**, collegandolo al repository `learn-terraform-run-triggers-network` del proprio account GitHub. Il nome del workspace è `learn-terraform-run-triggers-network`. Nella pagina **Variables** si aggiungono `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` come environment variable sensitive, con cui Terraform si autentica con AWS.
-
-Il **workspace dell'applicazione** si crea allo stesso modo, collegandolo al repository `learn-terraform-run-triggers-application`. Il blocco di remote state della configurazione dell'applicazione richiede sia il nome dell'organizzazione sia quello del workspace. Usa per default il nome di workspace `learn-terraform-run-triggers-network`, ma il nome dell'organizzazione è univoco. Si crea quindi una Terraform variable con chiave `tfc_org_name` e valore pari al nome della propria organizzazione, e si aggiungono le credenziali AWS come per il workspace di rete.
+Conviene un'organizzazione dedicata all'esempio. Il workspace `learn-terraform-run-triggers-network` si crea con **+ New Workspace** e il **Version control workflow**, collegato al repository omonimo, con `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` come environment variable sensitive. Il workspace dell'applicazione si crea allo stesso modo dal repository `learn-terraform-run-triggers-application`, con le stesse credenziali e una Terraform variable `tfc_org_name` con il nome della propria organizzazione, richiesta dal blocco di remote state.
 
 ### 8.12.3 — Consentire l'accesso allo state remoto
 
-HCP Terraform protegge il file di state cifrandolo a riposo, e limitando automaticamente l'accesso dagli altri workspace. Per consentire al workspace dell'applicazione di accedere allo state del workspace di rete si procede così:
-
-1. si apre il workspace `learn-terraform-run-triggers-network` e si sceglie **Settings**;
-2. nella pagina **General** si va alla sezione **Remote state sharing**;
-3. in **Select workspaces to share with** si seleziona `learn-terraform-run-triggers-application`;
-4. si fa clic su **Save settings**.
+HCP Terraform cifra lo state a riposo e ne limita l'accesso dagli altri workspace. Nel workspace di rete, in **Settings > General > Remote state sharing**, si seleziona `learn-terraform-run-triggers-application` in **Select workspaces to share with** e si salva.
 
 ![Figura 21](img/hcp-remote-state-sharing.png) _(dimensioni: 2878×1398 px)_
 
@@ -849,17 +802,13 @@ HCP Terraform protegge il file di state cifrandolo a riposo, e limitando automat
 
 ### 8.12.4 — Configurare un run trigger
 
-Nel workspace `learn-terraform-run-triggers-application`, in **Settings > Run triggers**, sotto **Connected Workspaces** si fa clic su **Connect workspace**. Si seleziona `learn-terraform-run-triggers-network` e si fa clic su **Connect**.
+Nel workspace dell'applicazione, in **Settings > Run triggers**, si sceglie **Connect workspace** e si collega `learn-terraform-run-triggers-network`.
 
 ![Figura 22](img/hcp-run-triggers.png) _(dimensioni: 1629×809 px)_
 
 *Figura 22 — La pagina Run Triggers del workspace dell'applicazione, con il workspace di rete collegato come sorgente. Fonte: HashiCorp Developer.* _(caption)_
 
-Poi si mette in coda un plan nel workspace di rete con **Actions > Start a new run** e il tipo di run **Plan and apply**. Al termine del plan, un messaggio indica che un apply riuscito di questo workspace attiverà un run del workspace `learn-terraform-run-triggers-application`. Con **Confirm & Apply** si applica il plan, e dopo qualche minuto le risorse di rete sono create.
-
-Nel workspace dell'applicazione, il run trigger ha messo in coda un nuovo plan. Tutti i plan eseguiti tramite run trigger vanno applicati a mano. Al termine del plan lo si applica, e negli output del run il valore `public_dns_name`, incollato nel browser, mostra il messaggio "Hello, world!" dell'applicazione.
-
-Ora, con il run trigger tra i due workspace, un apply riuscito nel workspace di rete mette in coda un plan nel workspace dell'applicazione. Se si vuole che il workspace dell'applicazione applichi automaticamente i run dopo il workspace di rete, si attiva l'auto-apply dei run nel workspace dell'applicazione. I run trigger servono a coordinare i workspace nelle pipeline di infrastruttura, insieme ad altri strumenti di automazione.
+Nel workspace di rete si avvia un run **Plan and apply**: al termine del plan un messaggio avvisa che l'apply attiverà un run nel workspace dell'applicazione. Dopo **Confirm & Apply** il run trigger accoda un plan nell'applicazione, che va applicato a mano salvo attivare l'auto-apply (vedi §8.13.2). Il valore `public_dns_name` degli output, nel browser, mostra "Hello, world!".
 
 - Fonte: [Connect workspaces with run triggers](https://developer.hashicorp.com/terraform/tutorials/cloud/cloud-run-triggers)
 
@@ -1031,81 +980,59 @@ Per default un project usa la modalità di esecuzione dell'organizzazione, Remot
 
 ## 8.16 — Organizzare i workspace con i project
 
-I project di HCP Terraform permettono di organizzare i workspace in gruppi. I project si strutturano in base a come l'organizzazione usa e possiede le risorse, ad esempio per team, unità di business o servizi. Con HCP Terraform Essentials Edition si può dare ai team l'accesso a gruppi di workspace tramite i project.
-
-I project rendono più facile definire e assegnare l'accesso ai workspace, e riducono la probabilità di errori nei permessi. Invece di aggiungere a mano i team necessari a ogni workspace, si raggruppano i workspace correlati in project e si dà ai team l'accesso all'intero project. I project servono anche a controllare a quali repository di controllo versione hanno accesso i workspace. Queste funzionalità aiutano i team a gestire i workspace di cui sono responsabili, e rendono più facile per i proprietari dell'organizzazione seguire il principio del privilegio minimo.
-
-Ai variable set si può dare uno scope a livello di project. Applicando un variable set a un project specifico, le variabili vengono associate automaticamente a tutti i workspace attuali e futuri del project, senza selezionarli uno per uno. Ad esempio, si può limitare un variable set di credenziali al project di un team, un'unità di business o un servizio specifici, per non far trapelare i valori ai workspace che non ne hanno bisogno. Anche i policy set si possono applicare a livello di project, per imporre in modo coerente gli standard di governance dell'organizzazione a tutti i workspace del project.
+I project raggruppano i workspace per team, unità di business o servizio (vedi §8.15). Invece di aggiungere i team a ogni workspace, si dà loro accesso all'intero project, seguendo il principio del privilegio minimo; i project controllano anche l'accesso ai repository VCS. A livello di project si applicano anche variable set, ereditati da tutti i workspace attuali e futuri (utile per limitare le credenziali), e policy set.
 
 > **Nota**: i team sono disponibili in HCP Terraform Essentials Edition.
 _(infoBox)_
 
-Nel tutorial si creano due project e se ne limita l'accesso a team diversi. Si esamina anche l'interazione tra i diversi permessi relativi ai project.
+Nel tutorial si creano due project con accessi limitati a team diversi.
 
 ### 8.16.1 — Creare i project
 
-Ogni workspace di un'organizzazione HCP Terraform deve appartenere a un solo project. Per default ogni nuovo workspace si trova nel Default Project dell'organizzazione, che HCP Terraform crea automaticamente per ogni organizzazione e che si può rinominare ma non eliminare. Quando l'organizzazione ha più project, si può scegliere in quale project creare un nuovo workspace e spostare i workspace esistenti in altri project.
-
-Nella pagina **Projects** dell'organizzazione si fa clic su **+ New Project**, si inserisce il nome `Platform` e si fa clic su **Create**. Allo stesso modo si crea un altro project chiamato `Application`.
+Ogni workspace appartiene a un solo project, per default il Default Project (vedi §8.15.1), e lo si può spostare. Nella pagina **Projects** si creano con **+ New Project** i project `Platform` e `Application`.
 
 ![Figura 23](img/hcp-new-project.png) _(dimensioni: 2910×418 px)_
 
 *Figura 23 — La creazione di un nuovo project in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
-Come proprietario dell'organizzazione si vedono tutti i project. Gli utenti che non sono proprietari, per amministrare tutti i project dell'organizzazione, hanno bisogno dei permessi admin sul project o del permesso di organizzazione **Manage all Projects**. Dopo aver creato un project, si possono creare variable set e associarli al project. Tutti i workspace attuali e futuri del project accedono automaticamente al variable set.
+Il proprietario dell'organizzazione vede tutti i project; gli altri utenti, per amministrarli tutti, hanno bisogno dei permessi admin sul project o del permesso **Manage all Projects**.
 
 > **Suggerimento**: da Terraform 1.6 si può indicare un project non predefinito con l'argomento `project` nel blocco `cloud` della configurazione. Se il project non esiste ancora nell'organizzazione, HCP Terraform lo crea.
 _(infoBox)_
 
 ### 8.16.2 — Creare workspace nei project
 
-Nella pagina **Workspaces** dell'organizzazione si sceglie **New > Workspace**, si seleziona il project **Application** e si fa clic su **Create**. Si sceglie il **CLI-Driven Workflow** e si chiama il nuovo workspace `learn-terraform-projects-app`. Allo stesso modo si crea un altro workspace CLI-driven, `learn-terraform-projects-networking`, nel project **Platform**.
+Da **New > Workspace** si crea il workspace CLI-driven `learn-terraform-projects-app` nel project **Application**, e `learn-terraform-projects-networking` in **Platform**.
 
 ### 8.16.3 — Filtrare e spostare i workspace
 
-Nella pagina **Workspaces** si possono filtrare i workspace per project: aprendo il pannello dei project e scegliendo **Application**, HCP Terraform elenca solo il workspace `learn-terraform-projects-app`. Per spostare un workspace in un altro project, dalla pagina **Workspaces** si passa il mouse sul workspace, si fa clic sul pulsante con i puntini (`...`) e si sceglie **Change project**. Un workspace si può spostare in un altro project in qualsiasi momento anche dalla pagina delle impostazioni generali del workspace.
+Nella pagina **Workspaces** si filtra per project dal pannello dei project. Un workspace si sposta con **...** > **Change project**, o dalle sue impostazioni generali.
 
 > **Attenzione**: spostare un workspace in un altro project può cambiarne i permessi e influire sui workflow degli utenti.
 _(infoBox)_
 
 ### 8.16.4 — Creare i team
 
-Usando i project per definire i permessi di accesso, si limitano le risorse con cui un utente può interagire in HCP Terraform. I project danno ai membri dei team i permessi per creare e gestire in sicurezza solo i workspace di cui hanno bisogno, senza dar loro accesso a tutti i workspace dell'organizzazione, e aiutano così a seguire il principio del privilegio minimo.
-
-Nella pagina **Settings** dell'organizzazione, alla voce **Teams**, si crea un nuovo team chiamato `platform`. Sotto **Project permissions** e **Workspace permissions** si seleziona **None**, senza aggiungere altri permessi. Poi si crea un altro team chiamato `application` con le stesse impostazioni.
-
-Dalle pagine di creazione e impostazione dei team si possono impostare solo permessi validi per tutta l'organizzazione. I permessi su workspace e project specifici vanno concessi dalle rispettive pagine delle impostazioni. Con nessun accesso nelle impostazioni del team, i membri del team hanno accesso solo ai project o ai workspace a cui li si aggiunge esplicitamente. Progettando così i privilegi dei team si evita di dare privilegi troppo permissivi, validi per tutta l'organizzazione, a utenti che non ne hanno bisogno.
+In **Settings > Teams** si creano i team `platform` e `application`, con **None** sia per **Project permissions** sia per **Workspace permissions**. Le pagine dei team impostano solo permessi validi per tutta l'organizzazione: così i membri accedono solo ai project e ai workspace a cui vengono aggiunti esplicitamente.
 
 ### 8.16.5 — Gestire i permessi dei project
 
-Per un project si possono indicare permessi personalizzati, o assegnare uno dei quattro insiemi di permessi fissi:
+A un project si possono dare permessi personalizzati o uno dei quattro insiemi fissi:
 
-- **Admin**: i membri del team amministrano completamente il project e tutti i suoi workspace. Possono leggere, modificare ed eliminare il project, crearvi nuovi workspace, spostare workspace dentro o fuori dal project e gestire l'accesso al project dei team che vedono.
-- **Maintain**: i membri del team possono creare e gestire workspace nel project, e creare infrastruttura in quei workspace. Non possono eliminare il project, gestirne i permessi, né spostare workspace dentro o fuori dal project.
-- **Write**: i membri del team possono creare infrastruttura nei workspace del project, ma non gestire i workspace o il project.
-- **Read**: i membri del team possono leggere il nome del project e i dettagli dei suoi workspace. È utile per altri team che devono consultare i dati delle risorse dell'infrastruttura senza gestirle.
+- **Admin**: amministrazione completa del project e dei suoi workspace, compresi eliminazione, creazione e spostamento di workspace e gestione dell'accesso dei team;
+- **Maintain**: creazione e gestione dei workspace e della loro infrastruttura, ma non eliminazione del project, gestione dei permessi o spostamento di workspace;
+- **Write**: creazione di infrastruttura nei workspace, ma non gestione dei workspace o del project;
+- **Read**: lettura del nome del project e dei dettagli dei workspace.
 
-Nella pagina **Projects**, per il project **Application**, si sceglie **Edit project** dal pulsante con i puntini nella colonna **Actions**. Da questa pagina si aggiorna il nome di un project, se ne gestisce l'accesso e lo si elimina. Si sceglie **Team access** nel pannello di sinistra, poi **+ Add team**.
-
-In questo scenario si assegnano i permessi in modo che i team possano usare i project e i loro workspace per gestire l'infrastruttura, senza essere responsabili del project stesso. Si seleziona il team `application`, si sceglie l'insieme di permessi **Maintain** e si fa clic su **Assign permissions**. Poi si concedono al team `platform` i privilegi admin sul project **Application**. Queste impostazioni abilitano un modello self-service: il team `application` gestisce l'infrastruttura all'interno del project, e solo il team `platform` può amministrare il project e gestirne i permessi.
+Nel project **Application**, da **Edit project > Team access > + Add team**, si assegnano **Maintain** al team `application` e Admin al team `platform`: un modello self-service in cui solo `platform` amministra il project. Nel project **Platform** solo `platform` è admin, e `application` non ne vede nemmeno l'esistenza.
 
 ![Figura 24](img/hcp-project-team-access.png) _(dimensioni: 2059×2087 px)_
 
 *Figura 24 — I permessi finali del project Application: il team application ha i permessi Maintain, il team platform è admin. Fonte: HashiCorp Developer.* _(caption)_
 
-Infine, nella pagina delle impostazioni del project **Platform**, si concedono al team `platform` i privilegi admin. Il team `application` non ha accesso ai workspace di quel project, e non può nemmeno vedere che il project o i workspace esistono.
-
 ### 8.16.6 — Le conseguenze sugli accessi
 
-Quando si usano i project per definire i permessi di accesso, bisogna ricordare che i permessi su workspace, project e organizzazione possono sovrapporsi.
-
-I permessi validi per tutta l'organizzazione prevalgono sui privilegi limitati definiti su workspace e project specifici. I team con il permesso di organizzazione **Manage all Workspaces** possono gestire tutti i workspace, ma possono creare workspace solo nel Default Project. I team con entrambi i permessi **Manage all projects** e **Manage all workspaces** possono gestire project e workspace su cui non hanno permessi espliciti. Quando si verifica chi ha accesso a un project o a un workspace specifico, non bisogna dimenticare gli utenti con permessi a livello di organizzazione.
-
-I project e i workspace a cui un utente ha accesso possono influire sulla sua capacità di gestire le interazioni tra workspace, come la condivisione dello state remoto e i run trigger. I permessi di accesso influiscono sulla gestione delle impostazioni tra workspace, ma non sul comportamento dei run.
-
-Nel tutorial, il team `application` non può condividere lo state del workspace dell'applicazione con i workspace del project **Platform**. Il team `platform` invece può abilitare la condivisione dello state dai propri workspace verso quelli dell'applicazione, perché ha accesso a entrambi i project. I membri del team `application` potrebbero poi eseguire run riusciti nei propri workspace.
-
-L'accesso allo state di un altro workspace permette di leggere tutti i dati sulle risorse di quel workspace, anche senza un accesso esplicito a livello di organizzazione, project o workspace. Per questo, quando possibile, è consigliato usare i data source specifici del provider al posto del data source di remote state.
+I permessi di organizzazione, workspace e project si sommano (vedi §8.20.1), e quelli di organizzazione prevalgono: **Manage all Workspaces** gestisce tutti i workspace ma li crea solo nel Default Project, mentre con **Manage all projects** e **Manage all workspaces** insieme si gestiscono project e workspace senza permessi espliciti. Gli accessi influiscono anche sulle impostazioni tra workspace, come la condivisione dello state e i run trigger, ma non sul comportamento dei run. Nel tutorial `application` non può condividere lo state verso i workspace di **Platform**, mentre `platform`, che vede entrambi i project, può farlo. Poiché l'accesso allo state di un altro workspace ne espone tutti i dati, quando possibile si usano i data source specifici del provider (vedi §8.14).
 
 - Fonte: [Organize workspaces with projects](https://developer.hashicorp.com/terraform/tutorials/cloud/projects)
 
@@ -1113,13 +1040,11 @@ L'accesso allo state di un altro workspace permette di leggere tutti i dati sull
 
 ## 8.17 — Gestire i variable set in HCP Terraform
 
-I variable set di HCP Terraform permettono di riusare le variabili in modo efficiente e centralizzato: si impostano i valori una volta e li si usa in più workspace. Quando si aggiornano i valori, le modifiche valgono automaticamente per tutti i workspace associati, e così è più facile aggiornare credenziali e impostazioni dell'infrastruttura. HCP Terraform permette anche di sovrascrivere, per singolo workspace, le variabili definite nei variable set. Così si modifica la configurazione del workspace senza toccare gli altri workspace che usano il variable set.
-
-Nel tutorial si gestiscono più variable set di HCP Terraform, per le credenziali AWS e per la configurazione di DynamoDB. Si esamina anche la precedenza tra variabili duplicate in più variable set, e tra le variabili dei variable set e quelle specifiche del workspace.
+I variable set definiscono una volta le variabili per più workspace: un aggiornamento vale per tutti, e un singolo workspace può sovrascriverle (vedi §8.18.5). Nel tutorial si creano variable set per le credenziali AWS e per la configurazione di DynamoDB, e si osserva la precedenza tra variabili duplicate.
 
 ### 8.17.1 — Inizializzare la configurazione
 
-Nelle directory `dev` e `staging` si sostituisce `<ORGANIZATION_NAME>` nel blocco `cloud` di `versions.tf` con il nome della propria organizzazione. Le due configurazioni usano i workspace `learn-terraform-variable-sets-dev` e `learn-terraform-variable-sets-staging`. Inizializzandole, si creano i due workspace in HCP Terraform, configurati per il workflow CLI-driven con esecuzione remota.
+Nelle directory `dev` e `staging` si inserisce la propria organizzazione nel blocco `cloud` di `versions.tf`; l'inizializzazione crea i workspace CLI-driven `learn-terraform-variable-sets-dev` e `learn-terraform-variable-sets-staging`.
 
 ```
 terraform {
@@ -1136,22 +1061,16 @@ terraform {
 
 ### 8.17.2 — Creare i variable set
 
-I variable set di HCP Terraform sono gruppi di variabili riutilizzabili creati a livello di organizzazione. Un variable set può avere uno di questi tre scope:
-
-- **Globale**: si applica a tutti i workspace attuali e futuri dell'organizzazione.
-- **Specifico per project**: si applica a tutti i workspace attuali e futuri dei project selezionati.
-- **Specifico per workspace**: si applica solo ai workspace selezionati.
-
-Uno scope più ampio abilita i workflow self-service. Ad esempio, si può creare un variable set e applicarlo al project di un team, e poi dare al team il permesso di creare workspace nel project. I workspace futuri erediteranno automaticamente il variable set, senza lavoro aggiuntivo o approvazioni. È consigliato però limitare il più possibile lo scope dei variable set che contengono credenziali, per non dare accesso a team o workspace che non ne hanno bisogno.
+Un variable set può essere globale, specifico per project o per workspace. Uno scope ampio abilita il self-service, ad esempio con un set ereditato da tutti i workspace futuri di un project, ma i set di credenziali vanno limitati il più possibile.
 
 **Un variable set per le credenziali** _(stepTitle)_
 
-Nelle impostazioni dell'organizzazione si sceglie **Variable Sets**, poi **Create variable set**, e si chiama il primo variable set `AWS credentials`.
+In **Settings > Variable Sets > Create variable set** si crea `AWS credentials`.
 
 > **Attenzione**: quando possibile, i variable set di credenziali vanno applicati a project o workspace specifici. Bisogna evitare l'accesso globale e seguire il principio del privilegio minimo.
 _(infoBox)_
 
-Nella sezione **Variable set scope** si sceglie **Apply to specific projects and workspaces**, e si selezionano i workspace `learn-terraform-variable-sets-dev` e `learn-terraform-variable-sets-staging`. Con **+Add Variable** si definisce una environment variable `AWS_ACCESS_KEY_ID`, marcata come sensitive, e allo stesso modo `AWS_SECRET_ACCESS_KEY`. Con credenziali AWS temporanee bisogna aggiungere anche `AWS_SESSION_TOKEN` come environment variable. Infine si fa clic su **Create variable set**.
+Con **Apply to specific projects and workspaces** lo si applica ai due workspace, e si aggiungono `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` come environment variable sensitive (più `AWS_SESSION_TOKEN` con credenziali temporanee).
 
 ![Figura 25](img/hcp-create-variable-set.png) _(dimensioni: 2380×940 px)_
 
@@ -1159,28 +1078,22 @@ Nella sezione **Variable set scope** si sceglie **Apply to specific projects and
 
 **Un variable set per le impostazioni di configurazione** _(stepTitle)_
 
-I variable set servono anche a definire input variable riutilizzabili. Nello scenario del tutorial si creano tabelle DynamoDB per due ambienti, dev e staging, e un variable set definisce le capacità di lettura e scrittura di entrambe. Si crea un altro variable set chiamato `Default DynamoDB settings`, applicato agli stessi due workspace. Vi si definiscono due Terraform variable, `db_write_capacity` e `db_read_capacity`, entrambe con valore 1. Invece di definire la capacità di lettura e scrittura in ciascun workspace, le si definisce una volta come variable set, e le si applica ai workspace che ne hanno bisogno.
+Il set `Default DynamoDB settings`, sugli stessi workspace, definisce le Terraform variable `db_write_capacity` e `db_read_capacity`, entrambe a 1, per le tabelle dev e staging.
 
 ### 8.17.3 — Le variabili del workspace e l'apply
 
-Quali variable set si applicano a un workspace si vede, e si gestisce, dal workspace stesso. Nella scheda **Variables** del workspace `learn-terraform-variable-sets-dev`, sotto **Variable sets**, compaiono entrambi i variable set, `AWS credentials` e `Default DynamoDB settings`, con le variabili che contengono. Si applicano poi le configurazioni nelle directory `dev` e `staging`.
+Nella scheda **Variables** di `learn-terraform-variable-sets-dev` compaiono i due set con le loro variabili. Si applicano poi le configurazioni di `dev` e `staging`.
 
 ### 8.17.4 — La precedenza tra variable set
 
-Se più variable set associati al workspace contengono una variabile dello stesso tipo (input o environment) con lo stesso nome, HCP Terraform usa l'ordine lessicale per stabilire la precedenza delle variabili.
-
-Nello scenario si è applicato un insieme di impostazioni DynamoDB di default a entrambe le tabelle. Di solito si vogliono impostazioni coerenti su entrambe le risorse, ma si potrebbe voler eseguire un test di carico su una delle tabelle. Si crea quindi un nuovo variable set chiamato `Add Capacity - DynamoDB load testing`, applicato al workspace `learn-terraform-variable-sets-staging`, con `db_write_capacity` e `db_read_capacity` impostate a 10.
-
-Nella pagina **Variables** del workspace di staging compaiono ora 3 variable set, e il set `Default DynamoDB settings` mostra i propri valori come sovrascritti. Entrambi i variable set, quello di default e quello di test di carico, definiscono variabili chiamate `db_write_capacity` e `db_read_capacity`. Il nome del variable set di test di carico inizia con la lettera "A", quindi ha la precedenza sulle impostazioni di default. Per far usare a HCP Terraform il variable set di default, si possono cambiare i nomi dei variable set, perché quello di default abbia la precedenza lessicale. In alternativa si rimuove il variable set di test di carico dal workspace. Con `terraform apply` nella directory `staging`, Terraform usa il variable set di test di carico e aumenta le capacità di lettura e scrittura della tabella.
+Tra variabili dello stesso tipo e nome in più set vale l'ordine lessicale. Per un test di carico si crea `Add Capacity - DynamoDB load testing`, applicato solo a staging, con entrambe le capacità a 10: il nome inizia con "A", quindi prevale su `Default DynamoDB settings`, che nella pagina **Variables** risulta sovrascritto. Per tornare al default si rinomina un set o si rimuove quello di test. `terraform apply` in `staging` aumenta le capacità della tabella.
 
 > **Nota**: il tutorial dice che Terraform usa il variable set "applicato più di recente". Secondo la pagina sulla precedenza delle variabili, però, vince il set con precedenza lessicale (ad esempio `A_Variable_Set` su `B_Variable_Set`), indipendentemente da quale sia stato modificato più di recente.
 _(infoBox)_
 
 ### 8.17.5 — Sovrascrivere una variabile di un variable set
 
-Una variabile definita in un variable set si può sovrascrivere anche creando una variabile specifica del workspace con la stessa chiave. HCP Terraform usa sempre le variabili specifiche del workspace al posto di quelle definite nei variable set applicati al workspace.
-
-In uno scenario di test di carico si potrebbe voler aumentare la capacità di scrittura, per vedere come risponde l'applicazione. Nel workspace di staging si crea una input variable specifica del workspace, `db_write_capacity`, con valore 15. HCP Terraform mostra ora come sovrascritta la variabile `db_write_capacity` del variable set di test di carico. Con `terraform apply`, HCP Terraform dà la priorità al valore specifico del workspace e porta la capacità di scrittura della tabella a 15, sovrascrivendo i valori del variable set.
+Una variabile del workspace con la stessa chiave prevale sempre sui variable set. Nel workspace di staging si crea `db_write_capacity` = 15, e `terraform apply` porta la capacità di scrittura a 15.
 
 - Fonte: [Manage variable sets in HCP Terraform](https://developer.hashicorp.com/terraform/tutorials/cloud/cloud-multiple-variable-sets)
 
@@ -1202,10 +1115,7 @@ Per creare, aggiornare o eliminare i variable set dell'organizzazione bisogna es
 
 ### 8.18.2 — Variabili specifiche di un run
 
-Da Terraform 1.1 si possono impostare valori di Terraform variable per un particolare plan o apply dalla riga di comando. Questi valori sovrascrivono le variabili specifiche del workspace e quelle dei variable set con la stessa chiave. Le variabili specifiche di un run si impostano in due modi:
-
-- con gli argomenti `-var` e `-var-file`, ad esempio `terraform apply -var="key=value" -var-file="testing.tfvars"`;
-- creando variabili d'ambiente locali con il prefisso `TF_VAR_`. Ad esempio, per una variabile `replicas` dichiarata nella configurazione si crea una variabile d'ambiente locale `TF_VAR_replicas`. Con il workflow CLI, Terraform riconosce automaticamente queste variabili d'ambiente e ne applica i valori al run.
+Da Terraform 1.1 si possono impostare valori di Terraform variable per un singolo plan o apply dalla riga di comando, con `-var`/`-var-file` o con variabili d'ambiente locali `TF_VAR_` (vedi §4.13.4). Questi valori sovrascrivono le variabili del workspace e dei variable set con la stessa chiave, e con il workflow CLI Terraform li applica automaticamente al run.
 
 ### 8.18.3 — Variabili specifiche del workspace
 
@@ -1223,7 +1133,7 @@ Funziona solo con i file che terminano in `auto.tfvars` o con `terraform.tfvars`
 
 ### 8.18.5 — I variable set
 
-I variable set sono insiemi riutilizzabili di variabili da applicare a più workspace e Stack, e possono appartenere a un'organizzazione o a un project. Il proprietario del variable set determina i permessi necessari per gestirlo. Le query create ed eseguite dalla pagina **Search & Import** usano le environment variable dei variable set applicati al workspace. Con i variable set si condividono quindi credenziali e impostazioni dei provider tra workspace, anche tra quelli senza configurazione Terraform. HCP Terraform non valuta i variable set durante i run dei workspace in modalità di esecuzione Local. I variable set si vedono in **Settings > Variable sets** dell'organizzazione o del project.
+I variable set sono insiemi riutilizzabili di variabili da applicare a più workspace e Stack, e possono appartenere a un'organizzazione o a un project. Il proprietario del variable set determina i permessi necessari per gestirlo. Le query create ed eseguite dalla pagina **Search & Import** usano le environment variable dei variable set applicati al workspace. Con i variable set si condividono quindi credenziali e impostazioni dei provider tra workspace, anche tra quelli senza configurazione Terraform. I variable set si vedono in **Settings > Variable sets** dell'organizzazione o del project.
 
 **Creare i variable set** _(stepTitle)_
 
@@ -2147,39 +2057,28 @@ Per gli Stack, l'autenticazione dei deployment con le credenziali dinamiche è d
 
 ## 8.23 — Rilevare il drift dell'infrastruttura con gli health assessment
 
-Gli health assessment di HCP Terraform monitorano l'infrastruttura gestita, per verificare che continui a soddisfare la configurazione voluta per tutto il suo ciclo di vita. Con il tempo le risorse possono cambiare al di fuori del workflow Terraform, per guasti o degrado dei servizi, certificati scaduti o modifiche manuali di altri utenti. Terraform non può impedire queste modifiche, ma gli health assessment aiutano a rilevarle in fretta e a risolverle. Comprendono due tipi di controlli:
-
-- la **drift detection** verifica che le impostazioni reali dell'infrastruttura corrispondano a quelle registrate nel file di state del workspace;
-- la **validazione continua** verifica che le risorse soddisfino ancora i check definiti nella configurazione.
-
-Nel tutorial si attivano gli health assessment per un workspace, si usa un assessment on-demand per rilevare il drift della configurazione e si esaminano le opzioni per risolverlo.
+Le risorse possono cambiare fuori da Terraform, per guasti, certificati scaduti o modifiche manuali. Gli health assessment (vedi §8.24) le rilevano con la drift detection, che confronta l'infrastruttura reale con lo state, e con la validazione continua, che verifica i check della configurazione. Nel tutorial si attivano su un workspace, si rileva un drift con un assessment on-demand e lo si risolve.
 
 > **Suggerimento**: gli health assessment sono disponibili in HCP Terraform Standard Edition.
 _(infoBox)_
 
 ### 8.23.1 — Creare l'infrastruttura e introdurre un drift
 
-Si imposta il nome dell'organizzazione HCP Terraform nella variabile d'ambiente `TF_CLOUD_ORGANIZATION`, si inizializza la configurazione e la si applica. L'inizializzazione crea il workspace `learn-terraform-drift-detection`.
-
-La best practice è usare Terraform per tutte le modifiche all'infrastruttura, per avere workflow coerenti e visibilità sulle modifiche. Un'organizzazione però può aver bisogno, di tanto in tanto, di modifiche manuali. Per simularlo, nella console AWS si apre il security group `bastion_ssh`. Nelle regole in ingresso (**Inbound rules**) si sostituisce il CIDR sorgente `192.80.0.0/16` con `0.0.0.0/0`. Ora la configurazione reale del security group non corrisponde più alle impostazioni registrate nel file di state del workspace.
+Con `TF_CLOUD_ORGANIZATION` impostata, init e apply creano il workspace `learn-terraform-drift-detection`. Per simulare una modifica manuale, nella console AWS si cambia il CIDR sorgente delle **Inbound rules** del security group `bastion_ssh` da `192.80.0.0/16` a `0.0.0.0/0`.
 
 ### 8.23.2 — Attivare gli health assessment
 
-Gli health assessment di HCP Terraform aiutano a rilevare modifiche manuali come questa, e a mantenere visibilità sulle impostazioni reali dell'infrastruttura. Per eseguirli, un workspace deve soddisfare questi requisiti:
+Il workspace deve avere:
 
-- Terraform 0.15.4 o successivo per la drift detection, o 1.3.0 o successivo per la drift detection e la validazione continua;
-- almeno un run eseguito nel workspace, con l'ultimo run completato con successo;
+- Terraform 0.15.4 o successivo per la drift detection, 1.3.0 o successivo per la validazione continua;
+- almeno un run, con l'ultimo riuscito;
 - la modalità di esecuzione remote o agent.
 
-Gli assessment usano plan refresh-only, non applicabili, che confrontano le impostazioni reali dell'infrastruttura con le risorse registrate nel file di state del workspace. Gli assessment non aggiornano né lo state né la configurazione dell'infrastruttura.
-
-Gli assessment si attivano su un workspace specifico o su tutti i workspace dell'organizzazione. Nel workspace del tutorial, nella sezione **Health**, si sceglie **Settings**, poi **Enable** e **Save settings**. Una volta attivati, HCP Terraform esegue gli assessment circa una volta ogni 24 ore. Questi run non interferiscono con le altre operazioni di Terraform nel workspace, e ogni nuovo run riprogramma l'assessment successivo 24 ore dopo. Se un run fallisce, HCP Terraform sospende gli assessment finché il problema non è risolto e il workspace esegue un run riuscito.
+Gli assessment sono plan refresh-only non applicabili, che non modificano né lo state né la configurazione. Si attivano dalla sezione **Health** con **Settings > Enable > Save settings**. HCP Terraform li esegue circa una volta ogni 24 ore, senza interferire con gli altri run; ogni run riprogramma l'assessment successivo dopo 24 ore, e un run fallito li sospende finché un run non riesce.
 
 ### 8.23.3 — Un assessment on-demand
 
-Gli assessment on-demand evitano di attendere quelli programmati e rilevano prima il drift. Nella sezione **Health** del workspace si fa clic su **Start health assessment**. HCP Terraform esegue l'assessment e ne mostra i risultati. Come previsto, rileva la modifica fatta alle regole in ingresso del security group del bastion.
-
-L'assessment rileva anche modifiche ai valori di default di alcuni campi delle risorse. La configurazione di esempio non imposta valori per quei campi, ma AWS imposta valori di default quando crea le risorse. È un caso comune, che dipende da come il provider Terraform assegna i valori non impostati. HCP Terraform mostra i risultati dell'assessment nella pagina di panoramica del workspace.
+**Start health assessment** rileva subito la modifica alla regola del bastion, oltre a valori di default assegnati da AWS a campi non impostati nella configurazione. I risultati compaiono nella panoramica del workspace.
 
 ![Figura 27](img/hcp-drift-detection-overview.png) _(dimensioni: 2048×1208 px)_
 
@@ -2188,16 +2087,16 @@ L'assessment rileva anche modifiche ai valori di default di alcuni campi delle r
 > **Nota**: la drift detection segnala solo le modifiche agli attributi delle risorse definiti nella configurazione. Per evitare drift accidentali, conviene impostare esplicitamente nella configurazione tutti gli attributi critici per le operazioni, anche quando ci si basa sul valore di default del provider.
 _(infoBox)_
 
-Nella pagina dei workspace dell'organizzazione si possono anche filtrare i workspace per risultato dell'assessment. Si possono configurare notifiche specifiche del workspace che avvisano in caso di determinati risultati.
+I workspace si possono filtrare per risultato dell'assessment, e le notifiche del workspace possono segnalare risultati specifici.
 
 ### 8.23.4 — Riconciliare il drift
 
-Nelle configurazioni più complesse, il drift può rendere imprevedibili le operazioni. Se un team distribuisce una nuova modifica e scopre il drift solo durante il run di Terraform, può dover interrompere il proprio workflow per decidere come procedere. Se un insieme di modifiche tocca molte risorse, l'operatore deve rivedere con attenzione il piano di esecuzione per capire il drift. Gli health assessment aiutano a rilevare in modo proattivo il drift e i fallimenti delle condizioni, per risolverli prima che interferiscano con le operazioni future. Quando si individua un drift ci sono due opzioni:
+Scoprire un drift solo durante un run può bloccare il lavoro del team, e con molte risorse coinvolte il piano diventa difficile da leggere. Un drift si risolve in due modi:
 
-- per mantenere la modifica, si aggiorna la configurazione con la nuova impostazione, e si esegue un apply di Terraform per aggiornare il file di state;
-- per riportare la modifica all'impostazione originale della configurazione, si esegue un apply di Terraform che la sovrascrive.
+- per mantenere la modifica, la si riporta nella configurazione e si esegue un apply;
+- per annullarla, si esegue un apply che la sovrascrive.
 
-Qui conviene annullare la modifica manuale del security group, per impedire il traffico pubblico in ingresso verso il bastion host. Un nuovo `terraform apply` riporta il security group alla configurazione iniziale, e riprogramma l'assessment successivo 24 ore dopo. Un nuovo assessment on-demand conferma che il drift è risolto: HCP Terraform non rileva più drift. Le impostazioni del security group sono tornate a quelle della configurazione, e Terraform ha aggiornato il file di state con i valori di default e i valori null specifici del provider.
+Qui si annulla la modifica, per chiudere il traffico pubblico verso il bastion: `terraform apply` ripristina il security group e riprogramma l'assessment. Un nuovo assessment on-demand non rileva più drift, e lo state contiene ora anche i default e i valori null del provider.
 
 - Fonte: [Use health assessments to detect infrastructure drift](https://developer.hashicorp.com/terraform/tutorials/cloud/drift-detection)
 
@@ -2356,18 +2255,16 @@ Se una risorsa, un output o un data source contiene più precondition e postcond
 
 ## 8.25 — Rilevare il drift dell'infrastruttura e applicare le policy
 
-Man mano che un'organizzazione cresce e i suoi workflow di provisioning maturano, diventa più difficile garantire coerenza e best practice solo con la formazione e con strumenti costruiti a mano. Terraform può verificare automaticamente che l'infrastruttura rispetti le best practice del settore e gli standard dell'organizzazione, con condizioni specifiche di risorse e moduli.
+Al crescere di un'organizzazione, formazione e strumenti fatti a mano non bastano più a garantire coerenza. Le custom condition nei moduli impongono i requisiti a chi li usa (vedi §4.24), e HCP Terraform aggiunge run task e policy Sentinel o OPA su workspace e organizzazione (vedi §8.27).
 
-Precondition e postcondition aiutano a definire i requisiti delle risorse nella configurazione Terraform. Includendo custom condition nelle definizioni dei moduli, si garantisce che chi li usa a valle rispetti gli standard di configurazione e li usi correttamente. Inoltre, con HCP Terraform si può verificare l'infrastruttura con run task specifiche del workspace, e imporre policy sul workspace o su tutta l'organizzazione con HashiCorp Sentinel o Open Policy Agent (OPA).
-
-> **Nota**: HCP Terraform Free Edition include un policy set con al massimo cinque policy. In HCP Terraform Standard Edition si può collegare un policy set a un repository di controllo versione, o creare versioni del policy set con l'API.
+> **Nota**: i limiti dei policy set nelle diverse edizioni sono descritti in §8.2.8.
 _(infoBox)_
 
-Nel tutorial si usano sia le precondition di Terraform sia le policy, per validare la configurazione e imporre il rispetto delle pratiche dell'organizzazione. Prima si usano le precondition per imporre convenzioni di sicurezza della rete. Poi si configurano e si impongono le policy in HCP Terraform, impedendo i deployment in certi giorni della settimana. Infine si usa la drift detection di HCP Terraform per rilevare quando le impostazioni dell'infrastruttura si sono discostate dalla configurazione scritta.
+Nel tutorial si impone una convenzione con una precondition, si bloccano i deployment in certi giorni con le policy e si rileva un drift.
 
 ### 8.25.1 — La configurazione dell'infrastruttura
 
-Il repository contiene un modulo Terraform locale, che definisce una rete e un bastion host, e una configurazione root che usa il modulo. Contiene anche le definizioni delle policy Sentinel e OPA, nelle directory `sentinel` e `opa`, con i relativi test. Il file `modules/network/main.tf` usa il modulo pubblico `vpc` per creare le risorse di rete, con subnet pubbliche e private e un NAT gateway, e poi avvia un bastion host in una delle subnet pubbliche:
+Il repository contiene un modulo locale con rete e bastion host, la configurazione root e le policy Sentinel e OPA con i test (directory `sentinel` e `opa`). `modules/network/main.tf` crea la rete con il modulo pubblico `vpc` e un bastion in una subnet pubblica:
 
 ```
 module "vpc" {
@@ -2405,11 +2302,11 @@ resource "aws_security_group" "bastion" {
 }
 ```
 
-Il bastion host è pensato come unico punto di ingresso per il traffico SSH verso le istanze delle subnet private della VPC. Il security group limita il traffico SSH in ingresso verso il bastion al solo blocco CIDR `192.80.0.0/16`, un CIDR di esempio che rappresenta la rete dell'organizzazione. Qui il modulo è usato in locale, ma in un'organizzazione più grande lo si pubblicherebbe probabilmente nel registry Terraform. Includendo un bastion nel modello standard della configurazione di rete, si stabilisce uno standard per l'accesso SSH alle istanze delle reti.
+Il bastion è l'unico punto di ingresso SSH verso le subnet private, e il suo security group accetta solo `192.80.0.0/16`, il CIDR di esempio della rete aziendale. In un'organizzazione grande il modulo sarebbe pubblicato nel registry, e definirebbe uno standard per l'accesso SSH.
 
 ### 8.25.2 — Definire una precondition
 
-Il modulo di rete definisce una input variable `bastion_instance_type`, con cui gli utenti tengono conto dell'uso e dei carichi previsti. Sovradimensionare il bastion comporterebbe costi inutili per l'organizzazione. Si vuole quindi permettere agli utenti di indicare un tipo di istanza, ma non di crearne una troppo grande. Si aggiunge una precondition che verifica che il tipo di istanza non abbia più di 2 core, per contenere i costi operativi. Prima si aggiunge al modulo un data source, che legge dal provider AWS i dettagli del tipo di istanza, compreso il numero di core. Poi si aggiunge la precondition alla risorsa `aws_instance.bastion`:
+Per contenere i costi, `bastion_instance_type` non deve superare 2 core. Un data source legge i dettagli del tipo di istanza e una precondition su `aws_instance.bastion` verifica `default_cores`, prima che venga creato il piano:
 
 ```
 data "aws_ec2_instance_type" "bastion" {
@@ -2432,26 +2329,20 @@ resource "aws_instance" "bastion" {
 }
 ```
 
-Terraform valuta le precondition, e verifica che la configurazione soddisfi la condizione, prima di creare il piano. Qui controlla che il valore `default_cores` del data source `aws_ec2_instance_type.bastion` sia al massimo 2, prima di pianificare la creazione dell'istanza bastion e delle altre risorse.
-
 ### 8.25.3 — Distribuire l'infrastruttura
 
-La configurazione root usa il modulo di rete per creare un bastion host e i componenti di rete: una VPC, le subnet, un NAT gateway e le route table. Imposta i valori delle input variable nel file `terraform.auto.tfvars`. Il valore iniziale del tipo di istanza del bastion è `t2.2xlarge`, che ha 8 core e non supera la precondition, come previsto.
+`terraform.auto.tfvars` imposta inizialmente `t2.2xlarge`, con 8 core:
 
 ```
 bastion_instance_type = "t2.2xlarge"
 aws_region            = "us-east-2"
 ```
 
-Si imposta il nome dell'organizzazione nella variabile d'ambiente `TF_CLOUD_ORGANIZATION` e si inizializza la configurazione, che crea il workspace `learn-terraform-drift-and-policy`. Il primo `terraform plan` fallisce, perché il tipo `t2.2xlarge` ha 8 core e non supera la precondition del modulo di rete. Si cambia quindi `bastion_instance_type` in `t2.small`, e con `terraform apply` la precondition passa e Terraform crea le risorse.
-
-Verificare l'allocazione delle risorse con una precondition permette di usare le informazioni più aggiornate di AWS, per stabilire se la configurazione soddisfa il requisito. Si sarebbe potuta usare anche la validazione delle variabili. Avrebbe però richiesto di studiare tutti i tipi di istanza e le loro capacità, e di elencare nella configurazione tutti i tipi accettabili, con una configurazione meno flessibile.
+Con `TF_CLOUD_ORGANIZATION` impostata, l'inizializzazione crea il workspace `learn-terraform-drift-and-policy`. Il primo plan fallisce per la precondition; con `t2.small` l'apply crea le risorse. La precondition usa i dati aggiornati di AWS, mentre una validazione della variabile avrebbe richiesto di elencare a mano tutti i tipi di istanza ammessi.
 
 ### 8.25.4 — Le policy
 
-La validazione a livello di configurazione, come i vincoli sulle variabili e le precondition, diffonde gli standard dall'interno della configurazione scritta. Autori e utenti dei moduli però devono rispettarli volontariamente: gli autori devono includere le condizioni nelle definizioni dei moduli, e gli utenti devono usare quei moduli per creare l'infrastruttura. Per imporre gli standard dell'infrastruttura su interi workspace o organizzazioni si usano le policy di HCP Terraform. Le policy funzionano senza richiedere agli utenti di scrivere la configurazione in un modo particolare. HCP Terraform permette di scegliere come motore di policy Sentinel o Open Policy Agent (OPA), e il tutorial include policy per entrambi.
-
-La configurazione del policy set definisce due policy, `friday_deploys` e `public_ingress`. Ecco la versione Sentinel (`sentinel/sentinel.hcl`) e la versione OPA (`opa/policies.hcl`):
+Le condizioni nei moduli funzionano solo se gli autori le scrivono e gli utenti usano quei moduli. Le policy di HCP Terraform impongono invece gli standard su interi workspace o organizzazioni, senza vincoli sul modo di scrivere la configurazione. Il policy set definisce `friday_deploys` e `public_ingress`, in versione Sentinel (`sentinel/sentinel.hcl`) e OPA (`opa/policies.hcl`):
 
 ```
 policy "friday_deploys" {
@@ -2480,17 +2371,15 @@ policy "public_ingress" {
 }
 ```
 
-Il livello di enforcement della policy `friday_deploys` è `advisory`. Quello della policy `public_ingress` è `mandatory` nella versione OPA e `soft-mandatory` in quella Sentinel. Quando HCP Terraform rileva il fallimento di una policy advisory, lo notifica, ma permette comunque di creare le risorse. Quando fallisce una policy mandatory, HCP Terraform rifiuta di applicare il piano finché la policy non passa. Nella versione OPA, il formato di `query` fa riferimento al nome del package dichiarato nel file della policy e al nome della regola definita per la policy.
+`friday_deploys` è `advisory`: se fallisce, HCP Terraform lo notifica ma lascia creare le risorse. `public_ingress` è `mandatory` in OPA e `soft-mandatory` in Sentinel: se fallisce, il piano non viene applicato (vedi §8.27). In OPA, `query` indica il nome del package e della regola. `friday_deploys` impone uno standard di workflow, cioè niente deployment il venerdì per ridurre il rischio di incidenti prima del weekend.
 
-Oltre a porre limiti alla configurazione dell'infrastruttura, si possono imporre standard sui workflow dell'organizzazione stessi. Una pratica comune è impedire i deployment dell'infrastruttura il venerdì, per ridurre il rischio di incidenti di produzione prima del weekend. La policy `friday_deploys` impedisce i deployment in un certo giorno della settimana.
-
-Le policy di esempio includono test, per verificare che funzionino come previsto prima di usarle con HCP Terraform. Con Sentinel si eseguono i test delle policy:
+I test di Sentinel si trovano nelle directory con il nome di ciascuna policy:
 
 ```
 $ sentinel test policies/
 ```
 
-Sentinel carica i test dalle directory che hanno lo stesso nome di ciascuna policy. Con OPA, nel file `opa/policies.hcl` si sostituisce `friday` con il giorno corrente della settimana (ad esempio `tuesday`), per verificare che la policy blocchi i deployment di oggi:
+Con OPA si sostituisce `friday` con il giorno corrente in `opa/policies.hcl` per verificare il blocco:
 
 ```
 policy "friday_deploys" {
@@ -2507,7 +2396,7 @@ policy "public_ingress" {
 }
 ```
 
-La policy `public_ingress` esamina le modifiche pianificate di un run di Terraform. Verifica se includono aggiornamenti di security group che consentono traffico pubblico in ingresso da tutti i CIDR (`0.0.0.0/0`). Questa policy aiuta a imporre la postura di sicurezza, impedendo la creazione di security group troppo permissivi. Ecco la versione Sentinel:
+`public_ingress` esamina le modifiche pianificate e blocca i security group aperti a `0.0.0.0/0`. Versione Sentinel:
 
 ```
 import "tfplan/v2" as tfplan
@@ -2542,7 +2431,7 @@ main = rule {
 }
 ```
 
-Nella scheda OPA la pagina mostra questa versione, nel file `public_ingress.rego`:
+Versione della scheda OPA, nel file `public_ingress.rego`:
 
 ```
 import "tfplan/v2" as tfplan
@@ -2568,40 +2457,30 @@ _(infoBox)_
 
 ### 8.25.5 — Creare un policy set
 
-HCP Terraform organizza le policy in **policy set**. Un policy set può contenere policy Sentinel oppure OPA, e lo si può applicare a tutta l'organizzazione o solo a workspace specifici. Policy set e policy si gestiscono in tre modi: con i repository VCS, con l'API di HCP Terraform o direttamente nell'interfaccia di HCP Terraform. Il tutorial usa il VCS, che permette di collaborare, sviluppare e versionare le policy in sicurezza, e fa del repository la fonte di verità.
+Un policy set contiene policy Sentinel oppure OPA, si applica all'organizzazione o a workspace specifici, e si gestisce da VCS, API o interfaccia. Il tutorial usa il VCS, che diventa la fonte di verità. In **Policy Sets > Connect a new policy set > Version control provider (VCS)**, nella pagina **Configure settings**:
 
-Nelle impostazioni dell'organizzazione si sceglie **Policy Sets** e poi **Connect a new policy set**, con l'opzione **Version control provider (VCS)**. Nella pagina **Configure settings** si procede così:
+- si sceglie Sentinel o Open Policy Agent;
+- si chiama il set `learn-terraform-drift-and-policy`;
+- come **Scope of Policies** si sceglie **Policies enforced on selected projects and workspaces**, con il workspace del tutorial;
+- in **Runtime version** si fissa l'ultima minor: `~> 0.40.0 latest` per Sentinel, `~> 0.61.0 latest` per OPA;
+- in **Overrides** si deseleziona *This policy set can be overridden in the event of mandatory failures*.
 
-- come integrazione delle policy si sceglie Sentinel o Open Policy Agent, secondo il motore usato;
-- si chiama il policy set `learn-terraform-drift-and-policy`;
-- come **Scope of Policies** si sceglie **Policies enforced on selected projects and workspaces**, selezionando il workspace del tutorial;
-- in **Runtime version** si fissa la versione di runtime all'ultima release minor: con Sentinel si sceglie `~> 0.40.0 latest`, con OPA `~> 0.61.0 latest`;
-- in **Overrides** si deseleziona la casella *This policy set can be overridden in the event of mandatory failures*.
-
-Nella pagina **Connect to VCS** si sceglie l'integrazione GitHub.com e il repository del tutorial, con il **Policies path** `/sentinel` o `/opa`. Nella pagina **Parameters** si aggiunge il parametro `forbidden_days`, con una lista che contiene il giorno corrente, ad esempio `["Monday"]`. Infine si collega il policy set con **Connect policy set**.
+In **Connect to VCS** si sceglie GitHub.com, il repository e il **Policies path** `/sentinel` o `/opa`; in **Parameters** si aggiunge `forbidden_days` con il giorno corrente, ad esempio `["Monday"]`; infine **Connect policy set**.
 
 ### 8.25.6 — Provocare la violazione di una policy
 
-Le risorse di rete create in precedenza comprendono un bastion host, con un security group che limita il traffico in ingresso alla rete interna dell'organizzazione. Si immagini un ingegnere che, risolvendo un incidente di produzione, cerchi di aggirare questa restrizione rendendo il security group più permissivo. Per simularlo, in `modules/network/main.tf` si cambia la regola in ingresso della risorsa `aws_security_group.bastion` in `cidr_blocks = ["0.0.0.0/0"]`.
-
-Il `terraform apply` per aggiornare il security group fallisce, come previsto, perché le regole in ingresso sono troppo permissive. HCP Terraform rileva i fallimenti delle policy: il security group consente traffico pubblico in ingresso, e oggi i deployment sono bloccati. L'output della CLI e i dettagli del run in HCP Terraform elencano le policy fallite. Con le policy di HCP Terraform si è impedito a Terraform di creare risorse che violano gli standard dell'infrastruttura e dell'organizzazione.
-
-Per tornare a un apply riuscito si correggono la policy e la configurazione. Nella pagina del policy set si modifica il parametro `forbidden_days` in `["Friday"]`, o in un altro giorno se oggi è venerdì. Poi si ripristina la regola del security group a `192.80.0.0/16` e si riapplica la configurazione, riportando il workspace in uno stato sano.
+Per simulare un ingegnere che, durante un incidente, apre il security group, in `modules/network/main.tf` si imposta `cidr_blocks = ["0.0.0.0/0"]` su `aws_security_group.bastion`. `terraform apply` fallisce: CLI e dettagli del run elencano entrambe le policy fallite. Per tornare a un apply riuscito si porta `forbidden_days` a `["Friday"]` (o a un altro giorno, se oggi è venerdì), si ripristina `192.80.0.0/16` e si riapplica.
 
 ### 8.25.7 — Rilevare il drift
 
-Custom condition, validazione degli input e policy enforcement aiutano le organizzazioni a mantenere i propri standard al momento del provisioning delle risorse. HCP Terraform può anche verificare se le risorse esistenti nello state di Terraform corrispondono ancora alla configurazione voluta. La drift detection è disponibile in HCP Terraform Standard Edition.
+Condizioni, validazione e policy agiscono al provisioning, mentre gli health assessment (vedi §8.23 e §8.24, Standard Edition) verificano nel tempo che le risorse corrispondano ancora alla configurazione. Vengono eseguiti solo nei workspace in cui l'ultimo apply è riuscito.
 
-Gli health assessment automatici di HCP Terraform eseguono, nei workspace configurati, plan refresh-only non applicabili. Confrontano così le impostazioni reali dell'infrastruttura con le risorse registrate nel file di state, senza aggiornare né lo state né la configurazione (sezione 8.23). Gli assessment comprendono due tipi di controlli, che si attivano insieme. La drift detection stabilisce se le risorse sono cambiate al di fuori del workflow Terraform. Gli health check verificano che le custom condition della configurazione siano ancora valide, ad esempio che un certificato sia ancora valido. Gli assessment vengono eseguiti solo nei workspace in cui l'ultimo apply è riuscito: se l'ultimo apply è fallito, il workspace richiede già l'attenzione di un operatore.
-
-Nel workspace si attivano gli health assessment da **Settings > Health**. Prima del primo assessment serve un apply riuscito, quindi si riapplica la configurazione, che non contiene modifiche. Tornando all'ipotetico incidente di produzione, si immagini che l'ingegnere cerchi di aggirare la policy modificando a mano le risorse. Nella console AWS, nella scheda **Inbound rules** del security group `bastion_ssh`, con **Edit inbound rules** si elimina il CIDR sorgente `192.168.0.0/16`, lo si sostituisce con `0.0.0.0/0` e si salva con **Save rules**, introducendo un drift.
+Si attivano da **Settings > Health** e si riapplica la configurazione, perché serve un apply riuscito. Poi, per simulare chi aggira la policy a mano, nelle **Inbound rules** del security group `bastion_ssh` si sostituisce il CIDR con `0.0.0.0/0`.
 
 > **Nota**: la pagina originale indica di eliminare il CIDR `192.168.0.0/16`, ma la configurazione del security group usa `192.80.0.0/16`.
 _(infoBox)_
 
-Dopo qualche minuto Terraform segnala assessment falliti nella pagina di panoramica del workspace, e un assessment si può anche avviare a mano con **Start health assessment**. Con **View Details** si vede che HCP Terraform ha rilevato la modifica alla regola in ingresso, e cosa accadrà al prossimo run se non si aggiorna la configurazione. La drift detection segnala solo le modifiche agli attributi definiti nella configurazione, quindi conviene impostare esplicitamente gli attributi critici.
-
-Gli health assessment hanno rilevato il drift dell'infrastruttura. Questi controlli garantiscono che la configurazione dell'infrastruttura corrisponda ancora a quella scritta e soddisfi le custom condition definite, ed estendono la copertura della validazione oltre il momento del provisioning. Correggere il drift è un processo manuale, perché bisogna capire se tenere le modifiche fatte al di fuori di Terraform o sovrascriverle. In questo caso si potrebbe eseguire un nuovo apply di Terraform per sovrascrivere la modifica al security group.
+Dopo qualche minuto, o con **Start health assessment**, la panoramica del workspace segnala l'assessment fallito, e **View Details** mostra la modifica e cosa farebbe il prossimo run. La correzione è manuale: si sceglie se tenere la modifica o sovrascriverla, qui con un nuovo apply.
 
 - Fonte: [Detect infrastructure drift and enforce policies](https://developer.hashicorp.com/terraform/tutorials/cloud/drift-and-policy)
 
@@ -2609,7 +2488,7 @@ Gli health assessment hanno rilevato il drift dell'infrastruttura. Questi contro
 
 ## 8.26 — Il policy enforcement nei workspace
 
-Questa sezione descrive come HCP Terraform impone le policy alle configurazioni dei workspace. Le informazioni generali su policy, policy set e framework di policy sono nella sezione 8.27. HCP Terraform Free include un policy set con al massimo cinque policy. Nelle edizioni Standard e Premium si può collegare un policy set a un repository di controllo versione, o creare versioni del policy set con l'API.
+Questa sezione descrive come HCP Terraform impone le policy alle configurazioni dei workspace. Le informazioni generali su policy, policy set e framework di policy sono nella sezione 8.27, i limiti per edizione in §8.2.8.
 
 Alcune funzionalità sono specifiche della visualizzazione e della gestione del policy enforcement nei workspace:
 
@@ -2670,96 +2549,52 @@ HCP Terraform impone le policy alle configurazioni degli Stack durante ogni oper
 
 ## 8.28 — Imporre policy OPA con HCP Terraform e Styra
 
-Man mano che un'organizzazione cresce e i suoi workflow di provisioning maturano, diventa più difficile imporre le best practice con la diffusione interna e con strumenti su misura. Terraform offre diversi modi per verificare che l'infrastruttura rispetti sia le best practice del settore sia gli standard specifici dell'organizzazione. Automatizzando validazione ed enforcement, si garantiscono in modo programmatico conformità e coerenza dell'infrastruttura.
-
-Precondition e postcondition permettono di scrivere controlli a livello di risorsa nelle definizioni delle risorse. Includendole nelle definizioni dei moduli, si garantisce che chi usa i moduli a valle rispetti gli standard di configurazione e usi i moduli come previsto dall'autore.
-
-Le run task di HCP Terraform permettono di integrare nel workflow Terraform strumenti di terze parti, come scanner di vulnerabilità, calcolatori di costi e scanner del codice. Le run task inviano il contenuto del piano di Terraform agli strumenti esterni configurati, tra le fasi di plan e apply di un run. Si può decidere se applicare o no la configurazione in base alla risposta dello strumento.
+Come in §8.25, al crescere dell'organizzazione conviene automatizzare validazione ed enforcement. Le run task di HCP Terraform inviano il piano, tra plan e apply, a strumenti esterni come scanner di vulnerabilità, calcolatori di costi o analizzatori del codice, e la loro risposta decide se applicare.
 
 ![Figura 29](img/hcp-run-task-diagram.png) _(dimensioni: 960×263 px)_
 
 *Figura 29 — Una run task tra plan e apply: il piano viene inviato allo strumento esterno, e la sua risposta decide se procedere con l'apply. Fonte: HashiCorp Developer.* _(caption)_
 
-Styra Declarative Authorization Service (DAS) offre deployment di Open Policy Agent (OPA) senza agent e un control plane centralizzato per gestire le policy, con un policy builder e una libreria di policy pubbliche per iniziare. Come Terraform per l'infrastructure as code, OPA permette di usare un unico linguaggio di policy-as-code per diversi tipi di configurazioni e risorse.
+Styra Declarative Authorization Service (DAS) offre deployment di OPA senza agent e un control plane centralizzato, con un policy builder e una libreria di policy pubbliche; OPA usa un unico linguaggio di policy-as-code per configurazioni e risorse diverse.
 
 > **Nota**: HCP Terraform Free Edition include un'integrazione di run task, applicabile fino a dieci workspace.
 _(infoBox)_
 
-Nel tutorial si usano sia le precondition di Terraform sia le run task di HCP Terraform, per validare la configurazione e imporre le pratiche dell'organizzazione. Prima si usano le precondition per impedire di distribuire bastion host troppo grandi, riducendo i costi dell'infrastruttura. Poi si integra una run task di HCP Terraform con una policy OPA di Styra, per impedire di creare security group AWS che consentono traffico pubblico in ingresso. Si definisce anche una policy OPA personalizzata, che permette solo a specifici utenti HCP Terraform di distribuire modifiche all'infrastruttura il venerdì.
+Nel tutorial una precondition limita la dimensione del bastion, una run task Styra blocca i security group aperti al pubblico e una policy OPA permette solo ad alcuni utenti di distribuire il venerdì.
 
 ### 8.28.1 — La precondition sul bastion
 
-Il modulo di rete accetta diverse input variable, tra cui `bastion_instance_type`, per adattarsi all'uso e ai carichi di lavoro previsti. Agli utenti si vuole permettere di scegliere il tipo di istanza, ma non di creare un'istanza troppo grande. Una precondition può verificare che il tipo di istanza non abbia più di 2 core, per contenere i costi operativi. Prima si aggiunge alla configurazione del modulo, in `modules/network/main.tf`, il data source seguente, che legge dal provider AWS i dettagli del tipo di istanza:
-
-```
-data "aws_ec2_instance_type" "bastion" {
-  instance_type = var.bastion_instance_type
-}
-```
-
-Poi si aggiunge la precondition alla definizione della risorsa `aws_instance.bastion`:
-
-```
-resource "aws_instance" "bastion" {
-  instance_type = var.bastion_instance_type
-  ami           = data.aws_ami.amazon_linux.id
-
-  subnet_id              = module.vpc.public_subnets[0]
-  vpc_security_group_ids = [aws_security_group.bastion.id]
-
-  lifecycle {
-    precondition {
-      condition     = data.aws_ec2_instance_type.bastion.default_cores <= 2
-      error_message = "Change the value of bastion_instance_type to a type that has fewer than 2 cores to avoid over provisioning."
-    }
-  }
-}
-```
-
-Terraform valuta le precondition prima di valutare il blocco che le contiene: qui verifica che la configurazione soddisfi la condizione prima di creare l'istanza bastion.
-
-La configurazione root, nella radice del repository, usa il modulo di rete per creare un bastion host e i componenti di rete: una VPC, le subnet, un NAT gateway e le tabelle di routing. I valori delle input variable sono nel file `terraform.auto.tfvars`. Il tipo iniziale del bastion è `t2.2xlarge`, che ha 8 core e quindi, come previsto, non supera la precondition:
-
-```
-bastion_instance_type = "t2.2xlarge"
-aws_region            = "us-east-2"
-```
-
-Si imposta il nome dell'organizzazione HCP Terraform nella variabile d'ambiente `TF_CLOUD_ORGANIZATION` e si inizializza la configurazione, che crea il workspace `learn-terraform-validation-enforcement`. L'apply fallisce con l'errore della precondition, perché il tipo di istanza indicato è troppo grande.
+La precondition sul bastion è la stessa di §8.25.2: il data source `aws_ec2_instance_type.bastion`, in `modules/network/main.tf`, legge i dettagli del tipo di istanza, e la precondition su `aws_instance.bastion` richiede `default_cores <= 2`. Come in §8.25.3, `terraform.auto.tfvars` imposta il tipo iniziale `t2.2xlarge` (8 core). Con `TF_CLOUD_ORGANIZATION` impostata, l'inizializzazione crea il workspace `learn-terraform-validation-enforcement` e l'apply fallisce per la precondition.
 
 > **Nota**: il tutorial presuppone un'organizzazione HCP Terraform dedicata, con un variable set globale che contiene le credenziali AWS (si veda *Create a Credential Variable Set*). Se si usa un variable set con scope limitato, va assegnato al nuovo workspace.
 _(infoBox)_
 
-Si cambia quindi in `terraform.auto.tfvars` il valore di `bastion_instance_type` in `"t2.small"`, e si riapplica la configurazione confermando con `yes`. La precondition passa, e Terraform crea il bastion e i componenti di rete.
+Con `"t2.small"` in `terraform.auto.tfvars` l'apply crea il bastion e la rete.
 
-> **Nota**: il messaggio d'errore dell'esempio chiede un tipo con "meno di 2 core", ma la condizione `default_cores <= 2` accetta anche 2 core. Nel tutorial della sezione 8.25 lo stesso messaggio dice correttamente "2 core o meno".
+> **Nota**: in questo tutorial il messaggio d'errore della precondition chiede un tipo con "meno di 2 core" (*fewer than 2 cores*), ma la condizione `default_cores <= 2` accetta anche 2 core. Nel tutorial della sezione 8.25 lo stesso messaggio dice correttamente "2 core o meno".
 _(infoBox)_
 
 ### 8.28.2 — Configurare la run task di Styra
 
-La validazione a livello di configurazione impone gli standard dall'interno della configurazione scritta. Si basa però sul fatto che gli autori dei moduli includano precondition e postcondition nelle definizioni, e che gli altri usino quei moduli per creare l'infrastruttura. Per imporre e controllare l'infrastruttura in un intero workspace si usano le run task di HCP Terraform. Una run task usa strumenti di terze parti per stabilire se le modifiche proposte in un'operazione di Terraform soddisfano requisiti predefiniti. Decide anche se avvisare l'utente di una violazione o bloccare del tutto l'operazione.
+Come visto in §8.25.4, la validazione nella configurazione dipende dalla collaborazione di autori e utenti dei moduli. Una run task impone gli standard su un intero workspace, avvisando o bloccando l'operazione.
 
 ![Figura 30](img/hcp-validation-mechanisms.png) _(dimensioni: 960×540 px)_
 
 *Figura 30 — Lo scope dei meccanismi di validazione sulla configurazione Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
-La run task di HCP Terraform di Styra integra i controlli OPA nel workflow di gestione dell'infrastruttura, e permette di usare un framework standard di policy-as-code in diverse parti del sistema. Impone gli standard dell'infrastruttura senza richiedere agli utenti di scrivere la configurazione in un modo particolare. Funziona in modo simile all'implementazione policy-as-code di Sentinel. La run task però si applica solo ai workspace a cui la si associa, mentre le policy Sentinel si possono applicare a tutta l'organizzazione HCP Terraform.
+La run task Styra integra i controlli OPA nel workflow, in modo simile a Sentinel, ma vale solo per i workspace a cui è associata, mentre le policy Sentinel possono coprire tutta l'organizzazione. In Styra le policy sono raggruppate in sistemi, ad esempio per risorse Kubernetes o Terraform, dentro un workspace Styra. Per configurare la run task:
 
-Styra DAS organizza le policy in collezioni. L'insieme delle policy è un workspace Styra, che può comprendere più sistemi. In Styra un sistema è una raccolta logica di policy, raggruppate in base al modo in cui si creano le risorse, ad esempio risorse Kubernetes o Terraform. Per configurare una run task di HCP Terraform che usa l'integrazione Styra si procede così:
+1. nella dashboard di Styra si crea un sistema Terraform chiamato `tfc`, con directory predefinite per AWS, GCP e Azure;
+2. in HCP Terraform, in **API Tokens**, si crea un token dell'organizzazione;
+3. in Styra, in **Terraform Integration**, si inseriscono organizzazione e token: Styra crea nell'organizzazione una run task di policy check;
+4. nel workspace HCP Terraform, in **Run Tasks**, si associa la run task `styra-das-policy-check-*` con livello **Mandatory**;
+5. in Styra, con **Add system mapping**, si associa il sistema `tfc` all'ID del workspace.
 
-1. nella dashboard di Styra si crea un nuovo sistema di tipo Terraform, chiamato `tfc`. Styra vi predispone una directory per ciascuno dei cloud provider più comuni, tra cui AWS, GCP e Azure;
-2. nella pagina **API Tokens** delle impostazioni dell'organizzazione HCP Terraform si crea un token dell'organizzazione, che dà a Styra l'accesso all'organizzazione;
-3. nelle impostazioni del workspace Styra, alla voce **Terraform Integration**, si inseriscono il nome dell'organizzazione HCP Terraform e il token. Styra crea così una run task di policy check nell'organizzazione HCP Terraform;
-4. nelle impostazioni del workspace HCP Terraform, alla voce **Run Tasks**, si associa al workspace la run task `styra-das-policy-check-*`, con il livello di enforcement **Mandatory**;
-5. in Styra, con **Add system mapping**, si associa il sistema `tfc` all'ID del workspace HCP Terraform.
-
-Ora si possono definire le policy in Styra DAS. Per semplicità il tutorial le gestisce nell'interfaccia di Styra, ma Styra può usare anche repository GitHub come sorgente delle policy.
+Il tutorial gestisce le policy dall'interfaccia di Styra, che però può usare anche un repository GitHub come sorgente.
 
 ### 8.28.3 — Una policy sulla configurazione dell'infrastruttura
 
-Con Styra DAS si possono definire policy personalizzate o usare policy esistenti della libreria pubblica. Gli utenti a pagamento possono usare anche i compliance pack, insiemi di policy che impongono best practice e standard del settore. Le policy predefinite permettono di aggiungere rapidamente controlli di conformità in tutta l'organizzazione.
-
-Nel file `policy/aws/ec2/rules.rego` del sistema `tfc`, con **Add rule** si aggiunge dalla libreria la regola **Restrict ingress from public IPs**. Styra aggiunge al sistema questa definizione di policy, che impedisce a Terraform di creare security group che consentono traffico in ingresso da internet:
+Styra offre policy personalizzate, la libreria pubblica e, per gli utenti a pagamento, i compliance pack. In `policy/aws/ec2/rules.rego` del sistema `tfc` si aggiunge con **Add rule** la regola **Restrict ingress from public IPs**:
 
 ```
 enforce[decision] {
@@ -2771,11 +2606,11 @@ enforce[decision] {
 }
 ```
 
-Si imposta la modalità della policy su **Enforce**, per impedire al workspace HCP Terraform di creare security group accessibili pubblicamente, e si pubblica la policy.
+La si imposta in modalità **Enforce** e la si pubblica.
 
 ### 8.28.4 — Provocare la violazione di una policy
 
-Come nella sezione 8.25, si immagini un ingegnere che, durante un incidente di produzione, aggiunga al bastion un security group più permissivo per aggirare la restrizione. Si aggiunge a `main.tf` questa configurazione:
+Come in §8.25.6, si simula un ingegnere che apre il bastion: la configurazione legge il bastion con `data.aws_instance.bastion`, crea un security group aperto al pubblico e lo associa alla sua interfaccia di rete:
 
 ```
 data "aws_instance" "bastion" {
@@ -2807,11 +2642,11 @@ resource "aws_network_interface_sg_attachment" "bastion" {
 }
 ```
 
-La configurazione accede agli attributi del bastion host con il data source `data.aws_instance.bastion`. Definisce poi un security group che consente traffico pubblico in ingresso, e lo associa all'interfaccia di rete del bastion. Con `terraform apply` la run task fallisce, perché il security group è troppo permissivo. Dopo aver generato il piano, Terraform ne ha inviato i dettagli a Styra, per verificare che le risorse proposte soddisfino le policy definite. Come previsto, il policy check è fallito e ha impedito a Terraform di creare il security group. Nei dettagli del run in HCP Terraform si vedono le informazioni sul fallimento della run task. Dopo qualche minuto Styra mostra i dettagli della decisione, con il motivo del fallimento e l'input del run, che contiene il piano di esecuzione e tutte le modifiche proposte.
+`terraform apply` fallisce, perché la run task invia il piano a Styra e il policy check blocca il security group. I dettagli compaiono nel run di HCP Terraform e, dopo qualche minuto, nella decisione di Styra, con il motivo e l'input del run.
 
 ### 8.28.5 — Una policy sulle pratiche dell'organizzazione
 
-Si vuole anche impedire i deployment il venerdì. In Styra si crea una nuova policy con percorso `tfc/runs` e modulo `rules.rego`, con una regola che impedisce le operazioni in un certo giorno della settimana. Per provarla si sostituisce `Friday` con il giorno corrente. Dopo aver pubblicato la policy, un nuovo `terraform apply` fallisce, e i dettagli della decisione mostrano che il piano non ha superato entrambe le regole.
+In Styra si crea una policy con percorso `tfc/runs` e modulo `rules.rego`, che blocca le operazioni in un giorno della settimana; per provarla si sostituisce `Friday` con il giorno corrente, e il nuovo apply fallisce su entrambe le regole:
 
 ```
 enforce[decision] {
@@ -2828,7 +2663,7 @@ enforce[decision] {
 
 **Modificare la policy** _(stepTitle)_
 
-In alcuni casi bloccare tutti i deployment del venerdì può essere troppo limitante. In caso di disservizio o di incidente di produzione si può voler permettere ai membri senior del team di fare le modifiche necessarie, qualunque sia il giorno. Si definisce quindi un elenco di utenti HCP Terraform come eccezione alla regola. Il payload del piano di HCP Terraform contiene un campo `styra-tfc-webhook` con i dettagli del run, compreso il nome dell'utente HCP Terraform che ha avviato l'operazione (`run_created_by`). La policy aggiornata verifica se l'utente fa parte dell'elenco delle eccezioni:
+Durante un incidente può servire che i membri senior del team possano intervenire in qualsiasi giorno. Il campo `styra-tfc-webhook` del payload contiene `run_created_by`, l'utente che ha avviato il run, e la policy aggiornata ammette un elenco di eccezioni:
 
 ```
 package policy.tfc.runs
@@ -2851,7 +2686,7 @@ enforce[decision] {
 }
 ```
 
-Dopo aver pubblicato la policy, si corregge il security group troppo permissivo, cambiando il CIDR in ingresso in `172.16.0.0/12`. Questa volta il run riesce. Con le run task di HCP Terraform e Styra si sono definite due policy diverse, che impongono standard di configurazione dell'infrastruttura e pratiche dell'organizzazione.
+Dopo averla pubblicata e aver ristretto il CIDR del security group a `172.16.0.0/12`, il run riesce.
 
 - Fonte: [Enforce OPA policies using HCP Terraform and Styra](https://developer.hashicorp.com/terraform/tutorials/cloud/validation-enforcement)
 

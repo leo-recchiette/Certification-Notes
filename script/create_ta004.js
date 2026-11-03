@@ -69,53 +69,60 @@ function loadImg(ref) {
 
 // ─── HELPER DI RESA (stile invariato rispetto allo STYLE_GUIDE) ───────────────
 const noSpacing = {before:0,after:0};
-const stdSpacing = {before:60,after:60};
+const stdSpacing = {before:40,after:40};
+// Dimensioni dei caratteri in half-point (20 = 10pt): impaginazione compatta.
+const SZ = { body:22, h2:28, h3:24, caption:16, code:18, table:18 };
+// Un blocco di codice piu' lungo di cosi' puo' spezzarsi tra due pagine, invece di
+// essere spinto intero a pagina nuova lasciando un buco nella precedente.
+const CODE_KEEP_MAX = 15;
 const JUSTIFY = AlignmentType.JUSTIFIED;   // testo giustificato a destra e a sinistra (corpo, elenchi, box)
 
 function body(text, opts={}, paraOpts={}) {
   return new Paragraph({ alignment:JUSTIFY, spacing:stdSpacing, keepLines:true, ...paraOpts,
-    children:[new TextRun({text, font:'Calibri', size:22, color:C.bodyText, ...opts})] });
+    children:[new TextRun({text, font:'Calibri', size:SZ.body, color:C.bodyText, ...opts})] });
 }
 // Paragrafo che inizia con un'etichetta in grassetto (es. "**Domanda 1:** B — ..."): etichetta bold, resto normale.
 function bodyLead(label, text, paraOpts={}) {
-  const run = (t, bold) => new TextRun({text:t, font:'Calibri', size:22, color:C.bodyText, bold});
+  const run = (t, bold) => new TextRun({text:t, font:'Calibri', size:SZ.body, color:C.bodyText, bold});
   return new Paragraph({ alignment:JUSTIFY, spacing:stdSpacing, keepLines:true, ...paraOpts,
     children:[run(label, true), run(text, false)] });
 }
 function h2(text) {
-  return new Paragraph({ spacing:{before:200,after:80}, keepNext:true, keepLines:true, outlineLevel:1,
-    children:[new TextRun({text, font:'Calibri', size:28, bold:true, color:C.sectionBlue})] });
+  return new Paragraph({ spacing:{before:160,after:60}, keepNext:true, keepLines:true, outlineLevel:1,
+    children:[new TextRun({text, font:'Calibri', size:SZ.h2, bold:true, color:C.sectionBlue})] });
 }
 function h3(text) {
-  return new Paragraph({ spacing:{before:140,after:60}, keepNext:true, keepLines:true, outlineLevel:2,
-    children:[new TextRun({text, font:'Calibri', size:24, bold:true, color:C.tocEntry})] });
+  return new Paragraph({ spacing:{before:100,after:40}, keepNext:true, keepLines:true, outlineLevel:2,
+    children:[new TextRun({text, font:'Calibri', size:SZ.h3, bold:true, color:C.tocEntry})] });
 }
 function stepTitle(text) {
-  return new Paragraph({ spacing:{before:100,after:40}, keepNext:true, keepLines:true,
-    children:[new TextRun({text, font:'Calibri', size:22, bold:true, color:'000000'})] });
+  return new Paragraph({ spacing:{before:80,after:20}, keepNext:true, keepLines:true,
+    children:[new TextRun({text, font:'Calibri', size:SZ.body, bold:true, color:'000000'})] });
 }
 // text: stringa, oppure array di parti {text, url?} (da linkParts): le parti con url diventano link cliccabili.
 function bullet(text, level=0, paraOpts={}) {
   const parts = Array.isArray(text) ? text : [{ text }];
-  return new Paragraph({ alignment:JUSTIFY, spacing:{before:40,after:40}, keepLines:true, numbering:{reference:'bullets',level}, ...paraOpts,
+  return new Paragraph({ alignment:JUSTIFY, spacing:{before:20,after:20}, keepLines:true, numbering:{reference:'bullets',level}, ...paraOpts,
     children: parts.map(p => p.url
-      ? new ExternalHyperlink({ link:p.url, children:[new TextRun({text:p.text, font:'Calibri', size:22, color:C.sectionBlue, underline:{}})] })
-      : new TextRun({text:p.text, font:'Calibri', size:22, color:C.bodyText})) });
+      ? new ExternalHyperlink({ link:p.url, children:[new TextRun({text:p.text, font:'Calibri', size:SZ.body, color:C.sectionBlue, underline:{}})] })
+      : new TextRun({text:p.text, font:'Calibri', size:SZ.body, color:C.bodyText})) });
 }
 function caption(text) {
-  return new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:40,after:80}, keepLines:true,
-    children:[new TextRun({text, font:'Calibri', size:18, italics:true, color:C.caption})] });
+  return new Paragraph({ alignment:AlignmentType.CENTER, spacing:{before:20,after:60}, keepLines:true,
+    children:[new TextRun({text, font:'Calibri', size:SZ.caption, italics:true, color:C.caption})] });
 }
 function codeBlock(lines) {
   const arr = Array.isArray(lines)?lines:[lines];
-  return arr.map((line, idx) => new Paragraph({ spacing:noSpacing, keepLines:true, keepNext: idx < arr.length-1,
-    shading:{fill:C.codeBg, type:ShadingType.CLEAR}, indent:{left:360,right:360},
-    children:[new TextRun({text:line, font:'Courier New', size:18, color:C.codeText})] }));
+  const keepAll = arr.length <= CODE_KEEP_MAX;
+  return arr.map((line, idx) => new Paragraph({ spacing:noSpacing, keepLines:true,
+    keepNext: idx < arr.length-1 && (keepAll || idx === 0),
+    shading:{fill:C.codeBg, type:ShadingType.CLEAR}, indent:{left:240,right:240},
+    children:[new TextRun({text:line, font:'Courier New', size:SZ.code, color:C.codeText})] }));
 }
 function infoBox(label, text) {
   const children = [];
-  if(label) children.push(new TextRun({text:label+' ', font:'Calibri', size:22, bold:true, color:C.sectionBlue}));
-  children.push(new TextRun({text, font:'Calibri', size:22, color:C.bodyText}));
+  if(label) children.push(new TextRun({text:label+' ', font:'Calibri', size:SZ.body, bold:true, color:C.sectionBlue}));
+  children.push(new TextRun({text, font:'Calibri', size:SZ.body, color:C.bodyText}));
   return new Paragraph({ alignment:JUSTIFY, spacing:stdSpacing, keepLines:true, indent:{left:360,right:360},
     border:{left:{style:BorderStyle.SINGLE, size:12, color:C.sectionBlue}},
     shading:{fill:C.infoBoxBg, type:ShadingType.CLEAR}, children });
@@ -125,10 +132,10 @@ function spacer(n=1) {
 }
 function figImg(data, ext, origW, origH, label) {
   // docx converte la transformation px->EMU a 9525 EMU/px (96 DPI). La colonna di testo
-  // utile e' 11906 - 1440*2 = 9026 twip = 6.27in ~= 601 px: oltre, l'immagine sconfina nel
+  // utile e' 11906 - 1080*2 = 9746 twip = 6.77in ~= 650 px: oltre, l'immagine sconfina nel
   // margine destro. Clampiamo larghezza (e altezza) scalando in proporzione.
-  const MAX_W_PX = 600;   // ~6.25in: resta dentro la colonna
-  const MAX_H_PX = 420;   // ~4.4in: figure piu' basse -> meno spazio vuoto prima di una figura
+  const MAX_W_PX = 560;   // ~5.8in: resta dentro la colonna, figure piu' compatte
+  const MAX_H_PX = 340;   // ~3.5in: figure piu' basse -> meno spazio vuoto prima di una figura
                           // alta che altrimenti non entra in fondo pagina (vedi "Caso 2").
   let w = origW, h = origH;
   if (w > MAX_W_PX) { h = Math.round(h * MAX_W_PX / w); w = MAX_W_PX; }
@@ -141,7 +148,7 @@ function figImg(data, ext, origW, origH, label) {
   return items;
 }
 
-const FULL_WIDTH=8640;
+const FULL_WIDTH=9600;   // colonna utile 9746 twip (margini laterali 1080)
 const BODY_HEIGHT=16838-1008*2;   // altezza utile della pagina (vedi pageProps)
 // Stima grossolana dell'altezza di una tabella in twip: Calibri 10pt ~95 twip per carattere,
 // ~244 twip per riga di testo, 160 twip di margini verticali e 240 orizzontali per cella.
@@ -180,11 +187,11 @@ function tableCell(text, opts={}) {
   const {fill=C.white, bold=false, color=C.bodyText, width, keepNext=false} = opts;
   const tblBorder={style:BorderStyle.SINGLE, size:1, color:C.border};
   return new TableCell({ width:width?{size:width,type:WidthType.DXA}:undefined,
-    shading:{fill, type:ShadingType.CLEAR}, margins:{top:80,bottom:80,left:120,right:120},
+    shading:{fill, type:ShadingType.CLEAR}, margins:{top:40,bottom:40,left:100,right:100},
     borders:{top:tblBorder,bottom:tblBorder,left:tblBorder,right:tblBorder},
     verticalAlign:VerticalAlign.CENTER,
     children:[new Paragraph({ spacing:noSpacing, keepNext, keepLines:true,
-      children:[new TextRun({text, font:'Calibri', size:20, bold,
+      children:[new TextRun({text, font:'Calibri', size:SZ.table, bold,
         color:fill===C.headerBg?C.white:color})] })] });
 }
 function makeTable(headers, rows, colWidths, opts={}) {
@@ -228,7 +235,7 @@ function moduloTitle(text) {
 }
 function moduloIntro(text) {
   return new Paragraph({ alignment:JUSTIFY, spacing:{before:80,after:120}, keepNext:true, keepLines:true,
-    children:[new TextRun({text, font:'Calibri', size:22, italics:true, color:C.bodyText})] });
+    children:[new TextRun({text, font:'Calibri', size:SZ.body, italics:true, color:C.bodyText})] });
 }
 
 function tocTitle() {
@@ -682,7 +689,7 @@ async function main() {
   }
 
   // margini sup/inf a 1008 twip (0,7"): piu' altezza utile -> le figure entrano piu' spesso.
-  const pageProps = { size:{width:11906,height:16838}, margin:{top:1008,right:1440,bottom:1008,left:1440} };
+  const pageProps = { size:{width:11906,height:16838}, margin:{top:1008,right:1080,bottom:1008,left:1080} };
   const pageFooter = new Footer({ children:[ new Paragraph({ alignment:AlignmentType.CENTER, spacing:noSpacing,
     children:[ new TextRun({ children:[PageNumber.CURRENT], font:'Calibri', size:18, color:C.caption }) ] }) ] });
 
@@ -698,18 +705,18 @@ async function main() {
   const doc = new Document({
     features: { updateFields: true },   // Word aggiorna il Sommario (campo TOC) all'apertura
     styles: {
-      default: { document: { run: { font:'Calibri', size:22, color:C.bodyText } } },
+      default: { document: { run: { font:'Calibri', size:SZ.body, color:C.bodyText } } },
       // Stili applicati da Word alle voci del Sommario generato (livelli 1/2/3 = TOC1/2/3).
       paragraphStyles: [
         { id:'TOC1', name:'toc 1', basedOn:'Normal', next:'Normal',
           run:{ font:'Calibri', size:24, bold:true, color:C.titleBlue },
-          paragraph:{ spacing:{before:120,after:40}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+          paragraph:{ spacing:{before:120,after:40}, tabStops:[{type:TabStopType.RIGHT, position:9700, leader:'dot'}] } },
         { id:'TOC2', name:'toc 2', basedOn:'Normal', next:'Normal',
           run:{ font:'Calibri', size:22, bold:true, color:C.sectionBlue },
-          paragraph:{ spacing:{before:60,after:20}, indent:{left:360}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+          paragraph:{ spacing:{before:60,after:20}, indent:{left:360}, tabStops:[{type:TabStopType.RIGHT, position:9700, leader:'dot'}] } },
         { id:'TOC3', name:'toc 3', basedOn:'Normal', next:'Normal',
           run:{ font:'Calibri', size:20, color:C.tocEntry },
-          paragraph:{ spacing:{before:20,after:20}, indent:{left:720}, tabStops:[{type:TabStopType.RIGHT, position:9000, leader:'dot'}] } },
+          paragraph:{ spacing:{before:20,after:20}, indent:{left:720}, tabStops:[{type:TabStopType.RIGHT, position:9700, leader:'dot'}] } },
       ],
     },
     numbering: { config: [{ reference:'bullets', levels:[

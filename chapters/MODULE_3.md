@@ -170,13 +170,13 @@ Ci sono molti modi diversi di usare Terraform: da singolo utente, come singolo t
 
 ## 3.2 — Creare l'infrastruttura
 
-Con Terraform si può creare e gestire l'infrastruttura come codice. In questo tutorial della raccolta Get Started su AWS si usa Terraform per effettuare il provisioning di un'istanza EC2 su Amazon Web Services (AWS). Le istanze EC2 sono macchine virtuali in esecuzione su AWS e sono un componente comune di molti progetti infrastrutturali. Per effettuare il provisioning si scrive la configurazione che definisce il provider e l'istanza, si impostano le variabili d'ambiente con le credenziali AWS, si inizializza un nuovo workspace locale e infine si applica la configurazione per creare l'istanza.
+In questo tutorial della raccolta Get Started su AWS si crea un'istanza EC2: si scrive la configurazione, si impostano le credenziali AWS, si inizializza il workspace e si applica la configurazione.
 
-I file di configurazione di Terraform sono file di testo semplice scritti nel linguaggio di configurazione di HashiCorp, HCL, con nomi che terminano in `.tf`. Quando si eseguono operazioni con la CLI di Terraform, Terraform carica tutti i file di configurazione della directory di lavoro corrente e risolve automaticamente le dipendenze al loro interno: questo permette di organizzare la configurazione in più file, nell'ordine che si preferisce. La configurazione Terraform è organizzata in alcuni tipi di blocchi, con cui si configurano Terraform stesso, i provider di Terraform, e le risorse e i data source che compongono l'infrastruttura.
+I file di configurazione sono file di testo in HCL con estensione `.tf`. Terraform carica tutti quelli della directory corrente e ne risolve le dipendenze, quindi la configurazione si può dividere in più file in qualsiasi ordine. È organizzata in blocchi che configurano Terraform stesso, i provider, le risorse e i data source.
 
 ### 3.2.1 — Il blocco terraform
 
-Il blocco `terraform {}` configura Terraform stesso, compresi i provider da installare e la versione di Terraform da usare per effettuare il provisioning dell'infrastruttura. Una struttura dei file coerente semplifica la manutenzione dei progetti Terraform, per questo HashiCorp consiglia di configurare il blocco `terraform` in un file dedicato, `terraform.tf`:
+Il blocco `terraform {}` indica i provider da installare e la versione di Terraform; HashiCorp consiglia di metterlo in un file dedicato, `terraform.tf`:
 
 ```
 terraform {
@@ -191,17 +191,11 @@ terraform {
 }
 ```
 
-Terraform usa plugin binari chiamati provider per gestire le risorse chiamando le API del cloud provider. I provider di Terraform sono distribuiti e versionati separatamente da Terraform: proprio perché i provider sono separati dal binario di Terraform, Terraform può supportare qualsiasi fornitore di infrastruttura dotato di un'API. Il blocco `required_providers` permette di impostare vincoli di versione sui provider usati dalla configurazione. HashiCorp gestisce il Terraform Registry, da cui si possono ottenere provider e moduli Terraform pubblici.
-
-Per ogni provider del blocco `required_providers` si impostano gli argomenti `source` e `version`. L'argomento `source` specifica un hostname (facoltativo), un namespace e il nome del provider: nella configurazione di esempio la sorgente del provider aws è `hashicorp/aws`, forma abbreviata di `registry.terraform.io/hashicorp/aws`, l'indirizzo del provider nel Terraform Registry.
-
-L'argomento `version` imposta un vincolo di versione per il provider AWS. Se non si specifica un vincolo, Terraform usa per default la versione più recente del provider; HashiCorp consiglia di usare vincoli di versione per evitare che Terraform installi una versione del provider non testata con la propria configurazione. La stringa `~> 5.92` indica che la configurazione supporta qualsiasi versione del provider con versione major 5 e versione minor maggiore o uguale a 92.
-
-La configurazione di esempio definisce anche la versione richiesta di Terraform stesso: la stringa `>= 1.2` indica che la configurazione supporta qualsiasi versione di Terraform maggiore o uguale alla 1.2. La versione di Terraform in uso si controlla con il comando `terraform -version`.
+I provider sono distribuiti e versionati separatamente da Terraform (vedi §2.3). In `required_providers` (vedi §2.7) `hashicorp/aws` è la forma breve di `registry.terraform.io/hashicorp/aws`; `~> 5.92` ammette qualsiasi versione 5.x con minor ≥ 92, e senza vincolo Terraform userebbe la più recente. `required_version = ">= 1.2"` richiede Terraform 1.2 o successivo; la versione in uso si vede con `terraform -version`.
 
 ### 3.2.2 — I blocchi di configurazione
 
-Nel file `main.tf` si incolla la configurazione seguente:
+In `main.tf`, dove la best practice è mettere provider e infrastruttura principale:
 
 ```
 provider "aws" {
@@ -229,61 +223,39 @@ resource "aws_instance" "app_server" {
 }
 ```
 
-Quando si scrive una nuova configurazione Terraform, la best practice consigliata è definire i blocchi provider e l'infrastruttura principale in `main.tf`; man mano che la configurazione cresce, si può scegliere di organizzare l'infrastruttura correlata in file diversi.
-
 **Provider** _(stepTitle)_
 
-Il blocco `provider` configura le opzioni che valgono per tutte le risorse gestite da quel provider, come la region in cui crearle. Il blocco dell'esempio configura il provider `aws`. L'etichetta del blocco provider corrisponde al nome del provider nell'elenco `required_providers` del blocco `terraform`. Per creare le risorse in un'altra region AWS basta cambiare il valore dell'argomento `region`.
-
-Nella configurazione si possono usare più blocchi provider, per configurare più provider oppure più istanze dello stesso provider con configurazioni diverse, ad esempio una region diversa. I provider di Terraform devono autenticarsi presso l'API del cloud provider per gestire le risorse, e spesso supportano più metodi di autenticazione. Il provider AWS di Terraform usa gli stessi metodi di autenticazione della AWS CLI: nel tutorial si impostano le credenziali IAM nel terminale come variabili d'ambiente `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY`, e le si verifica con `aws configure list`. Chi non dispone di credenziali di un utente IAM può usare uno degli altri metodi descritti nella documentazione del provider AWS.
+Il blocco `provider` configura le opzioni comuni a tutte le risorse del provider, come la region; la sua etichetta corrisponde al nome in `required_providers` (vedi §2.9). Il provider AWS usa gli stessi metodi di autenticazione della AWS CLI: nel tutorial si impostano le variabili d'ambiente `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` e le si verifica con `aws configure list`.
 
 **Data source** _(stepTitle)_
 
-I blocchi `data` permettono di interrogare il cloud provider per ottenere informazioni su altre risorse. Il data source dell'esempio recupera i dati dell'AMI AWS più recente che corrisponde al filtro, così non bisogna scrivere a mano l'ID dell'AMI nella configurazione. I data source aiutano a mantenere la configurazione dinamica e a evitare valori scritti a mano che possono diventare obsoleti.
-
-I data source hanno un ID, che si usa per fare riferimento ai loro attributi nella configurazione. Gli ID dei data source hanno il prefisso `data`, seguito dal tipo e dal nome del blocco: nell'esempio, il data source `data.aws_ami.ubuntu` carica l'AMI dell'ultima release di Ubuntu Noble Numbat nella region configurata per il provider.
+Il blocco `data` interroga il provider: qui recupera l'AMI Ubuntu più recente che corrisponde al filtro, evitando un ID scritto a mano che diventerebbe obsoleto. Il suo ID è `data.aws_ami.ubuntu`, cioè il prefisso `data` seguito da tipo e nome (vedi §4.5).
 
 **Risorse** _(stepTitle)_
 
-Un blocco `resource` definisce un componente dell'infrastruttura; la configurazione di esempio definisce un blocco resource che crea un'istanza EC2 di AWS. Sono gli sviluppatori del provider a stabilire quali tipi di risorsa sono supportati e con quali argomenti.
-
-La prima riga di un blocco resource dichiara il tipo e il nome della risorsa: nell'esempio il tipo è `aws_instance`. Il prefisso del tipo corrisponde al nome del provider, mentre il resto della stringa è il tipo di risorsa definito dal provider. Insieme, tipo e nome formano un indirizzo univoco della risorsa nella configurazione: l'indirizzo dell'istanza EC2 è `aws_instance.app_server`, e con questo indirizzo si fa riferimento alla risorsa in altre parti della configurazione.
-
-Gli argomenti del blocco resource configurano la risorsa e il suo comportamento. L'argomento `ami` specifica l'immagine macchina da usare, facendo riferimento all'attributo `id` del data source `data.aws_ami.ubuntu`. L'argomento `instance_type` imposta a mano il tipo `t2.micro`, che rientra nel free tier di AWS. L'argomento `tags` imposta il nome dell'istanza EC2, e nello stesso argomento si possono impostare anche altri tag.
+Il blocco `resource` definisce un componente dell'infrastruttura, con tipi e argomenti stabiliti dal provider. Il prefisso del tipo `aws_instance` è il nome del provider, e tipo e nome formano l'indirizzo `aws_instance.app_server`, usato per fare riferimento alla risorsa (vedi §4.3). `ami` fa riferimento all'attributo `id` del data source, `instance_type` imposta `t2.micro` (free tier) e `tags` il nome dell'istanza.
 
 ### 3.2.3 — Formattare la configurazione
 
-HashiCorp consiglia una formattazione coerente, che garantisce la leggibilità. Il comando `terraform fmt` riformatta automaticamente tutti i file di configurazione della directory corrente secondo lo stile raccomandato da HashiCorp, e stampa i nomi dei file che ha modificato, se ce ne sono. Nel tutorial la configurazione di esempio non rispetta esattamente lo stile raccomandato, quindi Terraform aggiorna il file `main.tf`.
+`terraform fmt` (vedi §3.5) riformatta i file: nel tutorial aggiorna `main.tf`.
 
 ### 3.2.4 — Inizializzare il workspace
 
-Prima di poter applicare la configurazione bisogna inizializzare il workspace Terraform con il comando `terraform init`. Durante l'inizializzazione Terraform scarica e installa nella directory di lavoro corrente i provider definiti nella configurazione: nel tutorial scarica il provider aws e lo installa in una sottodirectory nascosta `.terraform` della directory di lavoro corrente.
-
-Terraform crea inoltre un file chiamato `.terraform.lock.hcl`, che specifica le versioni esatte dei provider usate con il workspace e garantisce coerenza tra un'esecuzione e l'altra. L'output di init invita a includere questo file nel repository del controllo versione, così che Terraform possa fare per default le stesse scelte quando si eseguirà `terraform init` in futuro.
+`terraform init` (vedi §3.4) scarica il provider aws nella directory nascosta `.terraform` e crea il lock file `.terraform.lock.hcl`, da includere nel controllo versione (vedi §2.8).
 
 **Validare la configurazione** _(stepTitle)_
 
-Con il comando `terraform validate` ci si assicura che la configurazione sia sintatticamente valida e internamente coerente. La configurazione di esempio è valida, quindi Terraform restituisce un messaggio di successo (*Success! The configuration is valid.*). Il comando validate aiuta a individuare gli errori nella configurazione: ad esempio, se si scrive male il nome di una risorsa o si fa riferimento a un argomento che la risorsa non supporta, Terraform segnala un errore durante la validazione.
+`terraform validate` (vedi §3.6) conferma che la configurazione è valida (*Success! The configuration is valid.*); un nome di risorsa scritto male o un argomento non supportato darebbero errore.
 
 ### 3.2.5 — Creare l'infrastruttura
 
-Terraform apporta le modifiche all'infrastruttura in due passi. Prima crea un piano di esecuzione con le modifiche che intende fare, che si rivede per assicurarsi che Terraform faccia ciò che ci si aspetta. Poi, una volta approvato il piano, applica le modifiche usando i provider del workspace. Questo workflow permette di individuare e risolvere eventuali problemi imprevisti della configurazione prima che Terraform modifichi l'infrastruttura.
-
-Con il comando `terraform apply` si pianifica e si applica la configurazione: Terraform stampa il piano di esecuzione e chiede di confermare le modifiche prima di applicarle. La configurazione contiene una sola risorsa, `aws_instance.app_server`, quindi il piano indica che Terraform creerà l'istanza EC2.
-
-Il formato dell'output è simile al formato diff generato da strumenti come Git: il `+` accanto a `resource "aws_instance" "app_server"` significa che, applicando il piano, Terraform creerà la risorsa con ID `aws_instance.app_server`. Terraform mostra gli attributi che verranno impostati sull'istanza e indica che alcuni valori saranno noti solo dopo l'apply (*known after apply*).
-
-A questo punto Terraform non ha ancora creato nessuna infrastruttura: se il piano mostrasse modifiche inattese, si potrebbe annullare l'operazione prima del passo di apply. Nel tutorial il piano è accettabile, quindi si digita `yes` alla richiesta di conferma. L'apply richiede qualche minuto, poi l'istanza EC2 compare nella console EC2.
+`terraform apply` stampa il piano e chiede conferma (vedi §3.1). L'output è simile a un diff: il `+` accanto a `resource "aws_instance" "app_server"` indica una creazione, e alcuni valori sono *known after apply*. Fino alla conferma non è stato creato nulla; si risponde `yes` e dopo qualche minuto l'istanza compare nella console EC2.
 
 ### 3.2.6 — Ispezionare lo state
 
-Quando si applica la configurazione, Terraform scrive i dati sull'infrastruttura in un file chiamato `terraform.tfstate`. È il file di state di Terraform, che Terraform usa per gestire le risorse durante tutto il loro ciclo di vita.
+L'apply scrive lo state in `terraform.tfstate`, che Terraform usa per gestire le risorse lungo il loro ciclo di vita (vedi §2.2). `terraform state list` elenca `data.aws_ami.ubuntu` e `aws_instance.app_server` (anche i data source sono registrati nello state), mentre `terraform show` stampa l'intero state. Per ogni piano Terraform confronta lo state, la configurazione e i dati dei provider.
 
-Il comando `terraform state list` elenca le risorse e i data source presenti nello state del workspace, qui `data.aws_ami.ubuntu` e `aws_instance.app_server`. Il data source non è una vera risorsa, ma Terraform lo registra comunque nel file di state. Il comando `terraform show` stampa invece l'intero state del workspace.
-
-Per creare il piano di esecuzione Terraform confronta tre cose: l'ultimo stato noto registrato nel file di state, la configurazione attuale e i dati restituiti dai provider. Lo fa ogni volta che si pianificano e si applicano modifiche all'infrastruttura del workspace.
-
-Il file di state può contenere informazioni sensibili sull'infrastruttura, come password o chiavi di sicurezza. Va quindi conservato in modo sicuro, con accesso limitato a chi deve gestire l'infrastruttura con Terraform. Per default Terraform crea il file di state in locale. Man mano che le operazioni sull'infrastruttura maturano, conservare lo state in remoto con HCP Terraform permette di collaborare più facilmente con il team e di tenere al sicuro il file di state.
+Lo state può contenere dati sensibili, come password o chiavi, e va protetto. Per default è locale; conservarlo in HCP Terraform facilita la collaborazione e lo tiene al sicuro.
 
 - Fonte: [Create infrastructure](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/aws-create)
 
@@ -291,19 +263,9 @@ Il file di state può contenere informazioni sensibili sull'infrastruttura, come
 
 ## 3.3 — Inizializzare la configurazione Terraform
 
-Dopo aver scritto la configurazione Terraform, il core workflow si compone di tre passi principali:
-
-- **Initialize** prepara il workspace perché Terraform possa applicare la configurazione.
-- **Plan** permette di vedere in anteprima le modifiche che Terraform farà, prima di applicarle.
-- **Apply** apporta le modifiche definite dal piano per creare, aggiornare o distruggere le risorse.
-
-Quando si inizializza un workspace, Terraform configura il backend, installa tutti i provider e i moduli a cui fa riferimento la configurazione e crea un lock file delle versioni, se non esiste già. Il comando `terraform init` permette inoltre di cambiare il backend del workspace e di aggiornare i provider e i moduli.
-
-Nel tutorial si inizializza un workspace che usa sia moduli locali sia moduli remoti, si esplora la directory `.terraform` in cui Terraform conserva provider e moduli, e si aggiornano le versioni di provider e moduli. Così si vede il ruolo fondamentale di `terraform init` nel workflow. Il tutorial si può svolgere con lo stesso workflow sia con Terraform Community Edition sia con HCP Terraform.
+`terraform init` configura il backend, installa provider e moduli e crea il lock file se manca; permette anche di cambiare backend e aggiornare provider e moduli (vedi §3.4). Nel tutorial si inizializza un workspace con un modulo locale e uno remoto, si esplora la directory `.terraform` e si aggiornano le versioni.
 
 ### 3.3.1 — La configurazione di esempio
-
-La directory di esempio contiene una configurazione Terraform che usa più provider, un modulo locale e un modulo remoto, con cui si osserva come Terraform inizializza la directory di lavoro:
 
 ```
 .
@@ -318,24 +280,13 @@ La directory di esempio contiene una configurazione Terraform che usa più provi
 └── variables.tf
 ```
 
-Il repository contiene questi file:
-
-- `LICENSE`, con il testo della Mozilla Public License con cui HashiCorp distribuisce la configurazione di esempio;
-- `main.tf`, con le risorse e i data source usati dalla configurazione;
-- la directory `modules/aws-ec2-instance`, con un modulo Terraform che crea un'istanza EC2 su AWS;
-- `README.md`, che descrive la configurazione;
-- `terraform.tf`, che definisce il blocco `terraform` con i provider, il backend remoto e le versioni di Terraform da usare con questa configurazione;
-- `variables.tf`, con le variabili usate nella configurazione.
+Oltre a `LICENSE` e `README.md`, il repository contiene `main.tf` (risorse e data source), il modulo locale `modules/aws-ec2-instance` (un'istanza EC2), `terraform.tf` (blocco `terraform` con provider, backend e versioni) e `variables.tf`.
 
 ### 3.3.2 — Inizializzare il workspace
 
-L'output di `terraform init` descrive i passi che Terraform esegue durante l'inizializzazione del workspace.
-
 **Il backend** _(stepTitle)_
 
-Per prima cosa Terraform inizializza il backend (*Initializing the backend...*). Poiché il blocco `terraform` non include un blocco `cloud` né un blocco `backend`, Terraform usa per default il backend `local`.
-
-Nella variante del tutorial con HCP Terraform si decommenta invece il blocco `cloud` nel file `terraform.tf`, sostituendo il nome dell'organizzazione con la propria:
+Senza blocchi `cloud` o `backend` Terraform usa il backend `local`. Nella variante HCP Terraform si decommenta il blocco `cloud` in `terraform.tf`, e Terraform usa HCP Terraform creando il workspace indicato:
 
 ```
 terraform {
@@ -352,38 +303,24 @@ terraform {
 }
 ```
 
-In questo caso il blocco `terraform` include un blocco `cloud`, quindi Terraform usa il backend di HCP Terraform (*Initializing HCP Terraform...*). Crea inoltre nell'organizzazione un workspace HCP Terraform con il nome indicato nel blocco.
-
 **I moduli** _(stepTitle)_
 
-Poi Terraform scarica i moduli richiesti dalla configurazione. Riconosce che il blocco `module "ec2-instance"` usa il modulo locale `modules/aws-ec2-instance`. Determina poi che il blocco `module "hello"` fa riferimento a un modulo remoto, e lo scarica dal Terraform Registry pubblico (*Downloading registry.terraform.io/joatmon08/hello/random 4.0.0 for hello...*).
+Terraform riconosce il modulo locale `modules/aws-ec2-instance` e scarica dal Registry il modulo remoto `module "hello"` (`joatmon08/hello/random` 4.0.0).
 
 > **Nota**: quando si cambia la `source` o la `version` di un modulo, bisogna reinizializzare la configurazione oppure eseguire `terraform get` per scaricare il nuovo modulo.
 _(infoBox)_
 
-**I provider** _(stepTitle)_
+**I provider e il lock file** _(stepTitle)_
 
-Successivamente Terraform scarica i provider richiesti dalla configurazione. La configurazione non ha ancora un lock file, quindi Terraform scarica i provider aws e random indicati nel blocco `required_providers` del file `terraform.tf`.
-
-Quando si inizializza un workspace, Terraform cerca di scaricare le versioni dei provider indicate nel lock file del workspace. Se il lock file non esiste, usa il blocco `required_providers` per determinare la versione del provider e crea un nuovo lock file. Se non esiste nessuno dei due, cerca un provider corrispondente e ne scarica l'ultima versione.
-
-**Il lock file** _(stepTitle)_
-
-Poi Terraform crea il lock file, se non esiste già, oppure lo aggiorna se necessario. Il lock file di Terraform, `.terraform.lock.hcl`, registra le versioni e gli hash dei provider usati in questa esecuzione. Questo garantisce esecuzioni coerenti in ambienti diversi, perché nelle esecuzioni successive Terraform scaricherà per default le versioni registrate nel lock file. Quando si gestisce la configurazione Terraform in un repository di controllo sorgente, il file `.terraform.lock.hcl` va incluso nel commit insieme ai file di configurazione.
-
-Infine Terraform stampa un messaggio di successo (*Terraform has been successfully initialized!*). Il messaggio ricorda come pianificare la configurazione, e che `terraform init` va rieseguito se si cambiano i moduli o la configurazione del backend.
+Non c'è ancora un lock file, quindi Terraform scarica i provider aws e random secondo `required_providers` (vedi §2.8.2) e crea `.terraform.lock.hcl`, da includere nel commit. L'output finale ricorda di rieseguire `terraform init` se cambiano moduli o backend.
 
 ### 3.3.3 — Validare la configurazione
 
-Ora il workspace è inizializzato e i moduli e i provider richiesti sono stati scaricati. Terraform può quindi verificare che la sintassi della configurazione sia valida e internamente coerente, controllando anche gli argomenti non validi o mancanti nei blocchi resource. Il workspace va inizializzato prima di poter validare la configurazione. Nel tutorial `terraform validate` risponde *Success! The configuration is valid.*
+Con il workspace inizializzato, requisito per la validazione, `terraform validate` (vedi §3.6) risponde *Success! The configuration is valid.*
 
 ### 3.3.4 — Gli artefatti dell'inizializzazione
 
-Quando si inizializza un nuovo workspace Terraform, vengono creati un lock file chiamato `.terraform.lock.hcl` e la directory `.terraform`.
-
 **Il lock file** _(stepTitle)_
-
-Il lock file garantisce che Terraform usi le stesse versioni dei provider in tutto il team e negli ambienti di esecuzione remoti: durante l'inizializzazione Terraform scarica le versioni dei provider indicate in questo file, invece delle versioni più recenti.
 
 ```
 # This file is maintained automatically by "terraform init".
@@ -400,16 +337,14 @@ provider "registry.terraform.io/hashicorp/aws" {
 }
 ```
 
-Se le versioni indicate nei blocchi `provider` del lock file non corrispondono a quelle del blocco `required_providers` della configurazione, Terraform chiede di reinizializzare la configurazione con l'opzione `-upgrade`.
+Se le versioni del lock file non corrispondono a `required_providers`, Terraform chiede di reinizializzare con `-upgrade`.
 
 **La directory .terraform** _(stepTitle)_
 
-Terraform usa la directory `.terraform` per conservare i provider e i moduli del progetto, e vi fa riferimento quando si eseguono validate, plan e apply.
+Contiene i provider e i moduli usati da validate, plan e apply.
 
 > **Nota**: Terraform gestisce automaticamente la directory `.terraform`. Non va inclusa nel controllo versione e il suo contenuto non va modificato direttamente. Il tutorial la esplora solo per mostrare come funziona Terraform: contenuto e struttura della directory possono cambiare tra una versione di Terraform e l'altra.
 _(infoBox)_
-
-La struttura della directory si vede con `tree`:
 
 ```
 $ tree .terraform -L 1
@@ -418,20 +353,9 @@ $ tree .terraform -L 1
 └── providers
 ```
 
-La directory `.terraform` contiene due sottodirectory, `modules` e `providers`, con i moduli e i provider usati dal workspace. Con HCP Terraform contiene anche due file:
+Con HCP Terraform contiene anche il file `environment`, con il nome del workspace, e `terraform.tfstate`, con un riferimento allo state remoto.
 
-```
-$ tree .terraform -L 1
-.terraform
-├── environment
-├── modules
-├── providers
-└── terraform.tfstate
-```
-
-Il file `environment` contiene il nome del workspace HCP Terraform. Il file `terraform.tfstate` contiene un riferimento allo state del workspace in HCP Terraform.
-
-La directory `.terraform/modules` contiene un file `modules.json` e una copia locale del modulo remoto `hello`:
+`.terraform/modules` contiene la copia locale del modulo remoto `hello` e `modules.json`, che elenca i tre moduli: root, il locale `aws-ec2-instance` e il remoto `hello`:
 
 ```
 $ tree .terraform/modules
@@ -440,12 +364,6 @@ $ tree .terraform/modules
 │   └── random.tf
 └── modules.json
 ```
-
-Il file `modules.json` mostra che la configurazione usa tre moduli:
-
-- il modulo root, cioè la configurazione nella directory principale del workspace;
-- il modulo locale `aws-ec2-instance`;
-- il modulo remoto `hello`.
 
 ```
 {
@@ -457,11 +375,7 @@ Il file `modules.json` mostra che la configurazione usa tre moduli:
 }
 ```
 
-Il modulo `aws-ec2-instance` è un modulo locale, quindi Terraform fa riferimento direttamente alla sua configurazione nella directory `modules/aws-ec2-instance` del repository: se si modifica un modulo locale, Terraform vede subito le modifiche. Il modulo `hello` invece è remoto. Durante l'inizializzazione Terraform lo ha scaricato dalla sua sorgente e ne ha salvato una copia locale nella directory `.terraform/modules/hello`.
-
-Questi file vanno considerati di sola lettura, come il resto del contenuto di `.terraform`, e non vanno modificati. Terraform aggiorna un modulo remoto solo quando si esegue `terraform init -upgrade` o `terraform get`.
-
-La directory `.terraform/providers` conserva le versioni in cache di tutti i provider della configurazione. Durante `terraform init`, Terraform scarica i provider definiti nella configurazione dalla loro sorgente, indicata nel blocco `required_providers`. Li salva in directory organizzate come `[hostname]/[namespace]/[name]/[version]/[os_arch]`:
+Il modulo locale è letto direttamente dalla sua directory, quindi le modifiche si vedono subito; quello remoto è una copia di sola lettura, aggiornata solo da `terraform init -upgrade` o `terraform get`. `.terraform/providers` conserva i provider in cache, in directory `[hostname]/[namespace]/[name]/[version]/[os_arch]`:
 
 ```
 $ tree .terraform/providers
@@ -481,7 +395,7 @@ $ tree .terraform/providers
 
 ### 3.3.5 — Aggiornare le versioni di provider e moduli
 
-Nel tutorial si aggiorna a `3.6.1` la versione del provider random in `terraform.tf`, e a `6.0.0` la versione del modulo `hello` in `main.tf`:
+Si porta il provider random a `3.6.1` in `terraform.tf` e il modulo `hello` a `6.0.0` in `main.tf`:
 
 ```
 module "hello" {
@@ -497,25 +411,13 @@ module "hello" {
 
 **Reinizializzare la configurazione** _(stepTitle)_
 
-Le versioni del provider e del modulo sono cambiate, quindi bisogna reinizializzare la configurazione perché Terraform installi le versioni aggiornate. Se si prova a validare, pianificare o applicare la configurazione prima di farlo, Terraform chiede di reinizializzare:
-
-```
-│ Error: Module version requirements have changed
-│
-│   on main.tf line 38, in module "hello":
-│   38:   source  = "joatmon08/hello/random"
-│
-│ The version requirements have changed since this module was installed and the installed version (4.0.0) is no longer acceptable. Run "terraform init" to
-│ install all modules required by this configuration.
-```
-
-Rieseguendo `terraform init`, Terraform scarica la nuova versione del modulo e la salva in `.terraform/modules/hello`. Non riesce però ad aggiornare il provider, perché la nuova versione è in conflitto con quella registrata nel lock file. Bisogna quindi reinizializzare con l'opzione `-upgrade`, che aggiorna il provider alla versione più recente compatibile con il suo vincolo di versione:
+Prima di reinizializzare, validate, plan e apply falliscono con *Module version requirements have changed*. `terraform init` scarica il nuovo modulo, ma non aggiorna il provider perché è in conflitto con il lock file: serve `-upgrade`:
 
 ```
 $ terraform init -upgrade
 ```
 
-Dopo l'aggiornamento, la directory `.terraform/providers` contiene sia la versione 3.6.0 sia la 3.6.1 del provider random:
+`.terraform/providers` contiene ora sia la 3.6.0 sia la 3.6.1, ma Terraform usa quella registrata nel lock file:
 
 ```
 $ tree .terraform/providers -L 4
@@ -528,8 +430,6 @@ $ tree .terraform/providers -L 4
             ├── 3.6.0
             └── 3.6.1
 ```
-
-Il lock file registra la 3.6.1. Anche con due versioni del provider random in `.terraform/providers`, Terraform usa sempre quella registrata nel lock file:
 
 ```
 provider "registry.terraform.io/hashicorp/random" {
@@ -544,7 +444,7 @@ provider "registry.terraform.io/hashicorp/random" {
 
 **Aggiornare gli argomenti del modulo** _(stepTitle)_
 
-Dopo l'aggiornamento di provider e modulo bisogna verificare che la configurazione sia ancora valida. Ora `terraform validate` segnala argomenti obbligatori mancanti (`some_key` e `hellos`) e argomenti non supportati, perché la nuova versione del modulo `hello` si aspetta argomenti diversi dalla vecchia. Si sostituisce quindi l'intero blocco `module "hello"`:
+`terraform validate` segnala argomenti mancanti (`some_key`, `hellos`) e non supportati, perché la nuova versione del modulo ha un'interfaccia diversa. Si sostituisce il blocco `module "hello"`, e la configurazione torna valida:
 
 ```
 module "hello" {
@@ -560,14 +460,7 @@ module "hello" {
 }
 ```
 
-Dopo questa modifica la configurazione torna valida, e il workspace è inizializzato e pronto per l'apply.
-
-Il tutorial riassume così i casi in cui inizializzare un workspace Terraform con `terraform init`:
-
-- quando si crea una nuova configurazione Terraform e si è pronti a usarla per creare un workspace ed effettuare il provisioning dell'infrastruttura;
-- quando si clona un repository di controllo versione che contiene una configurazione Terraform e si è pronti a usarla per creare un workspace ed effettuare il provisioning dell'infrastruttura;
-- quando in un workspace esistente si aggiunge o si rimuove un modulo o un provider, o se ne cambia la versione;
-- quando nel blocco `terraform` di un workspace esistente si aggiunge, si rimuove o si modifica il blocco `backend` o `cloud`.
+Il tutorial ricorda di eseguire `terraform init` quando si crea una nuova configurazione o si clona un repository, quando si aggiungono, rimuovono o cambiano di versione moduli o provider, e quando si modifica il blocco `backend` o `cloud`.
 
 - Fonte: [Initialize Terraform configuration](https://developer.hashicorp.com/terraform/tutorials/cli/init)
 
@@ -581,7 +474,7 @@ Il comando `terraform init` inizializza una directory di lavoro che contiene fil
 
 La sintassi è `terraform init [options]`. Il comando esegue diversi passi di inizializzazione per preparare la directory di lavoro corrente all'uso con Terraform. Le sezioni seguenti descrivono i singoli passi, ma nella maggior parte dei casi non serve preoccuparsene.
 
-Il comando si può sempre eseguire più volte senza rischi, per allineare la directory di lavoro alle modifiche della configurazione. Le esecuzioni successive possono dare errori, ma il comando non cancella mai la configurazione o lo state esistenti.
+Le esecuzioni ripetute allineano la directory alle modifiche della configurazione: possono dare errori, ma non cancellano mai la configurazione o lo state esistenti.
 
 ### 3.4.2 — Opzioni generali
 
@@ -633,11 +526,11 @@ La maggior parte dei provider di Terraform è pubblicata separatamente da Terraf
 
 Per i provider pubblicati nel Terraform Registry pubblico o in un registry di provider di terze parti, `terraform init` trova, scarica e installa automaticamente i plugin necessari. Se non si può o non si vuole installare i provider dai loro registry di origine, si può personalizzare il modo in cui Terraform li installa: lo si fa con le impostazioni di installazione dei provider della configurazione della CLI. Come specificare quali provider richiede ciascun modulo è spiegato nella pagina *Provider Requirements* (sezione 2.7).
 
-Dopo un'installazione riuscita, Terraform scrive le informazioni sui provider selezionati nel dependency lock file. Questo file va incluso nel sistema di controllo versione: così, quando si eseguirà di nuovo `terraform init`, Terraform selezionerà esattamente le stesse versioni dei provider. Con l'opzione `-upgrade` Terraform ignora invece il dependency lock file e considera l'installazione di versioni più recenti.
+Dopo un'installazione riuscita, Terraform scrive i provider selezionati nel dependency lock file, da includere nel controllo versione (vedi §2.8).
 
 Il comportamento di init rispetto ai plugin si può modificare con queste opzioni:
 
-- `-upgrade`: aggiorna tutti i plugin selezionati in precedenza alla versione più recente che rispetta i vincoli di versione della configurazione. Terraform ignora le selezioni registrate nel dependency lock file e prende la versione più recente disponibile che soddisfa i vincoli configurati.
+- `-upgrade`: aggiorna tutti i plugin alla versione più recente che rispetta i vincoli, ignorando le selezioni del lock file (vedi §2.8.2).
 - `-get-plugins=false`: salta l'installazione dei plugin. Da Terraform 0.13 questa opzione è stata sostituita dalle impostazioni `provider_installation` e `plugin_cache_dir`. Non va usata dalla 0.13 in poi, ed è stata rimossa in Terraform 0.15.
 - `-plugin-dir=PATH`: forza l'installazione a leggere i plugin solo dalla directory indicata, come se fosse configurata come `filesystem_mirror` nella configurazione della CLI. Se si usa abitualmente un determinato mirror su filesystem, è consigliato configurare i metodi di installazione di Terraform a livello globale. `-plugin-dir` serve come override una tantum per situazioni eccezionali, ad esempio per testare la build locale di un plugin di provider che si sta sviluppando.
 - `-lockfile=MODE`: imposta una modalità per il dependency lock file. L'unico valore valido è `readonly`, che non modifica il lock file ma verifica i checksum rispetto alle informazioni già registrate, ed è in conflitto con l'opzione `-upgrade`. È utile per decidere esplicitamente quando cambia il lock file, se lo si aggiorna con strumenti di gestione delle dipendenze di terze parti.
@@ -783,15 +676,11 @@ Un oggetto valore di espressione dà informazioni aggiuntive su un valore che fa
 
 ## 3.7 — Creare un piano Terraform
 
-Quando si effettua il provisioning dell'infrastruttura, Terraform crea un piano di esecuzione prima di applicare qualsiasi modifica. Il piano nasce dal confronto tra la configurazione e lo state dell'infrastruttura, ed è un insieme di modifiche che creano, aggiornano o distruggono risorse.
-
-Il comando `terraform plan` serve a tre cose: confrontare la configurazione con lo state delle risorse, rivedere le modifiche prima di applicarle, e aggiornare (refresh) lo state del workspace. Il plan supporta i workflow di automazione nelle pipeline CI/CD. Garantisce infatti che le modifiche applicate da Terraform siano quelle approvate, anche se il deployment si svolge su macchine diverse o in momenti diversi.
-
-Il tutorial mostra come Terraform genera un piano di esecuzione, cosa contiene e che ruolo ha `terraform plan` nel workflow. Si crea e si applica un piano salvato, se ne rivede il contenuto e si osserva come il piano riflette le modifiche alla configurazione. Il tutorial si può svolgere con Terraform Community Edition o con HCP Terraform.
+Il piano di esecuzione confronta configurazione e state e propone le modifiche (vedi §3.8). Nel tutorial si crea un piano salvato, se ne esamina il contenuto JSON, lo si applica e si osserva come il piano riflette le modifiche alla configurazione.
 
 ### 3.7.1 — La configurazione di esempio
 
-La configurazione di esempio crea un'istanza EC2 tramite risorse e moduli locali e pubblici; la sottodirectory `modules/aws-ec2-instance` contiene il modulo locale usato per creare l'istanza. Terraform usa le versioni dei provider indicate nel file `terraform.tf`:
+La configurazione crea un'istanza EC2 con il modulo locale `modules/aws-ec2-instance`, un nome generato da `random_pet` e il modulo `hello` (il blocco della versione 6.0.0 di §3.3.5). Le versioni dei provider sono in `terraform.tf`:
 
 ```
 terraform {
@@ -810,45 +699,17 @@ terraform {
 }
 ```
 
-Il file `main.tf` di primo livello usa il provider aws per creare un'istanza EC2 con un'AMI Ubuntu. La risorsa `random_pet` genera un nome per l'istanza, e il blocco `module.ec2-instance` usa il modulo locale `aws-ec2-instance` per definire l'istanza. La configurazione passa il nome casuale anche al modulo `hello`, che genera output con quel nome:
-
-```
-module "hello" {
-  source  = "joatmon08/hello/random"
-  version = "6.0.0"
-
-  hellos = {
-    hello        = random_pet.instance.id
-    second_hello = "World"
-  }
-
-  some_key = "secret"
-}
-```
-
-Per generare il piano di esecuzione, Terraform deve installare i provider e i moduli referenziati dalla configurazione. Il tutorial inizializza quindi la configurazione con `terraform init`; nella variante HCP Terraform lo fa dopo aver decommentato il blocco `cloud` in `terraform.tf`.
+Si inizializza con `terraform init` (nella variante HCP Terraform dopo aver decommentato il blocco `cloud`).
 
 ### 3.7.2 — Creare un piano
 
-Tre comandi dicono a Terraform di generare un piano di esecuzione:
-
-- `terraform plan` crea un piano con l'insieme di modifiche che renderanno le risorse conformi alla configurazione. Permette di vedere in anteprima le azioni che Terraform compirebbe sull'infrastruttura. Non apporta nessuna modifica alle risorse: perché Terraform le modifichi bisogna applicare un piano. Con l'opzione `-out` si può salvare il piano e applicarlo in seguito, e Terraform eseguirà solo le modifiche elencate nel piano. In una pipeline automatizzata, applicare un file di piano salvato garantisce che Terraform faccia solo le modifiche previste, anche se la pipeline gira su più macchine in momenti diversi.
-- `terraform apply` applica un piano Terraform. Se non gli si passa un piano salvato, Terraform crea un piano e chiede l'approvazione prima di applicarlo.
-- `terraform destroy` crea un piano di esecuzione che elimina tutte le risorse gestite dal workspace.
-
-Il tutorial genera un piano salvato con l'opzione `-out`:
+Un piano si genera con `terraform plan` (con `-out` per salvarlo), `terraform apply` o `terraform destroy` (vedi §3.8, §3.10 e §3.11). Il tutorial salva il piano:
 
 ```
 $ terraform plan -out "tfplan"
 ```
 
-Terraform crea il piano e lo salva nel file `tfplan`. Con HCP Terraform il piano viene creato in HCP Terraform, e il file locale `tfplan` contiene solo un riferimento al piano.
-
-Quando crea un piano, Terraform controlla se il workspace ha già un file di state. La configurazione non è ancora stata applicata, quindi lo state del workspace è vuoto e Terraform pianifica di creare tutte le risorse definite nella configurazione.
-
-Il file di piano salvato si può applicare per eseguire le modifiche, ma il suo contenuto non è leggibile. Per stamparlo si usa il comando `terraform show "tfplan"`, che mostra lo stesso output stampato alla creazione del piano. Questo output si può rivedere con il team prima di applicare il piano salvato, per verificare che le modifiche siano quelle previste.
-
-Terraform può anche riportare il contenuto del piano salvato in formato JSON. È utile soprattutto nelle pipeline automatizzate, perché il piano si può ispezionare con del codice. Il tutorial converte il piano in JSON, lo formatta con `jq` e lo salva in un nuovo file:
+Con HCP Terraform il piano è creato in remoto e `tfplan` ne contiene solo un riferimento. Lo state è vuoto, quindi il piano crea tutte le risorse. Il file non è leggibile: `terraform show "tfplan"` lo stampa, e `-json` lo converte per l'ispezione automatica:
 
 ```
 $ terraform show -json "tfplan" | jq > tfplan.json
@@ -859,9 +720,7 @@ _(infoBox)_
 
 ### 3.7.3 — Rivedere il piano
 
-Questa parte del tutorial usa `jq` per esaminare i dati che Terraform registra sulle risorse nel file di piano in formato JSON.
-
-Terraform registra nel piano la versione di Terraform che lo ha generato (`terraform_version`, ad esempio `"1.12.0"`) e la versione del formato del file di piano (`format_version`, ad esempio `"1.2"`). Così, quando si usa il piano salvato, si ha la garanzia di applicare le modifiche con la stessa versione:
+Il piano registra la versione di Terraform (`terraform_version`) e del formato (`format_version`), così lo si applica con la stessa versione:
 
 ```
 $ jq '.terraform_version, .format_version' tfplan.json
@@ -869,20 +728,20 @@ $ jq '.terraform_version, .format_version' tfplan.json
 
 **La configurazione nel piano** _(stepTitle)_
 
-L'oggetto JSON `.configuration` è un'istantanea della configurazione al momento di `terraform plan`. L'istantanea registra le versioni dei provider presenti nel file `.terraform.lock.hcl`, così per applicare il piano si usano le stesse versioni dei provider che lo hanno generato. Comprende sia i provider usati dal modulo root sia quelli usati dai moduli figli:
+`.configuration` è un'istantanea della configurazione, con le versioni dei provider del lock file per il root e per i moduli figli:
 
 ```
 $ jq '.configuration.provider_config' tfplan.json
 ```
 
-La sezione `configuration` organizza poi le risorse definite nel modulo root di primo livello. La sezione `module_calls` contiene i dettagli dei moduli usati: le loro input variable, i loro output e le risorse da creare:
+Contiene le risorse del modulo root e, in `module_calls`, input, output e risorse dei moduli:
 
 ```
 $ jq '.configuration.root_module.resources' tfplan.json
 $ jq '.configuration.root_module.module_calls' tfplan.json
 ```
 
-L'oggetto configuration registra anche i riferimenti ad altre risorse presenti nella configurazione di una risorsa. Questo aiuta Terraform a stabilire l'ordine corretto delle operazioni quando applica il piano. Ad esempio, l'argomento `hellos` del modulo `hello` fa riferimento a `random_pet.instance.id` e `random_pet.instance`:
+Registra anche i riferimenti tra risorse, che servono a ordinare le operazioni: ad esempio `hellos` del modulo `hello` fa riferimento a `random_pet.instance.id`:
 
 ```
 $ jq '.configuration.root_module.module_calls.hello.expressions.hellos.references' tfplan.json
@@ -890,13 +749,7 @@ $ jq '.configuration.root_module.module_calls.hello.expressions.hellos.reference
 
 **Le modifiche pianificate alle risorse** _(stepTitle)_
 
-Il tutorial esamina le modifiche pianificate alla risorsa `aws_instance` del modulo locale `ec2-instance`, nell'elenco `.resource_changes[]`. La rappresentazione include:
-
-- il campo `action`, con l'azione eseguita per la risorsa, in questo caso `create`;
-- il campo `before`, con lo state della risorsa prima del run; qui il valore è `null` perché la risorsa non esiste ancora;
-- il campo `after`, con lo state da definire per la risorsa;
-- il campo `after_unknown`, con l'elenco dei valori che verranno calcolati durante l'operazione, impostati a `true`;
-- i campi `before_sensitive` e `after_sensitive`, con l'elenco dei valori marcati come sensitive; Terraform usa questi elenchi per decidere quali valori di output oscurare quando si applica la configurazione.
+In `.resource_changes[]` ogni risorsa ha `action` (qui `create`), `before` (qui `null`), `after`, `after_unknown` (valori calcolati durante l'operazione) e `before_sensitive`/`after_sensitive` (valori da oscurare):
 
 ```
 $ jq '.resource_changes[] | select( .address == "module.ec2-instance.aws_instance.main")' tfplan.json
@@ -904,30 +757,22 @@ $ jq '.resource_changes[] | select( .address == "module.ec2-instance.aws_instanc
 
 **I valori pianificati** _(stepTitle)_
 
-L'oggetto `planned_values` riassume le differenze tra i valori "before" e "after" delle risorse, e mostra il risultato previsto di un run che usasse questo file di piano:
+`planned_values` unisce state precedente e atteso in un oggetto per risorsa, con indirizzo, provider e valori degli attributi. Lo usano ad esempio la CLI di Sentinel per testare le policy e la stima dei costi di HCP Terraform:
 
 ```
 $ jq '.planned_values' tfplan.json
 ```
 
-Nell'esempio, la risorsa `module.ec2-instance.aws_instance` include in un unico oggetto:
-
-- l'indirizzo da usare per fare riferimento alla risorsa nella configurazione;
-- il nome del provider;
-- i valori di tutti gli attributi.
-
-Questo formato unisce in un solo oggetto lo state precedente e quello atteso, per mostrare i risultati pianificati della configurazione. Così è più facile da usare per chi elabora a valle i dati del piano. Ad esempio, la CLI di Terraform Sentinel testa le policy sui risultati pianificati registrati qui. Anche la stima dei costi di HCP Terraform usa i dati di `planned_values` per calcolare come cambia la spesa per l'infrastruttura.
-
 ### 3.7.4 — Applicare un piano salvato
 
-Il tutorial applica poi il piano salvato con `terraform apply "tfplan"`. Terraform, o HCP Terraform, applica le modifiche come descritte nel piano salvato.
+Si applica con `terraform apply "tfplan"`.
 
 > **Nota**: quando si applica un file di piano salvato, Terraform non chiede l'approvazione ma esegue subito le modifiche. Questo workflow si usa soprattutto in automazione.
 _(infoBox)_
 
 ### 3.7.5 — Modificare la configurazione e creare un nuovo piano
 
-Le input variable permettono di aggiornare facilmente i valori della configurazione senza modificare i file di configurazione. Il tutorial definisce in `variables.tf` una nuova input variable da usare per il modulo `hello`:
+Si aggiunge in `variables.tf` una variabile sensitive per il modulo `hello`, la si valorizza in `terraform.tfvars` (`secret_key = "TOPSECRET"`) e la si usa nel modulo:
 
 ```
 variable "secret_key" {
@@ -937,12 +782,8 @@ variable "secret_key" {
 }
 ```
 
-Poi si crea un file `terraform.tfvars` che imposta il valore della nuova variabile (`secret_key = "TOPSECRET"`).
-
 > **Attenzione**: i file `.tfvars` non vanno mai inclusi nel controllo versione.
 _(infoBox)_
-
-Infine si aggiorna la configurazione del modulo `hello` in `main.tf` perché usi la nuova variabile:
 
 ```
 module "hello" {
@@ -958,8 +799,6 @@ module "hello" {
 }
 ```
 
-Si crea quindi un nuovo piano salvato, `tfplan-input-var`, e lo si converte in JSON:
-
 ```
 $ terraform plan -out "tfplan-input-var"
 $ terraform show -json tfplan-input-var | jq > tfplan-input-var.json
@@ -967,24 +806,24 @@ $ terraform show -json tfplan-input-var | jq > tfplan-input-var.json
 
 ### 3.7.6 — Rivedere il nuovo piano
 
-Questa volta Terraform ha trovato un file di state nella directory di lavoro e lo ha usato per pianificare le modifiche alle risorse. Il piano è stato creato con risorse esistenti e con input variable, quindi il file di piano contiene alcuni campi nuovi.
+Ora c'è uno state, quindi il piano contiene campi nuovi.
 
 **Le input variable nel piano** _(stepTitle)_
 
-Ora che sono definite delle input variable, Terraform le registra nel file di piano, ad esempio `project_name`, `region` e `secret_key` con i rispettivi valori:
+Le variabili (`project_name`, `region`, `secret_key`) sono registrate nel piano con i loro valori:
 
 ```
 $ jq '.variables' tfplan-input-var.json
 ```
 
-> **Attenzione**: anche se la variabile è marcata come sensitive, Terraform ne conserva il valore in chiaro nel file di piano. I file di piano possono quindi contenere informazioni sensibili: vanno custoditi in modo sicuro e mai inclusi nel controllo versione.
+> **Attenzione**: anche se la variabile è marcata come sensitive, Terraform ne conserva il valore in chiaro nel file di piano.
 _(infoBox)_
 
-A differenza delle input variable, i valori delle variabili d'ambiente usate dalla configurazione non finiscono nei file di piano. Le variabili d'ambiente sono infatti uno dei modi consigliati per passare a Terraform valori sensibili, come le credenziali dei provider.
+Le variabili d'ambiente, invece, non finiscono nel piano: per questo sono un modo consigliato di passare credenziali.
 
 **Lo state precedente nel piano** _(stepTitle)_
 
-A differenza del primo file di piano, questo contiene un oggetto `prior_state`, che registra il file di state esattamente com'era prima del plan:
+L'oggetto `prior_state` registra lo state com'era prima del plan:
 
 ```
 $ jq '.prior_state' tfplan-input-var.json
@@ -992,26 +831,20 @@ $ jq '.prior_state' tfplan-input-var.json
 
 **Le modifiche alle risorse** _(stepTitle)_
 
-Ora che il file di state contiene delle risorse, Terraform tiene conto dello state esistente quando crea un piano di esecuzione. Ad esempio, l'oggetto `module.hello.random_pet.server` contiene ora dati sia nel campo `before` sia nel campo `after`: rappresentano rispettivamente la configurazione precedente e quella desiderata.
+`module.hello.random_pet.server` ha ora sia `before` sia `after`; `actions` vale `["delete","create"]` e `action_reason` `"replace_because_cannot_update"`, perché la modifica a `secret_key` non si può applicare sul posto:
 
 ```
 $ jq '.resource_changes[] | select( .address == "module.hello.random_pet.server")' tfplan-input-var.json
 ```
 
-L'elenco `actions` è ora `["delete","create"]` e `action_reason` vale `"replace_because_cannot_update"`. La modifica a `secret_key` è distruttiva per questa risorsa, quindi Terraform deve eliminarla e ricrearla. Terraform decide se aggiornare una risorsa sul posto o ricrearla in base a quali attributi del provider sono cambiati.
-
-Una volta create le risorse nella directory di lavoro, Terraform decide le modifiche da fare in base a tre elementi: lo state precedente, i dati restituiti dal refresh e la configurazione scritta. Terraform offre anche opzioni per cambiare il modo in cui costruisce il piano. Ad esempio, si può creare un piano che aggiorna solo il file di state senza toccare la configurazione delle risorse. Oppure si può limitare il piano ad alcune risorse specifiche (target), da aggiornare o sostituire.
-
 ### 3.7.7 — Il piano di distruzione
-
-Per eliminare le risorse create, il tutorial crea e applica un piano di distruzione:
 
 ```
 $ terraform plan -destroy -out "tfplan-destroy"
 $ terraform apply "tfplan-destroy"
 ```
 
-Con l'opzione `-destroy`, Terraform crea un piano che distrugge tutte le risorse della configurazione. Il comando `terraform destroy` è una scorciatoia che crea un piano di distruzione e poi attende l'approvazione. Salvare un piano di distruzione permette di rivederlo prima di applicarlo, proprio come un normale piano salvato.
+Salvare un piano di distruzione permette di rivederlo prima di applicarlo; `terraform destroy` ne è la scorciatoia interattiva (vedi §3.8.3 e §3.11).
 
 - Fonte: [Create a Terraform plan](https://developer.hashicorp.com/terraform/tutorials/cli/plan)
 
@@ -1153,13 +986,11 @@ Fino a Terraform v0.13 il comando accettava anche un argomento posizionale con u
 
 ## 3.9 — Applicare la configurazione Terraform
 
-Dopo aver scritto la configurazione, il core workflow di Terraform si compone di tre passi principali: initialize, plan e apply (sezione 3.3). Quando si applicano modifiche all'infrastruttura, Terraform esegue i passi registrati in un piano di esecuzione, usando i provider e i moduli installati durante l'inizializzazione. Questi passi creano, aggiornano ed eliminano l'infrastruttura per renderla conforme alla configurazione delle risorse.
-
-Nel tutorial si applica una configurazione di esempio e si osservano i passi che Terraform compie per applicare le modifiche. Si vede inoltre come Terraform si riprende dagli errori durante l'apply, e alcuni modi comuni di usare il comando apply. Il tutorial si può svolgere con Terraform Community Edition o con HCP Terraform.
+L'apply esegue i passi del piano con i provider e i moduli installati da init (vedi §3.10). Nel tutorial si osservano i passi dell'apply, come Terraform si riprende dagli errori e alcuni usi comuni del comando.
 
 ### 3.9.1 — La configurazione di esempio
 
-La configurazione di esempio crea un'istanza EC2 e un bucket S3. Terraform usa le versioni dei provider indicate nel file `terraform.tf`:
+La configurazione crea un'istanza EC2 e un bucket S3, con queste versioni dei provider in `terraform.tf`:
 
 ```
 terraform {
@@ -1184,35 +1015,26 @@ terraform {
 }
 ```
 
-Il file `main.tf` definisce la configurazione di un'istanza EC2 e di un bucket S3. La risorsa `aws_instance.main` dipende dalla risorsa `random_pet.instance` e dal data source `aws_ami.ubuntu`. Quando si applica la configurazione, Terraform crea quindi la risorsa `random_pet` e popola il data source `aws_ami` prima di creare l'istanza. La risorsa `aws_s3_bucket.example` non dipende da nessun'altra, quindi Terraform la crea in parallelo con le altre risorse.
-
-Per generare il piano di esecuzione, Terraform deve installare i provider e i moduli referenziati dalla configurazione. Il tutorial inizializza quindi la configurazione con `terraform init`; nella variante HCP Terraform lo fa dopo aver decommentato il blocco `cloud`.
+`aws_instance.main` dipende da `random_pet.instance` e dal data source `aws_ami.ubuntu`, che vengono quindi creati o letti prima; `aws_s3_bucket.example` non ha dipendenze e viene creato in parallelo. Si inizializza con `terraform init`.
 
 ### 3.9.2 — Applicare la configurazione
 
-Si applica la configurazione con `terraform apply`. Non è stato fornito un piano salvato, quindi Terraform crea un piano e chiede di approvarlo prima di modificare qualsiasi risorsa. Una volta approvato il piano, Terraform applica la configurazione in questi passi:
+Senza piano salvato, `terraform apply` crea un piano e chiede l'approvazione. Poi Terraform:
 
-1. mette un lock sullo state del workspace, così nessun'altra istanza di Terraform può modificare lo state o applicare modifiche alle risorse. Se trova un lock file esistente (`.terraform.tfstate.lock.info`), segnala un errore ed esce;
-2. crea un piano e attende l'approvazione. In alternativa si può fornire un piano salvato creato con `terraform plan`, e allora Terraform non chiede l'approvazione;
-3. esegue i passi definiti nel piano con i provider installati durante l'inizializzazione. Li esegue in parallelo quando possibile, e in sequenza quando una risorsa dipende da un'altra;
-4. aggiorna lo state del workspace con un'istantanea del nuovo stato delle risorse;
-5. rimuove il lock dallo state del workspace;
-6. riporta le modifiche apportate e i valori di output definiti nella configurazione.
+1. mette un lock sullo state; se trova un lock esistente (`.terraform.tfstate.lock.info`) segnala un errore ed esce;
+2. crea il piano e attende l'approvazione, salvo piano salvato (vedi §3.10.1);
+3. esegue i passi del piano, in parallelo quando possibile e in sequenza dove ci sono dipendenze (vedi §3.13);
+4. aggiorna lo state con il nuovo stato delle risorse;
+5. rimuove il lock;
+6. riporta le modifiche e gli output.
 
-Si risponde `yes` alla richiesta di conferma per applicare il piano proposto. Quando crea un piano, Terraform analizza le dipendenze tra le risorse, così apporta le modifiche nell'ordine corretto e, quando possibile, in parallelo. Nel tutorial crea per prima la risorsa `random_pet`, e poi in parallelo le istanze che dipendono da essa. Durante l'apply, Terraform riporta l'avanzamento mentre crea, aggiorna ed elimina le risorse.
+Nel tutorial crea prima `random_pet` e poi, in parallelo, le istanze che ne dipendono.
 
 ### 3.9.3 — Errori durante l'apply
 
-Quando incontra un errore durante un passo di apply, Terraform:
+In caso di errore Terraform lo riporta, aggiorna lo state con le modifiche già fatte, rimuove il lock ed esce. Non c'è rollback automatico: dopo aver risolto l'errore si riapplica la configurazione.
 
-- registra l'errore e lo riporta nella console;
-- aggiorna il file di state con le eventuali modifiche alle risorse;
-- rimuove il lock dal file di state;
-- esce.
-
-Dopo un errore durante l'apply, l'infrastruttura può trovarsi in uno stato non valido. Terraform non supporta il rollback automatico di un apply rimasto a metà. Dopo aver risolto l'errore, bisogna applicare di nuovo la configurazione per portare l'infrastruttura allo stato desiderato.
-
-Per vedere come Terraform gestisce gli errori, il tutorial introduce di proposito un errore durante un apply. Si aggiunge a `main.tf` la configurazione di un nuovo oggetto S3:
+Per provocare un errore si aggiunge un oggetto S3, si salva il piano con `terraform plan -out "add-object"` e si elimina il bucket fuori da Terraform:
 
 ```
 resource "aws_s3_object" "example" {
@@ -1225,43 +1047,25 @@ resource "aws_s3_object" "example" {
 }
 ```
 
-Si crea un piano salvato per la nuova configurazione con `terraform plan -out "add-object"`. Poi si elimina il bucket al di fuori di Terraform, dalla console AWS o con la AWS CLI. Il piano presuppone che il bucket esista, quindi il suo apply darà errore.
+`terraform apply "add-object"` fallisce, perché il bucket del piano non esiste più. Le cause comuni degli errori di apply sono:
 
-Applicando il piano con `terraform apply "add-object"`, Terraform va in errore quando cerca di creare l'oggetto `aws_s3_object.example`. Il bucket S3 è stato rimosso dopo la creazione del piano, quindi AWS non riesce a creare l'oggetto, e il provider AWS riporta l'errore a Terraform.
+- una modifica a una risorsa fuori dal controllo di Terraform;
+- errori di rete o temporanei;
+- errori attesi dell'API, come un nome duplicato o un limite di risorse raggiunto;
+- errori inattesi dell'API, come un errore interno del server;
+- un bug del provider o di Terraform.
 
-Le cause comuni degli errori di apply sono:
-
-- una modifica a una risorsa al di fuori del controllo di Terraform;
-- errori di rete o altri errori temporanei;
-- un errore atteso dall'API a monte, come un nome di risorsa duplicato o il raggiungimento di un limite di risorse;
-- un errore inatteso dall'API a monte, come un errore interno del server;
-- un bug nel codice del provider Terraform o in Terraform stesso.
-
-A seconda della causa, per risolvere il problema bisogna modificare la configurazione oppure diagnosticare e correggere l'errore dal lato delle API del cloud provider. Il progetto Terraform continua a tenere traccia del bucket, perché non ha ancora aggiornato (refresh) lo state della risorsa. Se si stampa lo state del bucket S3 con `terraform show`, lo state riporta ancora il bucket eliminato a mano.
-
-Terraform conserva ciò che sa dello stato delle risorse in locale, nel file `terraform.tfstate`, oppure in un backend remoto come HCP Terraform. Il comando `terraform show` stampa lo state ma non lo aggiorna, quindi le informazioni possono essere obsolete.
-
-Quando si applica un piano, Terraform apporta solo le modifiche definite nel piano. Se le risorse cambiano tra la creazione del piano e il suo apply, Terraform può andare in errore, perché il piano non si può più applicare così com'è scritto. Per risolvere l'errore bisogna creare e applicare un nuovo piano che tenga conto del bucket mancante.
-
-Al plan successivo, Terraform aggiorna lo stato delle risorse leggendolo dalle API con i provider installati. Si accorge che il bucket della risorsa `aws_s3_bucket.example` non esiste più, e genera un piano che lo ricrea prima di creare il nuovo oggetto `aws_s3_object.example`.
-
-Applicando la configurazione, Terraform aggiorna lo state del workspace per registrare che il bucket S3 non esiste più (*Note: Objects have changed outside of Terraform*). Poi crea un piano che crea sia il bucket sia l'oggetto, per riallineare lo state alla configurazione, e attende la conferma. Le risorse possono cambiare fuori dal controllo di Terraform per molti motivi. Nella maggior parte dei casi Terraform gestisce da solo queste differenze, e crea, distrugge o aggiorna le risorse per renderle conformi alla configurazione.
-
-In questo caso è bastato riapplicare la configurazione per riprendersi dall'errore. A seconda della causa, può essere necessario risolvere l'errore al di fuori di Terraform o modificare la configurazione. Ad esempio, se Terraform riporta un errore di limite di risorse dall'API del cloud provider, bisogna chiedere al cloud provider di alzare quel limite prima di applicare la configurazione.
+`terraform show` riporta ancora il bucket, perché stampa lo state senza aggiornarlo, e un piano salvato non si può applicare se le risorse sono cambiate dopo la sua creazione. Al plan successivo il refresh rileva il bucket mancante (*Objects have changed outside of Terraform*), e Terraform propone di ricreare sia il bucket sia l'oggetto. In altri casi l'errore va risolto fuori da Terraform, ad esempio chiedendo al cloud provider di alzare un limite.
 
 ### 3.9.4 — Sostituire le risorse
 
-Con Terraform di solito si applica l'intera modifica alla configurazione in una volta, e sono Terraform e i suoi provider a decidere quali modifiche fare e in che ordine. In alcuni casi però può servire sostituire o modificare singole risorse. Per questo Terraform offre due argomenti dei comandi plan e apply che agiscono su risorse specifiche: `-replace` e `-target`.
-
-L'argomento `-replace` si usa quando una risorsa è diventata non sana (unhealthy) o smette di funzionare per motivi fuori dal controllo di Terraform. Ad esempio, un errore nella configurazione del sistema operativo di un'istanza EC2 può richiedere di sostituire l'istanza. La configurazione Terraform non cambia, quindi bisogna dire esplicitamente a Terraform di ricreare la risorsa con la stessa configurazione.
-
-L'argomento `-replace` richiede l'indirizzo di una risorsa, che si ricava elencando le risorse con `terraform state list`. Nel tutorial si sostituisce la seconda istanza EC2:
+Per agire su singole risorse ci sono `-replace` e `-target` (vedi §3.8.4). `-replace` ricrea una risorsa non sana a configurazione invariata, con l'indirizzo ricavato da `terraform state list`:
 
 ```
 $ terraform apply -replace "aws_instance.main[1]"
 ```
 
-L'altro caso in cui può servire applicare solo una parte della configurazione è un errore che impedisce a Terraform di applicarla tutta in una volta. Succede quando un errore dell'API di destinazione o del provider lascia le risorse in uno stato non valido, che Terraform non riesce a risolvere da solo. In questo caso si usa l'argomento `-target` durante l'apply, per applicare solo alcune risorse invece dell'intera configurazione (tutorial *Target resources*, sezione 4.11).
+`-target` serve quando un errore lascia le risorse in uno stato non valido e bisogna applicare solo una parte della configurazione (vedi il tutorial in §4.11).
 
 - Fonte: [Apply Terraform configuration](https://developer.hashicorp.com/terraform/tutorials/cli/apply)
 
@@ -1284,7 +1088,7 @@ _(infoBox)_
 
 **Saved plan mode** _(stepTitle)_
 
-Se si passa a `terraform apply` un file di piano salvato, Terraform esegue le azioni del piano senza chiedere conferma. Questo workflow in due passi è utile quando si esegue Terraform in automazione. Per ispezionare un file di piano salvato prima di applicarlo si usa `terraform show`.
+Se si passa un file di piano salvato, Terraform lo esegue senza chiedere conferma (vedi §3.8.1); per ispezionarlo prima si usa `terraform show`.
 
 Con un piano salvato non si possono aggiungere planning mode o planning option. Queste opzioni influiscono solo sulla scelta delle azioni da compiere, e il file di piano contiene già il risultato finale di quella scelta.
 
@@ -1300,19 +1104,15 @@ Senza un file di piano salvato, `terraform apply` supporta tutte le planning mod
 Le opzioni seguenti modificano il modo in cui il comando apply esegue l'operazione e ne riporta l'esito:
 
 - `-auto-approve`: salta l'approvazione interattiva del piano prima dell'apply. Terraform ignora questa opzione quando si passa un file di piano salvato, perché considera il passaggio del file di piano come l'approvazione stessa.
-- `-compact-warnings`: mostra i warning in forma compatta, con i soli messaggi di riepilogo, a meno che non ci sia almeno un errore.
 - `-input=false`: disattiva tutte le richieste interattive di Terraform, compresa l'approvazione del piano. Terraform presume quindi per prudenza che non si voglia applicare il piano, e l'operazione fallisce. Per eseguire Terraform in un contesto non interattivo si veda *Running Terraform in Automation*.
 - `-json`: abilita l'output dell'interfaccia in formato JSON leggibile da una macchina. Implica `-input=false`, quindi tutte le variabili devono avere un valore assegnato. Per usarla bisogna anche attivare `-auto-approve` o passare un piano salvato.
-- `-lock=false`: non tiene il lock dello state durante l'operazione. È pericoloso se altri possono eseguire comandi sullo stesso workspace contemporaneamente.
-- `-lock-timeout=DURATION`: fa riprovare a Terraform ad acquisire il lock per un certo periodo prima di restituire un errore (ad esempio `"3s"`), a meno che il lock non sia disattivato con `-lock=false`.
-- `-no-color`: disattiva le sequenze di formattazione del terminale nell'output.
-- `-parallelism=n`: limita il numero di operazioni simultanee mentre Terraform percorre il grafo. Il default è 10.
+- `-compact-warnings`, `-lock=false`, `-lock-timeout=DURATION`, `-no-color` e `-parallelism=n` (default 10): come per `terraform plan` (vedi §3.8.5);
 - `-replace=resource`: Terraform pianifica di sostituire questa istanza di risorsa invece di aggiornarla o di non fare nulla.
 - tutte le planning mode e le planning option di `terraform plan`, per personalizzare il modo in cui Terraform crea il piano. Sono disponibili solo quando si esegue `terraform apply` senza un file di piano salvato.
 
 Per le configurazioni che usano solo il backend `local`, `terraform apply` accetta anche le opzioni legacy `-state`, `-state-out` e `-backup`.
 
-Come per init e plan, la possibilità di passare una directory al posto del file di piano è stata deprecata in Terraform v0.14 e rimossa in v0.15. Al suo posto si usa l'opzione globale `-chdir` (sezione 3.4.8), che funziona con tutti i comandi e fa cercare a Terraform nella directory indicata tutti i file che normalmente leggerebbe o scriverebbe nella directory di lavoro corrente. Se il vecchio schema serviva anche a far scrivere a Terraform la sottodirectory `.terraform` nella directory di lavoro corrente, pur avendo cambiato la directory del modulo root, si usa la variabile d'ambiente `TF_DATA_DIR`, che indica a Terraform di scrivere la directory `.terraform` in un'altra posizione.
+Come per init e plan, la possibilità di passare una directory al posto del file di piano è stata deprecata in v0.14 e rimossa in v0.15: al suo posto si usano `-chdir` e `TF_DATA_DIR` (vedi §3.4.8).
 
 - Fonte: [terraform apply command](https://developer.hashicorp.com/terraform/cli/v1.12.x/commands/apply)
 
@@ -1334,7 +1134,7 @@ terraform apply -destroy
 
 Per questo accetta la maggior parte delle opzioni di `terraform apply`. Non accetta però l'argomento del file di piano, e forza sempre la planning mode "destroy".
 
-Si può anche creare uno speculative plan di distruzione, per vedere l'effetto della distruzione senza eseguirla. Il comando seguente esegue `terraform plan` in destroy mode e mostra le modifiche di distruzione proposte:
+Per vedere l'effetto della distruzione senza eseguirla si crea uno speculative plan in destroy mode (vedi §3.7.7):
 
 ```
 terraform plan -destroy
@@ -1394,7 +1194,7 @@ Si applica la modifica con `terraform apply`. Il piano di Terraform distrugge l'
 
 ### 3.12.2 — Distruggere il workspace
 
-Rimuovere singole risorse da un workspace è una parte normale del workflow di gestione dell'infrastruttura. Quando nessuna risorsa del workspace serve più, la si distrugge tutta con Terraform. Succede ad esempio quando si ritira dal servizio un ambiente applicativo, o quando si usa Terraform per ambienti di breve durata, come i sistemi di build o di test. Si distrugge il workspace con `terraform destroy`, approvando con `yes` il piano che rimuove le risorse.
+Quando nessuna risorsa del workspace serve più, ad esempio per un ambiente ritirato o di breve durata (vedi §3.11), si distrugge tutto con `terraform destroy`, approvando con `yes` il piano.
 
 A questo punto si è usato Terraform per creare, gestire e distruggere l'infrastruttura. Il tutorial successivo della raccolta usa HCP Terraform per conservare lo state ed eseguire le operazioni di Terraform in remoto, ed è tradotto nel Modulo 8.
 

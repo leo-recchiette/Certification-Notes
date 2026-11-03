@@ -28,7 +28,7 @@ Il workflow principale di Terraform si compone di tre fasi. Nella fase di scritt
 
 ### 1.1.2 — Perché Terraform?
 
-Terraform permette di definire e gestire l'infrastruttura in modo coerente e ripetibile, usando file di configurazione leggibili dalle persone che si possono versionare, riutilizzare e condividere. La documentazione ne riassume i vantaggi in cinque punti.
+La documentazione riassume in cinque punti i vantaggi di Terraform.
 
 **Gestire qualsiasi infrastruttura** _(stepTitle)_
 
@@ -64,17 +64,17 @@ HashiCorp accoglie domande, suggerimenti e contributi della community: si posson
 
 Gli strumenti di Infrastructure as Code (IaC) permettono di gestire l'infrastruttura tramite file di configurazione, invece che tramite un'interfaccia grafica. L'IaC consente di creare, modificare e gestire l'infrastruttura in modo sicuro, coerente e ripetibile, definendo configurazioni di risorse che si possono versionare, riutilizzare e condividere.
 
-Terraform è lo strumento di infrastructure as code di HashiCorp. Permette di definire risorse e infrastruttura in file di configurazione dichiarativi e leggibili dalle persone, e ne gestisce il ciclo di vita. Rispetto alla gestione manuale dell'infrastruttura offre diversi vantaggi: può gestire l'infrastruttura su più piattaforme cloud; il suo linguaggio di configurazione, facile da leggere, aiuta a scrivere rapidamente il codice dell'infrastruttura; lo state permette di tenere traccia delle modifiche alle risorse nel corso dei deployment; infine le configurazioni si possono salvare nel controllo versione per collaborare sull'infrastruttura in modo sicuro.
+Terraform è lo strumento di IaC di HashiCorp (vedi §1.1). Rispetto alla gestione manuale dell'infrastruttura offre diversi vantaggi: può gestire l'infrastruttura su più piattaforme cloud; il suo linguaggio di configurazione, facile da leggere, aiuta a scrivere rapidamente il codice dell'infrastruttura; lo state permette di tenere traccia delle modifiche alle risorse nel corso dei deployment; infine le configurazioni si possono salvare nel controllo versione per collaborare sull'infrastruttura in modo sicuro.
 
 ### 1.2.1 — Gestire qualsiasi infrastruttura
 
-I plugin di Terraform chiamati provider permettono a Terraform di interagire con piattaforme cloud e altri servizi attraverso le loro API. HashiCorp e la community di Terraform hanno scritto oltre 1.000 provider per gestire risorse su Amazon Web Services (AWS), Azure, Google Cloud Platform (GCP), Kubernetes, Helm, GitHub, Splunk e DataDog, solo per citarne alcuni. Nel Terraform Registry si trovano provider per molte delle piattaforme e dei servizi che si usano già; se manca il provider che serve, si può scriverne uno.
+I provider permettono a Terraform di interagire con piattaforme e servizi attraverso le loro API (vedi §1.1.1). Il tutorial ne conta oltre 1.000; se manca il provider che serve, si può scriverne uno.
 
 ### 1.2.2 — Standardizzare il workflow di deployment
 
 I provider definiscono come risorse (*resource*) le singole unità di infrastruttura, ad esempio le istanze di calcolo o le reti private. Risorse di provider diversi si possono comporre in configurazioni Terraform riutilizzabili, chiamate moduli, e gestire con un linguaggio e un workflow coerenti.
 
-Il linguaggio di configurazione di Terraform è dichiarativo: descrive lo stato finale desiderato dell'infrastruttura, a differenza dei linguaggi di programmazione procedurali, che richiedono istruzioni passo passo per svolgere un compito. I provider di Terraform calcolano automaticamente le dipendenze tra le risorse, in modo da crearle o distruggerle nell'ordine corretto.
+Il linguaggio è dichiarativo, a differenza dei linguaggi procedurali che richiedono istruzioni passo passo, e le dipendenze tra le risorse sono calcolate automaticamente (vedi §1.1.2).
 
 Per distribuire infrastruttura con Terraform si seguono cinque passi. Prima si definisce l'ambito (*Scope*), cioè si individua l'infrastruttura necessaria al progetto; poi si scrive la configurazione dell'infrastruttura (*Author*); quindi si inizializza la directory (*Initialize*), installando i plugin di cui Terraform ha bisogno per gestire l'infrastruttura; si pianifica (*Plan*), visualizzando in anteprima le modifiche che Terraform farà per allineare l'infrastruttura alla configurazione; infine si applicano le modifiche pianificate (*Apply*).
 
@@ -84,7 +84,7 @@ Per distribuire infrastruttura con Terraform si seguono cinque passi. Prima si d
 
 ### 1.2.3 — Tenere traccia dell'infrastruttura
 
-Terraform tiene traccia dell'infrastruttura reale in un file di state, che fa da fonte di verità per l'ambiente. Terraform usa lo state per stabilire quali modifiche apportare all'infrastruttura affinché corrisponda alla configurazione.
+Il file di state fa da fonte di verità per l'ambiente e serve a stabilire quali modifiche apportare (vedi §1.1.2).
 
 ### 1.2.4 — Collaborare
 
@@ -145,7 +145,7 @@ La conclusione riprende l'introduzione: gestire l'infrastruttura è difficile, e
 
 ## 1.4 — Casi d'uso di Terraform
 
-HashiCorp Terraform è uno strumento di infrastructure as code che permette di definire le risorse dell'infrastruttura in file di configurazione leggibili dalle persone, che si possono versionare, riutilizzare e condividere. Con un workflow coerente si può poi effettuare il provisioning e la gestione dell'infrastruttura in modo sicuro ed efficiente lungo tutto il suo ciclo di vita. La pagina descrive i casi d'uso più diffusi di Terraform e indica, per ciascuno, risorse utili per creare configurazioni e workflow.
+Dopo aver ricordato che cos'è Terraform (vedi §1.1), la pagina descrive i casi d'uso più diffusi di Terraform e indica, per ciascuno, risorse utili per creare configurazioni e workflow.
 
 ### 1.4.1 — Deployment multi-cloud
 

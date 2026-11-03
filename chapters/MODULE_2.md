@@ -100,7 +100,7 @@ Per usare le risorse di un provider bisogna inserire alcune informazioni nella c
 
 HCP Terraform e Terraform Enterprise installano i provider a ogni run. La CLI di Terraform, invece, trova e installa i provider quando si inizializza una directory di lavoro: può scaricarli automaticamente da un registry Terraform oppure caricarli da un mirror locale o da una cache. Se si usa una directory di lavoro persistente, bisogna reinizializzarla ogni volta che si cambiano i provider della configurazione. Per risparmiare tempo e banda, la CLI supporta una cache dei plugin opzionale, che si abilita con l'impostazione `plugin_cache_dir` nel file di configurazione della CLI.
 
-Per fare in modo che Terraform installi sempre le stesse versioni dei provider per una data configurazione, si può creare con la CLI un dependency lock file e salvarlo nel controllo versione insieme alla configurazione. Se il lock file è presente, HCP Terraform, la CLI e Terraform Enterprise lo rispettano quando installano i provider.
+Per installare sempre le stesse versioni dei provider si usa il dependency lock file, salvato nel controllo versione e rispettato da CLI, HCP Terraform e Terraform Enterprise (vedi §2.8).
 
 **Provider privati** _(stepTitle)_
 
@@ -256,7 +256,7 @@ terraform {
 
 Il blocco `required_providers` indica per ogni provider il nome locale, l'indirizzo della sorgente e la versione. Inizializzando questa configurazione, Terraform scarica la versione 3.1.0 del provider random e l'ultima versione del provider AWS maggiore o uguale a 4.5.0: l'operatore `>=` indica la versione minima compatibile con la configurazione. Con l'operatore `~>`, il blocco specifica inoltre che la configurazione può essere eseguita solo da binari di Terraform v1.x successivi alla v1.2.
 
-Quando si inizializza una configurazione per la prima volta con Terraform 1.1 o successivo, Terraform genera un nuovo file `.terraform.lock.hcl` nella directory di lavoro corrente. Il lock file va incluso nel repository del controllo versione, così che Terraform usi le stesse versioni dei provider in tutto il team e negli ambienti di esecuzione remoti temporanei. Nel file di esempio il provider AWS è alla versione 4.5.0, che soddisfa il vincolo `>= 4.5.0` ma non è più l'ultima disponibile, mentre il provider random è alla 3.1.0:
+Alla prima inizializzazione (con Terraform 1.1 o successivo) Terraform genera il lock file `.terraform.lock.hcl`, da includere nel controllo versione (vedi §2.8.1). Nel file di esempio il provider AWS è alla versione 4.5.0, che soddisfa il vincolo `>= 4.5.0` ma non è più l'ultima disponibile, mentre il provider random è alla 3.1.0:
 
 ```
 provider "registry.terraform.io/hashicorp/aws" {
@@ -279,7 +279,7 @@ Eseguendo `terraform init`, Terraform riusa le versioni registrate nel lock file
 | aws | `>= 4.5.0` | Ultima versione (es. 5.55.0) | Versione del lock file (4.5.0) |
 | random | `3.1.0` | 3.1.0 | Versione del lock file (3.1.0) |
 
-Il lock file indica a Terraform di installare sempre la stessa versione dei provider, garantendo esecuzioni coerenti in tutto il team e nelle sessioni remote. Nella variante HCP Terraform del tutorial si decommenta il blocco `cloud` del file `terraform.tf` e, all'`init`, Terraform crea automaticamente il workspace nell'organizzazione; anche in questo caso usa le versioni del lock file. Si applica poi la configurazione con `terraform apply`, che crea le due risorse.
+Nella variante HCP Terraform del tutorial si decommenta il blocco `cloud` del file `terraform.tf` e, all'`init`, Terraform crea automaticamente il workspace nell'organizzazione; anche in questo caso usa le versioni del lock file. Si applica poi la configurazione con `terraform apply`, che crea le due risorse.
 
 ### 2.5.3 — Aggiornare la versione del provider AWS
 
@@ -421,9 +421,9 @@ Per collegarsi a Terraform Enterprise si aggiunge l'argomento `hostname` (obblig
 
 ## 2.7 — Requisiti dei provider
 
-Terraform si affida a plugin chiamati provider per interagire con i sistemi remoti, e le configurazioni devono dichiarare quali provider richiedono perché Terraform possa installarli e usarli. Inoltre alcuni provider richiedono una configurazione, come URL degli endpoint o region del cloud, che si imposta con il blocco `provider` (sezione 2.9).
+Le configurazioni devono dichiarare i provider che richiedono (vedi §2.3); la configurazione dei provider si imposta con il blocco `provider` (vedi §2.9).
 
-Ogni root module dovrebbe dichiarare i provider che richiede, in tre passi. Primo, si definiscono sorgente, nome locale e versione del provider nel blocco `required_providers` dentro il blocco `terraform` principale. Secondo, si aggiunge un blocco `provider` di primo livello per configurare il provider con autenticazione, region e altri argomenti specifici. Terzo, si installa il provider: eseguendo `terraform init` in locale si installa il provider e si aggiorna il dependency lock file con l'ultima versione che corrisponde al vincolo indicato in `required_providers`. HCP Terraform e Terraform Enterprise installano i provider a ogni run, usando le versioni del dependency lock file se esiste. In locale, plan e apply usano le versioni indicate nel lock file; per aggiornare la versione di un provider nel lock file si cambia la versione nel blocco `required_providers` e si riesegue `terraform init`.
+Ogni root module dovrebbe dichiarare i provider che richiede, in tre passi. Primo, si definiscono sorgente, nome locale e versione del provider nel blocco `required_providers` dentro il blocco `terraform` principale. Secondo, si aggiunge un blocco `provider` di primo livello per configurare il provider con autenticazione, region e altri argomenti specifici. Terzo, si installa il provider con `terraform init`, che aggiorna il dependency lock file (vedi §2.3.4 e §2.8). In locale, plan e apply usano le versioni indicate nel lock file; per aggiornare la versione di un provider nel lock file si cambia la versione nel blocco `required_providers` e si riesegue `terraform init`.
 
 ### 2.7.1 — Dichiarare i provider richiesti
 
@@ -488,7 +488,7 @@ In questo caso Terraform non può dedurre il provider dal tipo di risorsa, quind
 
 ### 2.7.3 — Vincoli di versione
 
-Ogni plugin di provider ha il proprio insieme di versioni disponibili, così le sue funzionalità possono evolvere nel tempo. Ogni dipendenza da un provider dovrebbe avere un vincolo nell'argomento `version`, in modo che Terraform possa scegliere una singola versione del provider compatibile con tutti i moduli. L'argomento è facoltativo e, se omesso, Terraform considera compatibile qualsiasi versione, ma HashiCorp raccomanda caldamente di indicare un vincolo per ogni provider da cui il modulo dipende. Per fare in modo che Terraform installi sempre le stesse versioni si può creare un dependency lock file e salvarlo nel controllo versione: se è presente, HCP Terraform, la CLI e Terraform Enterprise lo rispettano.
+Ogni plugin di provider ha il proprio insieme di versioni disponibili, così le sue funzionalità possono evolvere nel tempo. Ogni dipendenza da un provider dovrebbe avere un vincolo nell'argomento `version`, in modo che Terraform possa scegliere una singola versione del provider compatibile con tutti i moduli. L'argomento è facoltativo e, se omesso, Terraform considera compatibile qualsiasi versione, ma HashiCorp raccomanda caldamente di indicare un vincolo per ogni provider da cui il modulo dipende. Per installare sempre le stesse versioni si usa il dependency lock file (vedi §2.8).
 
 **Best practice per le versioni dei provider** _(stepTitle)_
 
@@ -754,7 +754,7 @@ Se in seguito si aggiunge di nuovo lo stesso provider, Terraform lo tratta come 
 
 ## 2.9 — Il blocco provider
 
-Il blocco `provider` serve a dichiarare e configurare i provider, che permettono a Terraform di gestire l'infrastruttura reale con le risorse e i data source che definiscono. Il registry pubblico distribuisce i provider separatamente da Terraform, ognuno con i propri tempi di rilascio, la propria documentazione e le proprie versioni; con HCP Terraform si può usare il registry privato per condividere i provider all'interno di un'organizzazione. Chiunque può sviluppare un provider e usarlo in locale o pubblicarlo nel registry pubblico o nel registry privato di HCP Terraform.
+Il blocco `provider` serve a dichiarare e configurare i provider, distribuiti separatamente da Terraform (vedi §2.3.2). Con HCP Terraform si può usare il registry privato per condividerli all'interno di un'organizzazione, e chiunque può sviluppare un provider e pubblicarlo nel registry pubblico o privato.
 
 Le configurazioni dei provider vanno definite nel **root module**: i moduli figli ricevono le configurazioni dei provider dai moduli genitori, quindi HashiCorp sconsiglia vivamente di definire blocchi `provider` nei moduli figli.
 

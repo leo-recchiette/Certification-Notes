@@ -83,7 +83,7 @@ I comandi di Terraform usano direttamente solo i file di configurazione di una d
 
 **Moduli locali e remoti** _(stepTitle)_
 
-I moduli si possono caricare dal filesystem locale o da una sorgente remota. Terraform supporta diverse sorgenti remote: il Terraform Registry, la maggior parte dei sistemi di controllo versione, gli URL HTTP e i registry privati dei moduli di HCP Terraform o Terraform Enterprise.
+I moduli si possono caricare dal filesystem locale o da sorgenti remote come registry, sistemi di controllo versione e URL HTTP (vedi §5.6.2).
 
 ### 5.2.3 — Best practice per i moduli
 
@@ -104,26 +104,21 @@ _(infoBox)_
 
 ## 5.3 — Usare i moduli del registry nella configurazione
 
-Nel tutorial precedente si è visto quando e perché usare i moduli Terraform. In questo tutorial si usano i moduli del Terraform Registry pubblico per creare un ambiente di esempio su AWS, facendo riferimento ai moduli nella configurazione Terraform. I concetti visti valgono per qualsiasi modulo, da qualsiasi sorgente.
+Si usano moduli del Terraform Registry pubblico per creare un ambiente di esempio su AWS; i concetti valgono per qualsiasi sorgente (vedi §5.5).
 
 ### 5.3.1 — Usare il Terraform Registry
 
-La pagina del Terraform Registry del modulo VPC mostra le informazioni sul modulo e un link al repository sorgente. La pagina ha anche un menu per scegliere la versione del modulo, le metriche di utilizzo e una configurazione di esempio.
+La pagina del modulo VPC nel Registry mostra informazioni, link al sorgente, menu delle versioni, metriche e una configurazione di esempio.
 
 ![Figura 14](img/registry-module-vpc.png) _(dimensioni: 2360×1170 px)_
 
 *Figura 14 — La pagina di un modulo nel Terraform Registry, con le istruzioni d'uso, la scelta della versione e le schede Inputs e Outputs. Fonte: HashiCorp Developer.* _(caption)_
 
-La configurazione di esempio imposta due argomenti, `source` e `version`:
-
-- l'argomento `source` è obbligatorio quando si usa un modulo Terraform. Nella configurazione di esempio, Terraform cerca nel Terraform Registry un modulo che corrisponde alla stringa indicata. Si potrebbe usare anche un URL o un modulo locale; l'elenco completo delle sorgenti possibili è nella sezione 5.6.
-- l'argomento `version` non è obbligatorio, ma è fortemente consigliato includerlo quando si usa un modulo Terraform. Per le sorgenti supportate, indica la versione del modulo che Terraform caricherà. Senza `version`, Terraform carica la versione più recente del modulo. Nel tutorial si indica un numero di versione esatto per i moduli usati.
-
-Terraform tratta gli altri argomenti dei blocchi `module` come input variable del modulo.
+`source` è obbligatorio (qui un modulo del Registry; può essere anche un URL o un percorso locale, vedi §5.6.2); `version` è facoltativo ma fortemente consigliato, e senza di esso si carica la versione più recente. Il tutorial indica versioni esatte. Gli altri argomenti del blocco `module` sono input variable del modulo.
 
 ### 5.3.2 — La configurazione
 
-Il file `terraform.tf` definisce il blocco `terraform`, con cui Terraform configura se stesso. Il blocco richiede il provider aws della release minor v4.49.0, e una versione di Terraform successiva alla v1.1.0:
+`terraform.tf` richiede il provider aws della minor v4.49.0 e Terraform successivo alla v1.1.0:
 
 ```
 terraform {
@@ -136,8 +131,6 @@ terraform {
   required_version = ">= 1.1.0"
 }
 ```
-
-Il file `main.tf` contiene la configurazione delle risorse:
 
 ```
 provider "aws" {
@@ -185,26 +178,15 @@ module "ec2_instances" {
 }
 ```
 
-La configurazione contiene tre blocchi:
-
-- il blocco `provider "aws"` configura il provider AWS. A seconda del metodo di autenticazione usato, potrebbe servire aggiungere altri argomenti;
-- il blocco `module "vpc"` configura un modulo Virtual Private Cloud (VPC), che crea le risorse di rete in base agli argomenti forniti: una VPC, le subnet e i gateway internet e NAT;
-- il blocco `module "ec2_instances"` definisce due istanze EC2, create nella VPC del modulo.
+Il blocco `provider "aws"` configura il provider; `module "vpc"` crea VPC, subnet e gateway internet e NAT; `module "ec2_instances"` crea due istanze EC2 nella VPC.
 
 ### 5.3.3 — Impostare i valori delle input variable del modulo
 
-I moduli possono avere argomenti obbligatori e facoltativi. Per usare il modulo bisogna specificare tutti gli argomenti obbligatori. La maggior parte degli argomenti di un modulo corrisponde alle sue input variable. Gli input facoltativi non definiti esplicitamente usano i valori di default del modulo. Gli input supportati da un modulo sono elencati nella scheda **Inputs** della sua pagina nel Terraform Registry.
-
-Nel blocco `module "ec2_instances"`:
-
-- il meta-argomento `count` definisce due istanze EC2. L'elenco completo dei meta-argomenti dei moduli è nella documentazione dei moduli (sezione 5.6);
-- gli argomenti obbligatori `vpc_security_group_ids` e `subnet_id` fanno riferimento a risorse create dal modulo `vpc`. L'elenco completo degli argomenti del modulo `ec2-instance` è nella sua pagina del Terraform Registry.
+Gli argomenti obbligatori vanno sempre indicati; quelli facoltativi omessi usano i default del modulo. Gli input sono elencati nella scheda **Inputs** del Registry. In `module "ec2_instances"`, `count` crea due istanze (vedi §5.6.3), e gli argomenti obbligatori `vpc_security_group_ids` e `subnet_id` fanno riferimento a risorse del modulo `vpc`.
 
 ### 5.3.4 — Le input variable del modulo root
 
-Usare le input variable con i moduli è simile a usare le variabili in qualsiasi configurazione Terraform. Uno schema comune è individuare gli argomenti del modulo che si potrebbe voler cambiare in futuro. Per questi si creano variabili corrispondenti, con default sensati, nel file `variables.tf` della configurazione, e le si passano come argomenti al blocco `module`.
-
-Non tutti gli input del modulo vanno impostati con variabili. Ad esempio, se l'organizzazione richiede il NAT gateway attivo per tutte le VPC, l'argomento `enable_nat_gateway` non va impostato con una variabile. Il file `variables.tf` contiene le dichiarazioni delle input variable, ad esempio:
+Gli argomenti del modulo che potrebbero cambiare diventano variabili del root, con default sensati, in `variables.tf`; quelli imposti dall'organizzazione, come `enable_nat_gateway`, restano fissi:
 
 ```
 variable "vpc_name" {
@@ -230,7 +212,7 @@ Allo stesso modo sono dichiarate `vpc_cidr`, `vpc_private_subnets`, `vpc_public_
 
 ### 5.3.5 — Gli output del modulo root
 
-Anche i moduli hanno output value, a cui si fa riferimento con la convenzione `module.MODULE_NAME.OUTPUT_NAME`; nel Terraform Registry sono elencati nella scheda **Outputs** del modulo. Gli output dei moduli si possono usare in altre parti della configurazione. Per default Terraform non mostra gli output dei moduli: bisogna creare un output corrispondente nel modulo root e impostarlo all'output del modulo. Il file `outputs.tf` mostra entrambi i casi:
+Gli output del modulo (scheda **Outputs** del Registry) si leggono con `module.MODULE_NAME.OUTPUT_NAME`, ma Terraform li mostra solo se il root li riespone (vedi §4.16.2):
 
 ```
 output "vpc_public_subnets" {
@@ -244,11 +226,11 @@ output "ec2_instance_public_ips" {
 }
 ```
 
-L'output `vpc_public_subnets` fa riferimento all'output `public_subnets` del modulo `vpc`. L'output `ec2_instance_public_ips` fa riferimento agli indirizzi IP pubblici di entrambe le istanze EC2 create dal modulo. Applicando la configurazione si creano la VPC e le istanze EC2, e al termine Terraform mostra gli output. I moduli `vpc` ed `ec2` definiscono più risorse oltre alla VPC e alle istanze EC2.
+`vpc_public_subnets` riespone `public_subnets` del modulo `vpc`, `ec2_instance_public_ips` gli IP pubblici delle due istanze. L'apply crea VPC e istanze, con molte altre risorse definite dai moduli, e mostra gli output.
 
 ### 5.3.6 — Come funzionano i moduli
 
-Quando si usa un nuovo modulo per la prima volta, bisogna eseguire `terraform init` o `terraform get` per installarlo. Questi comandi installano i nuovi moduli nella directory `.terraform/modules`, dentro la directory di lavoro della configurazione. Per i moduli locali, Terraform crea un link simbolico alla directory del modulo. Le modifiche ai moduli locali hanno quindi effetto subito, senza reinizializzare o rieseguire `terraform get`. Al termine del tutorial la directory `.terraform/modules` contiene `ec2_instances`, `modules.json` e `vpc`.
+Un nuovo modulo si installa con `terraform init` o `terraform get` nella directory `.terraform/modules` (vedi §3.3.4); per i moduli locali Terraform crea un link simbolico, quindi le modifiche hanno effetto subito. Al termine del tutorial `.terraform/modules` contiene `ec2_instances`, `modules.json` e `vpc`.
 
 - Fonte: [Use registry modules in configuration](https://developer.hashicorp.com/terraform/tutorials/modules/module-use)
 
@@ -358,7 +340,7 @@ Invece di aggiungere più blocchi alla configurazione, si può far creare a Terr
 
 ### 5.5.7 — Impostare le dipendenze
 
-Terraform crea in parallelo le risorse dei moduli, ma alcuni moduli possono dipendere dagli output di altre risorse a monte. Se la definizione di un modulo fa riferimento a una risorsa nei propri argomenti, Terraform riconosce la dipendenza implicita e applica le modifiche nell'ordine corretto. Le dipendenze si possono anche configurare esplicitamente con l'argomento `depends_on`. Terraform completa allora tutte le operazioni sulla risorsa a monte prima di operare sul modulo che contiene `depends_on`.
+Terraform crea in parallelo le risorse dei moduli. Se un modulo fa riferimento a una risorsa nei propri argomenti, Terraform riconosce la dipendenza implicita; altrimenti la si dichiara con `depends_on` (vedi §4.10.2).
 
 ### 5.5.8 — Usare una configurazione del provider alternativa
 
@@ -402,13 +384,13 @@ Per ricreare una risorsa specifica gestita da un modulo si aggiunge al comando `
 $ terraform apply -replace=module.example.aws_instance.example
 ```
 
-Sostituire le risorse è un'operazione che interrompe il servizio. Con l'opzione `-replace` della CLI si possono selezionare solo singole istanze di risorsa. Per sostituire più risorse con un solo comando si aggiungono più opzioni `-replace`.
+Sostituire le risorse interrompe il servizio. Per sostituire più risorse si ripete l'opzione `-replace` (vedi §3.8.4).
 
 ### 5.5.13 — Rimuovere i moduli dalla configurazione
 
 Per rimuovere un modulo da Terraform si elimina il blocco `module` dalla configurazione e si esegue `terraform apply`. Per default Terraform distrugge tutte le risorse gestite dal modulo e le rimuove dal file di state.
 
-Un modulo si può anche rimuovere dallo state di Terraform senza distruggere gli oggetti reali che gestisce. Si sostituisce il blocco `module` con un blocco `removed`. Al blocco `removed` si aggiunge un blocco `lifecycle`, con l'argomento `destroy` impostato a `false`. Il blocco `removed` richiede Terraform v1.7 o successivo; nelle versioni precedenti, per rimuovere una risorsa si usa il comando `terraform state rm` della CLI. L'esempio rimuove dallo state di Terraform le risorse di `module.example` senza distruggerle:
+Per rimuovere un modulo dallo state senza distruggere gli oggetti reali si sostituisce il blocco `module` con un blocco `removed` con `destroy = false` (vedi §6.8). L'esempio rimuove dallo state di Terraform le risorse di `module.example` senza distruggerle:
 
 ```
 removed {
@@ -906,27 +888,7 @@ module "ec2_instance" {
 
 **Configurazioni del provider diverse per le risorse del modulo** _(stepTitle)_
 
-Nell'esempio il modulo `tunnel` contiene risorse con una propria configurazione del provider. Ogni alias del provider nel modulo corrisponde quindi a una diversa configurazione del provider dichiarata nel modulo root:
-
-```
-provider "aws" {
-  alias  = "usw1"
-  region = "us-west-1"
-}
-
-provider "aws" {
-  alias  = "usw2"
-  region = "us-west-2"
-}
-
-module "tunnel" {
-  source    = "./tunnel"
-  providers = {
-    aws.src = aws.usw1
-    aws.dst = aws.usw2
-  }
-}
-```
+L'esempio del modulo `tunnel`, in cui ogni alias del provider nel modulo corrisponde a una diversa configurazione del provider del modulo root, è descritto in §5.9.4.
 
 - Fonte: [module block reference](https://developer.hashicorp.com/terraform/language/v1.12.x/block/module)
 
@@ -934,55 +896,36 @@ module "tunnel" {
 
 ## 5.7 — Creare e usare un modulo locale
 
-Nel tutorial precedente si sono usati moduli del Terraform Registry per creare una VPC e un'istanza EC2 in AWS. Usare correttamente i moduli esistenti è un'abilità importante, ma a ogni professionista di Terraform serve anche saperli creare. HashiCorp raccomanda anzi di creare ogni configurazione Terraform presupponendo che possa essere usata come modulo. Così le configurazioni vengono progettate per essere flessibili, riutilizzabili e componibili.
-
-Terraform tratta ogni configurazione come un modulo. Quando si eseguono i comandi di Terraform, o si usa HCP Terraform o Terraform Enterprise per eseguire Terraform in remoto, la directory di destinazione con la configurazione è trattata come modulo root. Nel tutorial si crea un modulo per gestire i bucket AWS S3 usati per ospitare siti web statici.
+HashiCorp raccomanda di scrivere ogni configurazione come se potesse diventare un modulo, quindi flessibile, riutilizzabile e componibile (vedi §5.2.3). Nel tutorial si crea un modulo per i bucket S3 che ospitano siti web statici.
 
 ### 5.7.1 — La struttura di un modulo
 
-Terraform tratta come modulo qualsiasi directory locale indicata nell'argomento `source` di un blocco `module`. Una struttura tipica dei file per un nuovo modulo è questa:
+Qualsiasi directory locale indicata in `source` è un modulo. La struttura tipica è quella vista in §5.2.2 (vedi anche §5.8), ma nessun file è obbligatorio:
 
-```
-.
-├── LICENSE
-├── README.md
-├── main.tf
-├── variables.tf
-├── outputs.tf
-```
+- `LICENSE`: le condizioni di distribuzione del modulo; Terraform non lo usa;
+- `README.md`: la documentazione, mostrata dal Registry e da GitHub; Terraform non lo usa;
+- `main.tf`: la configurazione principale, eventualmente divisa in altri file;
+- `variables.tf`: le variabili, che diventano argomenti del blocco `module`; quelle senza default sono obbligatorie, le altre si possono sovrascrivere;
+- `outputs.tf`: gli output, disponibili alla configurazione che usa il modulo.
 
-Nessuno di questi file è obbligatorio, né ha un significato speciale per Terraform quando usa il modulo. Si può creare un modulo con un solo file `.tf`, o con qualsiasi altra struttura di file. Ogni file ha però uno scopo:
-
-- `LICENSE` contiene la licenza con cui il modulo viene distribuito. Quando si condivide il modulo, fa sapere a chi lo usa a quali condizioni è reso disponibile. Terraform non usa questo file.
-- `README.md` contiene, in formato markdown, la documentazione su come usare il modulo. Terraform non lo usa, ma servizi come il Terraform Registry e GitHub ne mostrano il contenuto a chi visita la pagina del modulo.
-- `main.tf` contiene l'insieme principale della configurazione del modulo. Si possono creare anche altri file di configurazione, organizzati come ha senso per il progetto.
-- `variables.tf` contiene le definizioni delle variabili del modulo. Quando altri usano il modulo, le variabili si configurano come argomenti del blocco `module`. Tutti i valori di Terraform devono essere definiti, quindi le variabili senza un valore di default diventano argomenti obbligatori. Anche le variabili con default si possono passare come argomenti del modulo, sovrascrivendo il default.
-- `outputs.tf` contiene le definizioni degli output del modulo. Gli output del modulo sono disponibili alla configurazione che usa il modulo. Si usano spesso per passare informazioni sulle parti dell'infrastruttura definite dal modulo ad altre parti della configurazione.
-
-Ci sono anche altri file da conoscere, che non vanno distribuiti con il modulo:
-
-- `terraform.tfstate` e `terraform.tfstate.backup` contengono lo state di Terraform, con cui Terraform tiene traccia della relazione tra la configurazione e l'infrastruttura creata.
-- la directory `.terraform` contiene i moduli e i plugin usati per creare l'infrastruttura. Questi file sono specifici di una particolare istanza di Terraform che crea l'infrastruttura, non della configurazione definita nei file `.tf`.
-- i file `*.tfvars` non vanno distribuiti con il modulo, perché le input variable di un modulo si impostano con gli argomenti del blocco `module`. Fa eccezione il caso in cui il modulo si usa anche come configurazione Terraform autonoma.
-
-Se si tiene traccia delle modifiche al modulo in un sistema di controllo versione come git, bisogna configurarlo perché ignori questi file. Un esempio è il file `.gitignore` di GitHub.
+Non vanno distribuiti con il modulo, e vanno esclusi dal controllo versione (ad esempio con il `.gitignore` di GitHub): `terraform.tfstate` e `terraform.tfstate.backup`, la directory `.terraform` (specifica di una singola esecuzione) e i file `*.tfvars`, salvo che il modulo si usi anche come configurazione autonoma.
 
 > **Attenzione**: i file appena elencati contengono spesso informazioni segrete, come password o chiavi di accesso. Se vengono inclusi in un sistema di controllo versione pubblico come GitHub, quelle informazioni diventano pubbliche.
 _(infoBox)_
 
 ### 5.7.2 — Creare un modulo
 
-Il tutorial parte dalla configurazione creata nel tutorial sull'uso dei moduli (sezione 5.3), inizializzata con `terraform init`. Dentro la configurazione esistente si crea un sottomodulo locale che usa la risorsa bucket S3 del provider AWS. Nella directory della configurazione si crea una directory `modules`, con al suo interno una directory `aws-s3-static-website-bucket`:
+Si parte dalla configurazione di §5.3, già inizializzata, e vi si crea il sottomodulo:
 
 ```
 $ mkdir -p modules/aws-s3-static-website-bucket
 ```
 
-Ospitare un sito web statico su S3 è un caso d'uso piuttosto comune. Capire la configurazione corretta per creare un bucket di questo tipo non è troppo difficile. Incapsularla in un modulo però offre agli utenti un modo semplice e veloce per creare bucket per siti web statici che rispettano le best practice. Il nome del modulo inoltre può descrivere esattamente a cosa servono i bucket creati: qui il modulo `aws-s3-static-website-bucket` crea bucket S3 che ospitano siti web statici.
+Incapsulare la configurazione di un bucket per siti statici offre agli utenti un modo rapido di crearne uno secondo le best practice, e il nome del modulo ne descrive lo scopo.
 
 **README.md e LICENSE** _(stepTitle)_
 
-Terraform non usa per niente i file `README.md` e `LICENSE`. L'esempio li include per mostrare una best practice. Il `README.md` del modulo descrive il modulo:
+Terraform non li usa, ma averli è una best practice per i moduli da condividere; il tutorial usa la licenza Apache 2.0:
 
 ```
 # AWS S3 static website bucket
@@ -990,11 +933,7 @@ Terraform non usa per niente i file `README.md` e `LICENSE`. L'esempio li includ
 This module provisions AWS S3 buckets configured for static website hosting.
 ```
 
-Scegliere la licenza corretta esula dagli scopi del tutorial, che usa la licenza open source Apache 2.0. Nessuno dei due file è richiesto o usato da Terraform. Averli è una best practice per i moduli che un giorno potrebbero essere condivisi con altri.
-
 ### 5.7.3 — Aggiungere la configurazione del modulo
-
-Nella directory `aws-s3-static-website-bucket` si lavora con tre file di configurazione Terraform: `main.tf`, `variables.tf` e `outputs.tf`. Se si è usato il repository git i file esistono già, altrimenti li si crea vuoti. La struttura della directory del modulo diventa questa:
 
 ```
 modules
@@ -1006,8 +945,6 @@ modules
     ├── variables.tf
     └── www
 ```
-
-In `main.tf` si aggiunge una risorsa bucket S3:
 
 ```
 resource "aws_s3_bucket" "s3_bucket" {
@@ -1055,11 +992,9 @@ resource "aws_s3_bucket_policy" "s3_bucket" {
 }
 ```
 
-Questa configurazione crea un bucket S3 pubblico, che ospita un sito web con una pagina index e una pagina di errore. Nella configurazione non c'è nessun blocco `provider`. Quando elabora un blocco `module`, Terraform eredita il provider dalla configurazione che lo contiene. Per questo è consigliato non includere blocchi `provider` nei moduli.
+La configurazione crea un bucket pubblico con pagina index e pagina di errore. Non c'è nessun blocco `provider`: il modulo eredita il provider dal chiamante (vedi §5.9).
 
 **Le variabili del modulo** _(stepTitle)_
-
-Come il modulo root della configurazione, anche i moduli definiscono e usano variabili. In `variables.tf` si definiscono queste variabili:
 
 ```
 # Input variable definitions
@@ -1076,13 +1011,11 @@ variable "tags" {
 }
 ```
 
-Le variabili dentro i moduli funzionano quasi esattamente come nel modulo root. Quando si esegue un comando di Terraform sulla configurazione root, i valori delle variabili si impostano in vari modi, ad esempio dalla riga di comando o con un file `.tfvars`. Quando si usa un modulo, invece, le variabili si impostano passando argomenti al modulo nella configurazione. Le variabili dichiarate nei moduli senza valore di default sono obbligatorie, e vanno impostate ogni volta che si usa il modulo.
-
-Quando si crea un modulo, bisogna decidere quali argomenti delle risorse esporre agli utenti finali come input variable. Ad esempio, si potrebbero esporre come variabili i documenti index ed error. Non conviene invece dichiarare una variabile per l'ACL, perché per ospitare un sito web l'ACL del bucket deve essere `public-read`.
+Si sceglie quali argomenti esporre come variabili: ad esempio i documenti index ed error sì, l'ACL no, perché per un sito web deve essere `public-read`.
 
 **Gli output del modulo** _(stepTitle)_
 
-Bisogna anche decidere quali valori esporre come output, perché gli output sono l'unico modo supportato per ottenere informazioni sulle risorse configurate dal modulo. In `outputs.tf` si aggiungono gli output del modulo:
+Gli output sono l'unico modo supportato per leggere informazioni sulle risorse del modulo, e dal chiamante sono attributi di sola lettura `module.<MODULE NAME>.<OUTPUT NAME>` (vedi §4.16.2):
 
 ```
 # Output variable definitions
@@ -1103,11 +1036,9 @@ output "domain" {
 }
 ```
 
-Come le variabili, anche gli output dei moduli svolgono la stessa funzione che hanno nel modulo root, ma vi si accede in modo diverso. Dalla configurazione che chiama il modulo, a un output del modulo si accede con la sintassi `module.<MODULE NAME>.<OUTPUT NAME>`. Gli output dei moduli sono attributi di sola lettura.
-
 **Chiamare il modulo dal modulo root** _(stepTitle)_
 
-Ora si torna al `main.tf` del modulo root e si aggiunge un riferimento al nuovo modulo. I nomi dei bucket S3 di AWS devono essere univoci a livello globale. Bisogna quindi sostituire `<UNIQUE BUCKET NAME>` con un nome univoco e valido, e di solito il proprio nome con la data va bene (ad esempio `robin-example-2020-01-15`):
+I nomi dei bucket S3 sono univoci a livello globale, quindi `<UNIQUE BUCKET NAME>` va sostituito, ad esempio con nome e data (`robin-example-2020-01-15`). `bucket_name` e `tags` valorizzano le variabili del modulo:
 
 ```
 module "website_s3_bucket" {
@@ -1122,11 +1053,9 @@ module "website_s3_bucket" {
 }
 ```
 
-L'esempio passa al modulo gli argomenti `bucket_name` e `tags`, che forniscono i valori delle variabili corrispondenti di `modules/aws-s3-static-website-bucket/variables.tf`.
-
 **Definire gli output nel modulo root** _(stepTitle)_
 
-Gli output aggiunti al modulo `aws-s3-static-website-bucket` rendono quei valori disponibili alla configurazione del modulo root. Nel file `outputs.tf` della directory del modulo root, non in quello del modulo, si aggiungono altri output per il bucket S3:
+Nel file `outputs.tf` del root, non del modulo:
 
 ```
 # Output variable definitions
@@ -1159,25 +1088,25 @@ output "website_bucket_domain" {
 
 ### 5.7.4 — Installare il modulo locale
 
-Ogni volta che si aggiunge un nuovo modulo a una configurazione, Terraform deve installarlo prima di poterlo usare. Sia `terraform get` sia `terraform init` installano e aggiornano i moduli. `terraform init` inizializza anche i backend e installa i plugin. Nel tutorial si installa il modulo con `terraform get`.
+Un nuovo modulo va installato con `terraform get` o `terraform init`, che inizializza anche backend e plugin; il tutorial usa `terraform get`.
 
-> **Nota**: quando installa un modulo remoto, Terraform lo scarica nella directory `.terraform` della directory root della configurazione. Quando installa un modulo locale, invece, fa riferimento direttamente alla directory sorgente. Per questo Terraform vede automaticamente le modifiche ai moduli locali, senza rieseguire `terraform init` o `terraform get`.
+> **Nota**: i moduli remoti vengono scaricati in `.terraform`, mentre per i moduli locali Terraform fa riferimento alla directory sorgente e ne vede subito le modifiche (vedi §5.3.6).
 _(infoBox)_
 
-Con il nuovo modulo installato e configurato, `terraform apply` crea il bucket e le altre risorse.
+`terraform apply` crea poi il bucket e le altre risorse.
 
 > **Nota**: l'apply crea anche le istanze EC2 del tutorial precedente. A fine tutorial va eseguito `terraform destroy` per rimuoverle, altrimenti potrebbero essere addebitate.
 _(infoBox)_
 
 ### 5.7.5 — Caricare i file nel bucket
 
-Ora si è configurato e usato un proprio modulo per creare un sito web statico. Il bucket però è vuoto, quindi visitando il sito non si vedrebbe niente. Per vedere dei contenuti bisogna caricare oggetti nel bucket. Si può caricare il contenuto della directory `www` del repository con la console AWS o con lo strumento da riga di comando AWS:
+Il bucket è vuoto: si carica il contenuto della directory `www` con la console AWS o con la CLI:
 
 ```
 $ aws s3 cp modules/aws-s3-static-website-bucket/www/ s3://$(terraform output -raw website_bucket_name)/ --recursive
 ```
 
-Il dominio del sito compare dopo l'ultimo `terraform apply`, o con `terraform output`. Visitandolo in un browser si vede il contenuto del sito:
+Il dominio del sito si legge dall'output dell'apply o con `terraform output`:
 
 ```
 https://<YOUR BUCKET NAME>.s3-us-west-2.amazonaws.com/index.html
@@ -1295,7 +1224,7 @@ terraform {
 
 Questi requisiti sono identici ai precedenti, con in più il nome di configurazione alias `aws.alternate`, che le risorse possono usare con l'argomento `provider`.
 
-Se si scrive un modulo Terraform condiviso, va vincolata solo la versione minima richiesta del provider, con un vincolo `>=`. Deve indicare la versione minima che contiene le funzionalità usate dal modulo. Così chi usa il modulo può scegliere una versione più recente del provider, se altre parti della sua configurazione hanno bisogno di altre funzionalità.
+Come visto in §2.7.3, un modulo condiviso dovrebbe vincolare solo la versione minima del provider (`>=`), lasciando a chi lo usa la scelta di versioni più recenti.
 
 ### 5.9.3 — L'ereditarietà implicita dei provider
 

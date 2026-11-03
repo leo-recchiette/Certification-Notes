@@ -6,42 +6,19 @@ _Obiettivo 4 dell'esame: usare e distinguere i blocchi resource e data (4a), far
 
 ## 4.1 — Definire l'infrastruttura con le risorse
 
-Terraform usa i blocchi `resource` per gestire l'infrastruttura, come reti virtuali, istanze di calcolo o componenti di livello più alto come i record DNS. Un blocco resource rappresenta uno o più oggetti dell'infrastruttura nella configurazione Terraform.
-
-La maggior parte dei provider di Terraform offre diverse risorse. Ognuna corrisponde alle API che gestiscono un particolare tipo di infrastruttura:
-
-| **Generica** | **Risorsa del provider AWS** | **Infrastruttura AWS** |
-|---|---|---|
-| Risorsa A | `aws_instance` | Istanza EC2 |
-| Risorsa B | `aws_security_group` | Security group |
-
-Nel tutorial si crea un'istanza EC2 che esegue un'applicazione web PHP. Poi si consulta la documentazione del Terraform Registry per creare un security group che renda l'applicazione accessibile pubblicamente.
+Un blocco `resource` rappresenta uno o più oggetti dell'infrastruttura, e ogni tipo di risorsa corrisponde alle API di un tipo di infrastruttura (ad esempio `aws_instance` per un'istanza EC2, `aws_security_group` per un security group). Nel tutorial si crea un'istanza EC2 con un'applicazione web PHP, e poi un security group che la rende accessibile.
 
 ### 4.1.1 — La risorsa random_pet
 
-Il primo blocco resource della configurazione di esempio definisce una risorsa `random_pet` chiamata `name`, che genera un nome casuale di animale domestico. Il nome generato serve a dare nomi univoci alle altre risorse.
+`random_pet` genera un nome casuale, usato per dare nomi univoci alle altre risorse:
 
 ```
 resource "random_pet" "name" {}
 ```
 
-Un blocco resource dichiara un tipo e un nome di risorsa. Insieme, tipo e nome formano un identificatore (ID) della risorsa nel formato `resource_type.resource_name`, in questo caso `random_pet.name`. L'ID di una risorsa deve essere univoco all'interno di un workspace, ed è quello che Terraform usa quando mostra informazioni sulla risorsa nel proprio output.
-
-I tipi di risorsa iniziano sempre con il nome del provider seguito da un trattino basso: il tipo `random_pet` appartiene al provider `random`.
-
-Il Terraform Registry ospita la documentazione dei provider di Terraform e delle loro risorse. La pagina di `random_pet` si trova sotto la documentazione del provider random. Contiene una descrizione della risorsa, un esempio d'uso, il riferimento degli argomenti (argument reference) e quello degli attributi (attribute reference).
-
-Le risorse hanno argomenti, attributi e meta-argomenti:
-
-- gli **argomenti** configurano una specifica risorsa, per questo molti argomenti valgono solo per quella risorsa. Il provider stabilisce quali sono obbligatori e quali facoltativi. Se manca un argomento obbligatorio, Terraform dà errore e non applica la configurazione.
-- gli **attributi** sono valori esposti da una risorsa esistente, e i riferimenti a un attributo hanno il formato `resource_type.resource_name.attribute_name`. Gli argomenti specificano la configurazione di un oggetto dell'infrastruttura. Gli attributi invece vengono spesso assegnati alla risorsa dal cloud provider o dall'API sottostante.
-- i **meta-argomenti** cambiano il comportamento di una risorsa: ad esempio il meta-argomento `count` crea più risorse. I meta-argomenti fanno parte di Terraform stesso e non dipendono dalla risorsa o dal provider.
-
-La risorsa `random_pet` ha quattro argomenti facoltativi ed espone un attributo. Non avendo argomenti obbligatori, la risorsa `random_pet.name` si può definire senza argomenti.
+Il suo ID è `random_pet.name` (vedi §3.2.2). La pagina della risorsa nel Terraform Registry contiene descrizione, esempio, argument reference e attribute reference. Le risorse hanno argomenti (configurano la risorsa; il provider stabilisce quali sono obbligatori), attributi (valori esposti, spesso assegnati dall'API, nel formato `resource_type.resource_name.attribute_name`) e meta-argomenti (come `count`, propri di Terraform; vedi §4.3.4). `random_pet` ha quattro argomenti facoltativi e un attributo, quindi si può definire senza argomenti.
 
 ### 4.1.2 — La risorsa dell'istanza EC2
-
-Il blocco `aws_instance.web` definisce una risorsa `aws_instance` chiamata `web`, che crea un'istanza EC2 di AWS:
 
 ```
 resource "aws_instance" "web" {
@@ -55,25 +32,15 @@ resource "aws_instance" "web" {
 }
 ```
 
-Gli argomenti dentro il blocco specificano quale tipo di risorsa creare:
-
-- `instance_type` e `ami` dicono al provider AWS di creare un'istanza EC2 `t2.micro` con l'immagine macchina `ami-a0cfeed8`. La configurazione distribuisce in `us-west-2`. Per usare un'altra region, o se l'account AWS non ha accesso a questa AMI, bisogna mettere nell'argomento `ami` un'AMI accessibile nella propria region; con un'AMI diversa potrebbe servire aggiornare anche `init-script.sh`.
-- `user_data` usa la funzione `file()` per leggere il contenuto di `init-script.sh`.
-- `tags` specifica il nome dell'istanza EC2. Fa riferimento all'attributo ID di `random_pet.name` (`random_pet.name.id`) per dare all'istanza un nome univoco. Così si crea una dipendenza implicita tra l'istanza EC2 e la risorsa `random_pet`: Terraform non può creare l'istanza finché non ha un nome da darle.
-
-Questi sono solo alcuni degli argomenti disponibili per `aws_instance`. L'elenco completo è nella pagina della documentazione di `aws_instance`.
+`instance_type` e `ami` creano un'istanza `t2.micro` con l'AMI `ami-a0cfeed8` in `us-west-2` (in un'altra region serve un'AMI accessibile, e forse un `init-script.sh` adattato). `user_data` legge lo script con la funzione `file()`. `tags` usa `random_pet.name.id`, e questo crea una dipendenza implicita: l'istanza si crea solo dopo il nome. Gli altri argomenti sono nella documentazione di `aws_instance`.
 
 ### 4.1.3 — Creare l'infrastruttura
 
-Il tutorial inizializza la configurazione con `terraform init`. Nella variante HCP Terraform lo fa dopo aver decommentato il blocco `cloud` nel file `terraform.tf`, e Terraform crea automaticamente il workspace `learn-terraform-resource` nell'organizzazione.
-
-Poi applica la configurazione con `terraform apply`, che crea le due risorse. Al termine, l'output `domain-name` mostra l'endpoint dell'istanza EC2. Visitando l'URL però non si ottiene risposta, perché l'accesso alla porta 80 dell'istanza non è ancora configurato. Con HCP Terraform, il workspace mostra ora l'elenco di tutte le risorse che gestisce e gli output della configurazione.
+Dopo `terraform init` (nella variante HCP Terraform si crea il workspace `learn-terraform-resource`), `terraform apply` crea le due risorse. L'URL dell'output `domain-name` però non risponde, perché la porta 80 non è ancora aperta.
 
 ### 4.1.4 — Associare un security group all'istanza
 
-Per rendere accessibile il web server dell'istanza EC2 serve un security group che consenta il traffico in ingresso sulla porta 80 e tutto il traffico in uscita, associato all'istanza. Nel Terraform Registry si apre la documentazione del provider AWS, si cerca `security_group` e si seleziona la risorsa `aws_security_group`.
-
-Dopo aver esaminato le opzioni di configurazione disponibili, si definisce in `main.tf` una nuova risorsa `aws_security_group` chiamata `web-sg`. Consente il traffico in ingresso sulla porta 80 e tutto il traffico in uscita, per tutti i blocchi CIDR:
+Dalla documentazione di `aws_security_group` nel Registry si definisce `web-sg`, che consente il traffico in ingresso sulla porta 80 e tutto il traffico in uscita:
 
 ```
 resource "aws_security_group" "web-sg" {
@@ -94,7 +61,7 @@ resource "aws_security_group" "web-sg" {
 }
 ```
 
-Poi si aggiorna la risorsa `aws_instance.web` perché usi questo security group. La sezione *Argument Reference* di `aws_instance` indica che l'argomento `vpc_security_group_ids` richiede una lista di ID di security group. Lo si aggiunge quindi come lista, mettendo l'attributo `aws_security_group.web-sg.id` tra parentesi quadre:
+Secondo l'*Argument Reference*, `vpc_security_group_ids` richiede una lista di ID, quindi si aggiunge `[aws_security_group.web-sg.id]`:
 
 ```
 resource "aws_instance" "web" {
@@ -109,9 +76,7 @@ resource "aws_instance" "web" {
 }
 ```
 
-Dopo un nuovo apply, l'istanza EC2 è accessibile pubblicamente. Visitando nel browser l'indirizzo dell'output `application-url`, che inizia con http e non con https, si vede l'applicazione PHP. Il valore dell'output si rilegge con `terraform output application-url`. Il deployment completo dell'applicazione PHP sull'istanza può richiedere circa 10 minuti.
-
-Con `curl` si può anche mandare una richiesta HTTP all'endpoint dell'output `domain-name`, che restituisce l'ID dell'istanza EC2:
+Dopo un nuovo apply l'applicazione PHP risponde all'URL `http` dell'output `application-url` (rileggibile con `terraform output application-url`; il deployment può richiedere una decina di minuti). Con `curl` l'endpoint `domain-name` restituisce l'ID dell'istanza:
 
 ```
 $ curl $(terraform output -raw domain-name)
@@ -127,7 +92,7 @@ Questa pagina descrive il workflow per creare e gestire le risorse nella configu
 
 ### 4.2.1 — Introduzione
 
-Una risorsa è qualsiasi oggetto dell'infrastruttura che si vuole creare e gestire con Terraform: reti virtuali, istanze di calcolo o componenti di livello più alto come i record DNS. I tipi di risorse disponibili dipendono dai provider installati. I provider sono plugin che offrono un insieme di tipi di risorsa per una singola piattaforma infrastrutturale, cloud o on-premises (sezione 2.3).
+Una risorsa è qualsiasi oggetto dell'infrastruttura che si vuole gestire con Terraform (vedi §4.1); i tipi disponibili dipendono dai provider installati (vedi §2.3).
 
 ### 4.2.2 — Scrivere la configurazione della risorsa
 
@@ -696,20 +661,18 @@ resource "aws_instance" "web" {
 
 ## 4.4 — Interrogare i data source
 
-I data source di Terraform permettono di recuperare dinamicamente dati dalle API o da altri backend di state di Terraform. Esempi tipici sono gli ID delle immagini macchina di un cloud provider o gli output di altre configurazioni Terraform. I data source rendono la configurazione più flessibile e dinamica e permettono di usare valori di altre configurazioni. Così si può limitare l'ambito di una configurazione pur continuando a usare gli attributi delle risorse da cui dipende. In HCP Terraform, i data source permettono di condividere dati tra workspace.
+I data source recuperano dati dalle API o da altri state di Terraform, come ID di immagini o output di altre configurazioni, e permettono di limitare l'ambito di una configurazione continuando a usare gli attributi da cui dipende (vedi §4.5). Nel tutorial:
 
-Nel tutorial si usano i data source per rendere la configurazione più dinamica, in quattro passi:
+1. si crea una VPC con i security group;
+2. con `aws_availability_zones` la si rende distribuibile in qualsiasi region;
+3. si distribuisce l'applicazione, in una configurazione separata, leggendo i dati della VPC con `terraform_remote_state`;
+4. con `aws_ami` si sceglie l'AMI della region corrente.
 
-1. si crea con Terraform una VPC AWS con i relativi security group;
-2. con il data source `aws_availability_zones` si rende la configurazione distribuibile in qualsiasi region;
-3. si distribuisce l'infrastruttura applicativa, definita in una configurazione Terraform separata, e si usa il data source `terraform_remote_state` per leggere le informazioni sulla VPC;
-4. con il data source `aws_ami` si configura l'AMI corretta per la region corrente.
-
-Il tutorial usa due workspace HCP Terraform, `learn-terraform-data-sources-vpc` e `learn-terraform-data-sources-app`. Terraform li crea automaticamente all'inizializzazione, dopo aver impostato il nome dell'organizzazione nella variabile d'ambiente `TF_CLOUD_ORGANIZATION`.
+I workspace HCP Terraform `learn-terraform-data-sources-vpc` e `learn-terraform-data-sources-app` vengono creati all'inizializzazione, dopo aver impostato `TF_CLOUD_ORGANIZATION`.
 
 ### 4.4.1 — Aggiornare la region della VPC
 
-La configurazione della VPC imposta la region con una variabile chiamata `aws_region`, con valore di default `us-east-1`. Cambiare il valore di `aws_region` però non basta a cambiare region. La configurazione della VPC include infatti un argomento `azs` per le availability zone, con una lista di zone della region `us-east-1` scritta a mano:
+Cambiare la variabile `aws_region` (default `us-east-1`) non basta, perché `azs` contiene zone scritte a mano:
 
 ```
 module "vpc" {
@@ -719,7 +682,7 @@ module "vpc" {
 }
 ```
 
-Per caricare le availability zone disponibili nella region corrente si aggiunge a `main.tf` il data source `aws_availability_zones`:
+Si aggiunge il data source `aws_availability_zones`, limitato con `state` alle zone disponibili:
 
 ```
 data "aws_availability_zones" "available" {
@@ -732,9 +695,7 @@ data "aws_availability_zones" "available" {
 }
 ```
 
-Il data source `aws_availability_zones` fa parte del provider AWS e recupera una lista di availability zone in base agli argomenti forniti. Qui l'argomento `state` limita la lista alle zone attualmente disponibili.
-
-Agli attributi di un data source si fa riferimento con lo schema `data.<NAME>.<ATTRIBUTE>`. Si aggiorna quindi la configurazione della VPC perché imposti la lista delle availability zone con questo data source:
+e lo si usa con lo schema `data.<NAME>.<ATTRIBUTE>` (vedi §4.5.3):
 
 ```
 module "vpc" {
@@ -751,7 +712,7 @@ module "vpc" {
 }
 ```
 
-Il workspace della VPC deve anche esportare come output la region, che servirà come input al workspace dell'applicazione. Si aggiungono quindi a `main.tf` un data source che legge le informazioni sulla region, e a `outputs.tf` l'output corrispondente:
+Per passare la region al workspace dell'applicazione si aggiungono il data source `aws_region` e un output:
 
 ```
 data "aws_region" "current" { }
@@ -762,8 +723,6 @@ output "aws_region" {
 }
 ```
 
-Si applica la configurazione impostando `aws_region` a `us-west-1`:
-
 ```
 $ terraform apply -var aws_region=us-west-1
 ```
@@ -773,7 +732,7 @@ _(infoBox)_
 
 ### 4.4.2 — Configurare il remote state di Terraform
 
-Con le risorse di rete distribuite, si passa alla directory `learn-terraform-data-sources-app`, che contiene la configurazione Terraform dell'applicazione, e la si inizializza. Come quella della VPC, anche questa configurazione contiene valori scritti a mano per la region `us-east-1`. Il data source `terraform_remote_state` permette di usare i dati di output di un altro workspace Terraform. Lo si aggiunge al file `main.tf`, sostituendo `YOUR_ORG` con il nome della propria organizzazione HCP Terraform:
+Nella directory `learn-terraform-data-sources-app`, inizializzata, anche la configurazione dell'applicazione usa valori fissi per `us-east-1`. Si aggiunge il data source `terraform_remote_state` (vedi §8.14), che con il backend `remote` legge lo state del workspace della VPC:
 
 ```
 data "terraform_remote_state" "vpc" {
@@ -788,25 +747,15 @@ data "terraform_remote_state" "vpc" {
 }
 ```
 
-Questo blocco usa il backend `remote` per caricare i dati di state dal workspace e dall'organizzazione indicati nella sezione `config`.
+I workspace HCP Terraform accedono allo state l'uno dell'altro solo se consentito: nel workspace `learn-terraform-data-sources-vpc`, in **Settings > General > Remote state sharing**, si sceglie **Share with specific workspaces**, si seleziona `learn-terraform-data-sources-app` e si salva.
 
-Per motivi di sicurezza, i workspace HCP Terraform possono accedere allo state l'uno dell'altro solo se lo si consente esplicitamente. Per dare al workspace `learn-terraform-data-sources-app` l'accesso allo state di `learn-terraform-data-sources-vpc` si procede così:
-
-1. si accede a HCP Terraform e si sceglie l'organizzazione usata per il tutorial;
-2. si apre il workspace `learn-terraform-data-sources-vpc`;
-3. nella pagina **Settings > General** del workspace si trova la sezione **Remote state sharing**;
-4. si sceglie l'opzione **Share with specific workspaces** e si seleziona il workspace `learn-terraform-data-sources-app`;
-5. si fa clic su **Save settings**.
-
-Poi si aggiorna la configurazione del provider aws in `main.tf`, perché usi la stessa region della configurazione della VPC invece di una region scritta a mano:
+Il provider usa poi la region della VPC, e il modulo `elb` le sue subnet e i suoi security group:
 
 ```
 provider "aws" {
   region = data.terraform_remote_state.vpc.outputs.aws_region
 }
 ```
-
-La configurazione della VPC ha anche output con gli ID delle subnet e dei security group. Con questi valori si configurano gli argomenti del security group e delle subnet del load balancer nel modulo `elb`:
 
 ```
 module "elb_http" {
@@ -822,7 +771,7 @@ _(infoBox)_
 
 ### 4.4.3 — Scalare le istanze EC2
 
-I valori dei data source si usano come qualsiasi altro valore di Terraform, anche passandoli alle funzioni. La configurazione in `main.tf` usa una sola istanza EC2. La si aggiorna perché usi la variabile `instances_per_subnet` e crei più istanze EC2 per ogni subnet:
+I valori dei data source si possono passare alle funzioni: con `count` si creano `instances_per_subnet` istanze per ogni subnet privata della VPC:
 
 ```
 resource "aws_instance" "app" {
@@ -834,11 +783,9 @@ resource "aws_instance" "app" {
 }
 ```
 
-Ora, applicando la configurazione, Terraform crea `var.instances_per_subnet` istanze per ogni subnet privata configurata nel workspace della VPC.
-
 ### 4.4.4 — AMI specifiche per la region
 
-La configurazione dell'istanza AWS usa anche un ID di AMI scritto a mano, valido solo nella region `us-east-1`. Per caricare l'ID dell'AMI corretto per la region corrente si aggiunge a `main.tf` un data source `aws_ami`, e si sostituisce l'ID scritto a mano con quello caricato dal data source:
+L'AMI fissa vale solo in `us-east-1`; la si sostituisce con un data source `aws_ami`:
 
 ```
 data "aws_ami" "amazon_linux" {
@@ -862,8 +809,6 @@ resource "aws_instance" "app" {
 
 ### 4.4.5 — Subnet e security group delle istanze EC2
 
-Infine si aggiorna la configurazione delle istanze EC2 perché usi le subnet e i security group del workspace della VPC:
-
 ```
 resource "aws_instance" "app" {
 ##...
@@ -875,7 +820,7 @@ resource "aws_instance" "app" {
 }
 ```
 
-Applicando la configurazione, Terraform crea l'infrastruttura dell'applicazione. Dopo qualche minuto gli health check del load balancer passano, e `curl $(terraform output -raw lb_url)` restituisce la risposta di esempio.
+Dopo l'apply e qualche minuto per gli health check del load balancer, `curl $(terraform output -raw lb_url)` restituisce la risposta di esempio.
 
 - Fonte: [Query data sources](https://developer.hashicorp.com/terraform/tutorials/configuration-language/data-sources)
 
@@ -1206,7 +1151,7 @@ Terraform usa queste informazioni sulle dipendenze per stabilire l'ordine corret
 
 ### 4.7.2 — Dipendenze esplicite
 
-Le dipendenze implicite sono il modo principale con cui Terraform capisce le relazioni tra le risorse. A volte però tra le risorse ci sono dipendenze che Terraform non può vedere. L'argomento `depends_on` è accettato da qualsiasi blocco resource o module, e prende una lista di risorse per cui creare dipendenze esplicite.
+Per le dipendenze che Terraform non può dedurre dai riferimenti si usa `depends_on`, con una lista di risorse (vedi §4.10.2).
 
 Ad esempio, un'applicazione in esecuzione sull'istanza EC2 potrebbe aspettarsi di usare un determinato bucket Amazon S3. La dipendenza è configurata dentro l'applicazione, quindi Terraform non la vede, e la si dichiara esplicitamente con `depends_on`. In `depends_on` si possono indicare anche più risorse: Terraform aspetta che siano state create tutte prima di creare la risorsa di destinazione.
 
@@ -1517,13 +1462,13 @@ l'indirizzo `aws_instance.web["example"]` indica solo l'istanza `"example"` dell
 
 I meta-argomenti sono una classe di argomenti integrati nel linguaggio di configurazione di Terraform, che controllano come Terraform crea e gestisce l'infrastruttura. Si possono usare in qualsiasi tipo di risorsa, e la maggior parte anche nei blocchi `module`.
 
-Gli argomenti specifici di ogni risorsa li stabilisce lo sviluppatore del provider. Tutte le risorse però supportano i meta-argomenti, che gestiscono il ciclo di vita dell'infrastruttura: il comportamento in distruzione, la protezione dalla distruzione e le dipendenze tra risorse.
+Tutte le risorse supportano i meta-argomenti, che gestiscono il ciclo di vita dell'infrastruttura: il comportamento in distruzione, la protezione dalla distruzione e le dipendenze tra risorse.
 
 ### 4.10.1 — I meta-argomenti di Terraform
 
 Terraform offre questi meta-argomenti:
 
-- `depends_on`: fa completare a Terraform tutte le azioni sull'oggetto da cui si dipende, comprese le letture, prima di agire sull'oggetto che dichiara la dipendenza. Serve a stabilire esplicitamente l'ordine in cui Terraform crea le risorse (tutorial *Create resource dependencies*, sezione 4.7).
+- `depends_on`: stabilisce esplicitamente l'ordine in cui Terraform crea le risorse (vedi §4.10.2 e il tutorial in §4.7).
 - `count`: per default Terraform configura un oggetto dell'infrastruttura per ogni blocco `resource`, `module` ed `ephemeral`, e crea una sola istanza di un modulo per ogni blocco `module`. Con l'argomento `count` nei blocchi `resource`, `module` ed `ephemeral` si creano e gestiscono più istanze senza scrivere un blocco separato per ognuna.
 - `for_each`: con `for_each` nei blocchi `resource`, `data`, `module` ed `ephemeral` si creano e gestiscono diversi oggetti simili, ad esempio un pool fisso di istanze di calcolo, senza scrivere un blocco separato per ognuno.
 - `lifecycle`: il blocco `lifecycle` accetta regole che personalizzano il modo in cui Terraform esegue le fasi del ciclo di vita di ogni risorsa. Il supporto delle singole regole varia tra i blocchi di configurazione (sezioni 4.22 e 4.23).
@@ -1716,7 +1661,7 @@ Di solito il blocco `output` non richiede dipendenze esplicite. Se se ne aggiung
 
 Quando si applicano modifiche a un progetto Terraform, Terraform genera un piano con tutte le differenze tra la configurazione e le risorse gestite in quel momento dal progetto. Applicando il piano, Terraform aggiunge, rimuove e modifica le risorse come proposto dal piano.
 
-Nel workflow tipico di Terraform si applica l'intero piano in una volta. A volte però si può voler applicare solo una parte del piano. Succede ad esempio quando lo state di Terraform non è più allineato alle risorse, per un guasto di rete, per un problema della piattaforma cloud a monte o per un bug di Terraform o dei suoi provider. Per questi casi Terraform permette di indirizzare (target) risorse specifiche quando si pianifica, si applica o si distrugge l'infrastruttura. Indirizzare singole risorse può servire a risolvere errori, ma non dovrebbe far parte del workflow normale.
+Di solito si applica l'intero piano. Quando però lo state non è più allineato alle risorse, per un guasto di rete, un problema della piattaforma cloud o un bug, si possono indirizzare (target) risorse specifiche, come eccezione e non come prassi (vedi §3.8.4).
 
 L'opzione `-target` indirizza risorse specifiche, moduli o insiemi di risorse. Nel tutorial si crea un bucket S3 con alcuni oggetti, e poi si applicano le modifiche un po' alla volta con `-target`. La configurazione di esempio definisce un bucket S3 con un nome casuale e quattro oggetti nel bucket.
 
@@ -1810,11 +1755,7 @@ Terraform aggiorna tutte le risorse `random_pet.object_names`, non solo il nome 
 
 ## 4.12 — Personalizzare la configurazione con le variabili
 
-Le input variable rendono più flessibile la configurazione Terraform. Definiscono valori che gli utenti finali possono assegnare per personalizzare la configurazione, e offrono un'interfaccia coerente per cambiare il comportamento di una configurazione.
-
-A differenza delle variabili dei linguaggi di programmazione, le input variable di Terraform non cambiano valore durante un'esecuzione di Terraform come plan, apply o destroy. Permettono invece di personalizzare l'infrastruttura in modo più sicuro: si assegnano valori diversi alle variabili prima dell'esecuzione, invece di modificare a mano i file di configurazione.
-
-Nel tutorial si usa Terraform per distribuire un'applicazione web su AWS. L'infrastruttura di supporto comprende una VPC, un load balancer e delle istanze EC2. Si parametrizza la configurazione con le input variable, poi si interpolano le variabili nelle stringhe, si usano le variabili con le funzioni e si usa la validazione delle variabili.
+Le input variable offrono un'interfaccia per personalizzare la configurazione. A differenza delle variabili dei linguaggi di programmazione non cambiano durante un'esecuzione: si assegnano prima, invece di modificare a mano i file (vedi §4.13). Nel tutorial si distribuisce un'applicazione web su AWS (VPC, load balancer, istanze EC2) e se ne parametrizza la configurazione, con interpolazione, funzioni e validazione.
 
 ![Figura 11](img/terraform-variables-architecture-diagram.png) _(dimensioni: 663×320 px)_
 
@@ -1822,9 +1763,7 @@ Nel tutorial si usa Terraform per distribuire un'applicazione web su AWS. L'infr
 
 ### 4.12.1 — Parametrizzare la configurazione
 
-La configurazione in `main.tf` definisce l'applicazione web, con VPC, load balancer e istanze EC2. Il tutorial la inizializza e la applica per creare l'infrastruttura di esempio.
-
-Le dichiarazioni di variabile possono stare in qualsiasi punto dei file di configurazione. È consigliato però metterle in un file separato chiamato `variables.tf`, perché gli utenti capiscano più facilmente come personalizzare la configurazione. Per parametrizzare un argomento con una input variable bisogna prima definire la variabile, poi sostituire il valore scritto a mano con un riferimento alla variabile. Si aggiunge quindi a `variables.tf` un blocco che dichiara la variabile `aws_region`:
+Dopo aver applicato la configurazione di esempio, si dichiarano le variabili, preferibilmente in `variables.tf`, e si sostituiscono i valori scritti a mano con `var.<variable_name>`:
 
 ```
 variable "aws_region" {
@@ -1834,23 +1773,13 @@ variable "aws_region" {
 }
 ```
 
-I blocchi variable hanno tre argomenti facoltativi:
-
-- `description`: una breve descrizione che documenta lo scopo della variabile;
-- `type`: il tipo di dato contenuto nella variabile;
-- `default`: il valore predefinito.
-
-È consigliato impostare una descrizione e un tipo per tutte le variabili, e un valore di default quando è possibile. Se una variabile non ha un default, bisogna assegnarle un valore prima che Terraform possa applicare la configurazione: Terraform non supporta variabili senza valore. I modi per assegnare i valori sono descritti più avanti.
-
-I valori delle variabili devono essere valori letterali. Non possono usare valori calcolati, come attributi di risorse, espressioni o altre variabili. Nella configurazione si fa riferimento alle variabili con `var.<variable_name>`. Si modifica quindi il blocco provider in `main.tf` perché usi la nuova variabile:
+`description`, `type` e `default` sono facoltativi, ma è consigliato indicarli tutti; senza default un valore va comunque assegnato, e il default deve essere un valore letterale (vedi §4.14.2).
 
 ```
 provider "aws" {
   region  = var.aws_region
 }
 ```
-
-Allo stesso modo si dichiara in `variables.tf` la variabile `vpc_cidr_block`:
 
 ```
 variable "vpc_cidr_block" {
@@ -1860,11 +1789,9 @@ variable "vpc_cidr_block" {
 }
 ```
 
-Poi in `main.tf` si sostituisce con `cidr = var.vpc_cidr_block` il valore scritto a mano del blocco CIDR della VPC. Applicando la configurazione non ci sono modifiche, perché i default delle variabili coincidono con i valori scritti a mano che hanno sostituito.
+In `main.tf` si usa `cidr = var.vpc_cidr_block`. L'apply non propone modifiche, perché i default coincidono con i valori sostituiti.
 
 ### 4.12.2 — Impostare il numero di istanze
-
-Oltre a `string`, Terraform supporta diversi altri tipi di variabile. Con il tipo `number` si definisce il numero di istanze supportate dalla configurazione:
 
 ```
 variable "instance_count" {
@@ -1874,13 +1801,9 @@ variable "instance_count" {
 }
 ```
 
-Poi si aggiornano le istanze EC2 in `main.tf` perché usino la variabile (`instance_count = var.instance_count` nel modulo `ec2_instances`).
-
-Quando interpreta i valori, scritti a mano o provenienti da variabili, Terraform li converte nel tipo corretto se possibile. La variabile `instance_count` funzionerebbe quindi anche con una stringa (`"2"`) al posto di un numero (`2`). È consigliato però usare il tipo più adatto nelle definizioni delle variabili. Così gli utenti della configurazione sanno quale tipo di dato usare, e gli errori di configurazione emergono prima.
+Nel modulo `ec2_instances` si usa `instance_count = var.instance_count`. Terraform converte i tipi quando può, quindi funzionerebbe anche `"2"`, ma è meglio dichiarare il tipo corretto (vedi §4.21.3).
 
 ### 4.12.3 — Attivare il supporto del VPN gateway
-
-Una variabile di tipo `bool` rappresenta valori vero/falso. La si usa per decidere se configurare un VPN gateway per la VPC:
 
 ```
 variable "enable_vpn_gateway" {
@@ -1890,19 +1813,11 @@ variable "enable_vpn_gateway" {
 }
 ```
 
-Nel modulo `vpc` di `main.tf` si imposta `enable_vpn_gateway = var.enable_vpn_gateway`, mentre `enable_nat_gateway = true` resta scritto a mano. In qualsiasi configurazione ci sono valori che si vuole far configurare agli utenti con le variabili, e altri che si preferisce scrivere a mano. Quando si sviluppano moduli Terraform si usano spesso le variabili per rendere configurabili gli attributi del modulo, e quindi il modulo più flessibile. Quando si scrive la configurazione di un progetto specifico, invece, si può scegliere di scrivere a mano gli attributi che non si vuole far configurare agli utenti.
+Nel modulo `vpc` si imposta `enable_vpn_gateway = var.enable_vpn_gateway`, lasciando fisso `enable_nat_gateway = true`. Nei moduli si espongono come variabili gli attributi da rendere configurabili; in una configurazione specifica si possono lasciare fissi quelli che non si vuole far cambiare.
 
 ### 4.12.4 — Liste di subnet pubbliche e private
 
-Le variabili usate finora contengono tutte un singolo valore, e Terraform le chiama variabili semplici. Terraform supporta anche tipi di variabile collezione, che contengono più valori:
-
-- **List**: una sequenza di valori dello stesso tipo.
-- **Map**: una tabella di lookup che associa chiavi a valori, tutti dello stesso tipo.
-- **Set**: una collezione non ordinata di valori univoci, tutti dello stesso tipo.
-
-Il tutorial usa liste e una map, i tipi più usati. I set servono quando occorre una collezione di valori univoci e l'ordine degli elementi non conta.
-
-Le liste sono adatte agli argomenti `private_subnets` e `public_subnets` della VPC. Con le liste e la funzione `slice()` la configurazione diventa più facile da usare e da personalizzare. Si aggiungono quindi a `variables.tf` le variabili `public_subnet_count` e `private_subnet_count`, e due liste di blocchi CIDR:
+Oltre alle variabili semplici esistono i tipi collezione: list, map e set, con elementi dello stesso tipo (vedi §4.21.3). Per le subnet si usano due conteggi e due liste di CIDR:
 
 ```
 variable "public_subnet_count" {
@@ -1948,17 +1863,7 @@ variable "private_subnet_cidr_blocks" {
 }
 ```
 
-Il tipo delle variabili lista è `list(string)`, quindi ogni elemento deve essere una stringa. Gli elementi di una lista devono essere tutti dello stesso tipo, ma il tipo può essere qualsiasi, anche complesso, come `list(list)` e `list(map)`. Come per le liste e gli array della maggior parte dei linguaggi di programmazione, ai singoli elementi si accede per indice, a partire da 0. Terraform include anche diverse funzioni per manipolare liste e altri tipi di variabile.
-
-Il comando `terraform console` apre una console interattiva in cui valutare espressioni nel contesto della configurazione. È molto utile quando si lavora con le definizioni delle variabili o si cercano errori. Nella console:
-
-- `var.private_subnet_cidr_blocks` restituisce l'intera lista;
-- `var.private_subnet_cidr_blocks[1]` restituisce il secondo elemento, `"10.0.102.0/24"`;
-- `slice(var.private_subnet_cidr_blocks, 0, 3)` restituisce i primi tre elementi.
-
-Dalla console si esce con `exit` o con Control-D.
-
-La funzione `slice()` prende tre argomenti: la lista da tagliare, l'indice iniziale e l'indice finale (escluso). Restituisce una nuova lista con gli elementi indicati, copiati dalla lista originale. Si aggiorna quindi il modulo VPC in `main.tf` perché usi `slice` per estrarre una parte delle liste di blocchi CIDR:
+`list(string)` richiede stringhe; gli elementi si leggono per indice da 0. In `terraform console`, che valuta espressioni nel contesto della configurazione, `var.private_subnet_cidr_blocks[1]` restituisce `"10.0.102.0/24"` e `slice(var.private_subnet_cidr_blocks, 0, 3)` i primi tre elementi; si esce con `exit` o Control-D. `slice()` prende la lista, l'indice iniziale e quello finale escluso:
 
 ```
 module "vpc" {
@@ -1974,11 +1879,7 @@ module "vpc" {
 }
 ```
 
-Così gli utenti della configurazione possono indicare quante subnet pubbliche e private vogliono, senza preoccuparsi di definire i blocchi CIDR.
-
 ### 4.12.5 — Una map per i tag delle risorse
-
-Ognuna delle risorse e dei moduli dichiarati in `main.tf` ha due tag, `project_name` ed `environment`. Li si assegna con una variabile di tipo map:
 
 ```
 variable "resource_tags" {
@@ -1991,25 +1892,18 @@ variable "resource_tags" {
 }
 ```
 
-Il tipo `map(string)` dice a Terraform che i valori della map sono stringhe. Le chiavi di una map sono sempre stringhe. Come con i dizionari o le map dei linguaggi di programmazione, un valore si recupera con la chiave corrispondente: nella console, `var.resource_tags["environment"]` restituisce `"dev"`.
+Le chiavi di una map sono sempre stringhe; in console `var.resource_tags["environment"]` restituisce `"dev"`.
 
 > **Nota**: il comando `terraform console` carica la configurazione Terraform solo all'avvio. Per vedere le modifiche più recenti bisogna uscire e riavviare la console.
 _(infoBox)_
 
-Poi in `main.tf` si sostituiscono tutti e cinque i tag scritti a mano con `tags = var.resource_tags`. Applicando la configurazione, ancora una volta Terraform non propone modifiche.
-
-Le liste e le map sono tipi collezione. Terraform supporta anche due tipi strutturali, che hanno un numero fisso di valori, anche di tipi diversi:
-
-- **Tuple**: una sequenza di lunghezza fissa di valori di tipi specificati.
-- **Object**: una tabella di lookup che associa un insieme fisso di chiavi a valori di tipi specificati.
+In `main.tf` i cinque tag diventano `tags = var.resource_tags`, senza modifiche all'apply. Esistono anche i tipi strutturali tuple e object (vedi §4.21.3).
 
 ### 4.12.6 — Assegnare i valori alle variabili
 
-Terraform richiede un valore per ogni variabile, e ci sono diversi modi per assegnarlo.
-
 **Opzione da riga di comando** _(stepTitle)_
 
-Negli esempi finora tutte le variabili avevano un valore di default. Il tutorial aggiunge a `variables.tf` una variabile senza default:
+Si aggiunge una variabile senza default, usata come `instance_type = var.ec2_instance_type`, e la si valorizza con `-var`; se manca, Terraform Community Edition la chiede in modo interattivo:
 
 ```
 variable "ec2_instance_type" {
@@ -2018,17 +1912,13 @@ variable "ec2_instance_type" {
 }
 ```
 
-In `main.tf` si sostituisce il tipo di istanza scritto a mano con `instance_type = var.ec2_instance_type`. Poi si applica la configurazione impostando il valore con l'opzione da riga di comando `-var`:
-
 ```
 $ terraform apply -var ec2_instance_type=t2.micro
 ```
 
-Con Terraform Community Edition, se un valore non è impostato nella configurazione né passato al comando, Terraform lo chiede in modo interattivo.
-
 **Valori in un file** _(stepTitle)_
 
-Inserire a mano i valori delle variabili richiede tempo ed è soggetto a errori. Si possono invece scrivere i valori in un file. Il tutorial crea un file `terraform.tfvars` con questo contenuto, e un file `terraform.auto.tfvars` con lo stesso contenuto:
+Il tutorial crea `terraform.tfvars` e `terraform.auto.tfvars` con lo stesso contenuto:
 
 ```
 resource_tags = {
@@ -2042,13 +1932,11 @@ ec2_instance_type = "t3.micro"
 instance_count = 3
 ```
 
-Terraform carica automaticamente tutti i file della directory corrente che si chiamano esattamente `terraform.tfvars` o che corrispondono a `*.auto.tfvars`. Con l'opzione `-var-file` si possono indicare per nome altri file. Questi file usano una sintassi simile a quella dei file di configurazione (HCL), ma non possono contenere configurazione come le definizioni di risorse. Come i file di configurazione, possono contenere anche JSON.
-
-Oltre alle opzioni da riga di comando e ai file di variabili, le input variable si possono impostare con le variabili d'ambiente. Se una variabile riceve valori diversi da questi metodi, Terraform usa l'ultimo valore che trova, in base all'ordine di precedenza (sezione 4.13).
+Terraform carica automaticamente `terraform.tfvars` e i file `*.auto.tfvars`; altri file si indicano con `-var-file`. Il caricamento automatico e l'ordine di precedenza sono descritti in §4.13.4.
 
 ### 4.12.7 — Interpolare le variabili nelle stringhe
 
-La configurazione Terraform supporta l'interpolazione di stringhe, cioè l'inserimento del risultato di un'espressione in una stringa. Così si possono costruire stringhe con variabili, local value e risultati di funzioni. Il tutorial aggiorna i nomi dei security group e del load balancer perché usino i valori `project` ed `environment` della map `resource_tags`:
+L'interpolazione inserisce il risultato di un'espressione in una stringa: i nomi dei security group e del load balancer usano `project` ed `environment` di `resource_tags`:
 
 ```
 module "app_security_group" {
@@ -2081,7 +1969,7 @@ module "elb_http" {
 
 ### 4.12.8 — Validare le variabili
 
-La configurazione ha un potenziale problema. I load balancer AWS hanno restrizioni sui nomi: al massimo 32 caratteri, e solo un insieme limitato di caratteri. Con la validazione delle variabili si limitano quindi i valori possibili dei tag `project` ed `environment`. Si sostituisce la variabile `resource_tags` in `variables.tf` con questa versione, che contiene blocchi `validation` sui limiti di lunghezza e sui caratteri ammessi:
+I nomi dei load balancer AWS hanno al massimo 32 caratteri e un insieme limitato di caratteri, quindi `resource_tags` riceve blocchi `validation` su lunghezza e caratteri ammessi (vedi §4.14.2):
 
 ```
 variable "resource_tags" {
@@ -2104,9 +1992,7 @@ variable "resource_tags" {
 }
 ```
 
-La funzione `regexall()` prende un'espressione regolare e una stringa da verificare, e restituisce la lista delle corrispondenze trovate nella stringa. Qui l'espressione regolare trova qualsiasi carattere che non sia una lettera, un numero o un trattino. Così il nome del load balancer non supera i 32 caratteri e non contiene caratteri non validi. La validazione delle variabili è un buon modo per intercettare presto gli errori di configurazione.
-
-Per provare le regole di validazione si indica un tag `environment` troppo lungo. Il comando fallisce e restituisce il messaggio d'errore del blocco `validation`:
+`regexall()` restituisce le corrispondenze di un'espressione regolare, qui i caratteri diversi da lettere, numeri e trattini. Con un tag `environment` troppo lungo il comando fallisce con il messaggio della validazione:
 
 ```
 $ terraform apply -var='resource_tags={project="my-project",environment="development"}'
@@ -2202,7 +2088,7 @@ Terraform conserva comunque nello state i valori delle variabili sensitive. Aggi
 
 ### 4.13.4 — Assegnare valori alle variabili
 
-Alle variabili del modulo root si assegnano valori in diversi modi, ognuno con un proprio livello di precedenza. I moduli figli ricevono invece gli input dal modulo padre, come argomenti. Se un modulo definisce una variabile senza argomento `default`, Terraform chiede all'utente un valore prima di generare il piano. Nel modulo root i valori si assegnano con questi metodi:
+Alle variabili del modulo root si assegnano valori in diversi modi, ognuno con un proprio livello di precedenza. I moduli figli ricevono invece gli input dal modulo padre, come argomenti. Nel modulo root i valori si assegnano con questi metodi:
 
 - le variabili e i variable set di HCP Terraform;
 - le opzioni `-var` e `-var-file` della CLI;
@@ -2262,7 +2148,7 @@ Terraform carica automaticamente i file di definizione delle variabili se trova 
 - un file chiamato `terraform.tfvars.json`;
 - un file chiamato `terraform.tfvars`.
 
-Terraform carica questi file in momenti diversi. Per i valori assegnati nei file di definizione l'ordine di precedenza, dal più alto, è: i file `*.auto.tfvars` o `*.auto.tfvars.json` in ordine lessicale, poi `terraform.tfvars.json`, poi `terraform.tfvars`.
+Tra questi file vale l'ordine di precedenza dell'elenco numerato visto sopra.
 
 Se il nome di un file termina in `.json`, Terraform lo legge come un oggetto JSON, con i nomi delle variabili come chiavi dell'oggetto radice:
 
@@ -2309,10 +2195,7 @@ Terraform tratta in modo diverso i valori assegnati a variabili non dichiarate, 
 
 Il blocco `variable` serve a parametrizzare la configurazione, così chi usa il modulo può passarle valori personalizzati al momento dell'esecuzione.
 
-Il blocco `variable` è simile all'argomento di una funzione negli altri linguaggi di programmazione. Le input variable permettono di personalizzare i moduli Terraform senza modificarne il codice sorgente, e fanno da parametri dei moduli, rendendoli componibili e riutilizzabili. Le variabili si definiscono nei moduli root o nei moduli figli:
-
-- nei moduli root, i valori si impostano con le opzioni della CLI, le variabili d'ambiente, i file di definizione delle variabili o un workspace HCP Terraform;
-- nei moduli figli, è il modulo padre a passare i valori, come argomenti del blocco `module`.
+Il blocco `variable` è simile all'argomento di una funzione negli altri linguaggi di programmazione: le input variable fanno da parametri dei moduli, rendendoli componibili e riutilizzabili. Nel modulo root i valori arrivano da CLI, variabili d'ambiente, file di definizione o HCP Terraform; nei moduli figli li passa il modulo padre (vedi §4.13).
 
 ### 4.14.1 — Modello e configurazione completa
 
@@ -2536,8 +2419,6 @@ Terraform will perform the following actions:
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
-Qualsiasi espressione che fa riferimento a una variabile sensitive diventa automaticamente sensitive.
-
 **Variabile ephemeral** _(stepTitle)_
 
 L'esempio configura il provider AWS con credenziali prese da tre variabili con dati sensibili. Le variabili `access_key`, `secret_key` e `session_token` sono ephemeral: sono disponibili durante le operazioni di Terraform, ma poi non vengono salvate nello state né nei file di piano.
@@ -2576,13 +2457,11 @@ provider "aws" {
 
 ## 4.15 — Esportare dati da Terraform
 
-Gli output value di Terraform permettono di esportare dati strutturati sulle risorse. Questi dati servono a configurare altre parti dell'infrastruttura con strumenti di automazione, o come data source per un altro workspace Terraform. Gli output sono anche il modo in cui un modulo figlio espone dati al modulo root.
-
-Nel tutorial si usa Terraform per distribuire su AWS un'infrastruttura applicativa: una VPC, un load balancer, istanze EC2 e un database. Si usano gli output per ottenere informazioni sulle risorse. Poi si usa il flag `sensitive` per ridurre il rischio di rivelare per errore il nome utente e la password dell'amministratore del database. Infine si vede come formattare gli output in JSON leggibile da una macchina.
+Gli output esportano dati strutturati sulle risorse, per gli strumenti di automazione, per altri workspace o dal modulo figlio al root (vedi §4.16). Nel tutorial si distribuisce un'applicazione su AWS (VPC, load balancer, istanze EC2, database), se ne leggono gli output, si proteggono le credenziali del database con `sensitive` e si produce output JSON.
 
 ### 4.15.1 — Output della VPC e del load balancer
 
-Le dichiarazioni di output possono stare in qualsiasi punto dei file di configurazione. È consigliato però definirle in un file separato chiamato `outputs.tf`, così gli utenti capiscono più facilmente la configurazione e vedono subito gli output previsti. Si aggiunge a `outputs.tf` un blocco che mostra l'ID della VPC:
+Gli output si mettono di solito in `outputs.tf`, con una `description` che ne documenta il contenuto:
 
 ```
 output "vpc_id" {
@@ -2591,7 +2470,7 @@ output "vpc_id" {
 }
 ```
 
-L'argomento `description` è facoltativo, ma conviene metterlo in tutte le dichiarazioni di output per documentarne l'intento e il contenuto. Come valore di un output si può usare il risultato di qualsiasi espressione Terraform:
+Il valore può essere qualsiasi espressione: `lb_url` usa l'interpolazione, `web_server_count` la funzione `length()`:
 
 ```
 output "lb_url" {
@@ -2605,25 +2484,21 @@ output "web_server_count" {
 }
 ```
 
-L'output `lb_url` usa l'interpolazione di stringhe per costruire un URL dal nome di dominio del load balancer. L'output `web_server_count` usa la funzione `length()` per calcolare il numero di istanze collegate al load balancer.
-
-Terraform conserva gli output value nel file di state della configurazione. Per vedere questi output bisogna quindi aggiornare lo state applicando la nuova configurazione, anche se l'infrastruttura non cambia.
+Gli output sono conservati nello state, quindi per vederli bisogna applicare la configurazione anche se l'infrastruttura non cambia.
 
 ### 4.15.2 — Interrogare gli output
 
-Dopo aver creato gli output, il comando `terraform output` li mostra tutti, e `terraform output lb_url` ne interroga uno per nome. Da Terraform 0.14, per default gli output di tipo stringa sono racchiusi tra virgolette. Interrogando un output specifico, l'opzione `-raw` restituisce il valore in un formato leggibile da una macchina. Ad esempio, si usa il valore di `lb_url` con `-raw` per interrogare il load balancer con cURL e verificarne la risposta:
+`terraform output` li mostra tutti, `terraform output lb_url` uno solo. Da Terraform 0.14 le stringhe sono tra virgolette; `-raw` restituisce il valore nudo, ad esempio per cURL:
 
 ```
 $ curl $(terraform output -raw lb_url)
 ```
 
-Con HCP Terraform, gli output della configurazione compaiono anche in una tabella nella pagina di panoramica del workspace.
+Con HCP Terraform gli output compaiono anche nella panoramica del workspace.
 
 ### 4.15.3 — Oscurare gli output sensibili
 
-Gli output di Terraform si possono marcare come sensitive. Terraform oscura i valori degli output sensitive, per evitare di stamparli per errore nella console. Gli output sensitive servono a condividere dati sensibili della configurazione con altri moduli Terraform, strumenti di automazione o workspace HCP Terraform.
-
-Terraform oscura gli output sensitive quando pianifica, applica o distrugge la configurazione, e quando si interrogano tutti gli output. Non li oscura negli altri casi: quando si interroga un output specifico per nome, quando si interrogano tutti gli output in formato JSON, o quando si usano gli output di un modulo figlio nel modulo root. Si aggiungono a `outputs.tf` questi blocchi output, con l'attributo `sensitive` impostato a `true`:
+Gli output sensitive servono a condividere dati sensibili con altri moduli, strumenti o workspace senza stamparli per errore. Terraform li oscura in plan, apply e destroy e quando si interrogano tutti gli output, ma non quando se ne interroga uno per nome, con `-json` o quando un modulo figlio li passa al root:
 
 ```
 output "db_username" {
@@ -2639,19 +2514,15 @@ output "db_password" {
 }
 ```
 
-Applicando la modifica, Terraform oscura i valori degli output marcati come sensitive. Interrogando per nome la password del database con `terraform output db_password`, invece, Terraform non oscura il valore.
-
-Terraform conserva tutti gli output value in chiaro nel file di state, compresi quelli marcati come sensitive. Nel tutorial lo si verifica cercando la sezione `outputs` nel file `terraform.tfstate` con `grep`. Con HCP Terraform bisogna prima scaricare lo state remoto con `terraform state pull > terraform.tfstate`. L'argomento `sensitive` degli output aiuta a evitare di esporre i valori per errore, ma bisogna comunque tenere al sicuro lo state di Terraform.
+`terraform output db_password` mostra quindi il valore in chiaro. Tutti gli output, anche sensitive, sono in chiaro nello state: nel tutorial lo si verifica con `grep` su `terraform.tfstate` (con HCP Terraform dopo `terraform state pull > terraform.tfstate`). Lo state va comunque protetto.
 
 ### 4.15.4 — Generare output leggibile da una macchina
-
-L'output della CLI di Terraform è pensato per essere letto da una persona. Per un formato leggibile da una macchina, da usare in automazione, si usa l'opzione `-json`:
 
 ```
 $ terraform output -json
 ```
 
-Con l'opzione `-json` Terraform non oscura gli output sensitive, perché presume che l'output venga usato da uno strumento di automazione.
+Con `-json` gli output sensitive non sono oscurati, perché si presume che li usi uno strumento di automazione.
 
 - Fonte: [Output data from Terraform](https://developer.hashicorp.com/terraform/tutorials/configuration-language/outputs)
 
@@ -2745,12 +2616,7 @@ Aggiungendo l'argomento `ephemeral` a un output, il valore viene escluso dallo s
 
 ## 4.17 — Il blocco output
 
-Il blocco `output` permette di esporre informazioni sull'infrastruttura. Il suo valore è simile al valore di ritorno di una funzione negli altri linguaggi di programmazione. Le informazioni esposte si possono usare sulla riga di comando, in HCP Terraform e nelle altre configurazioni Terraform che possono accedere allo state della configurazione. Il blocco ha quattro scopi principali:
-
-- i moduli figli possono esporre attributi delle risorse ai moduli genitori;
-- i moduli root possono mostrare valori nell'output della CLI;
-- altre configurazioni Terraform che usano lo state remoto possono accedere agli output del modulo root con il data source `terraform_remote_state`;
-- passare informazioni da un'operazione di Terraform a uno strumento di automazione.
+Il blocco `output` permette di esporre informazioni sull'infrastruttura. Il suo valore è simile al valore di ritorno di una funzione negli altri linguaggi di programmazione. Ha gli stessi quattro scopi descritti in §4.16: esporre attributi ai moduli genitori, mostrare valori nella CLI, renderli accessibili ad altre configurazioni con `terraform_remote_state` e passarli agli strumenti di automazione.
 
 In HCP Terraform i valori dei blocchi `output` compaiono nell'interfaccia dopo l'apply della configurazione. Gli output marcati come sensitive in HCP Terraform sono nascosti nell'interfaccia e nelle risposte delle API.
 
@@ -2832,7 +2698,7 @@ Outputs:
 admin_password = (sensitive value)
 ```
 
-Con le opzioni `-json` o `-raw` del comando `terraform output`, invece, Terraform mostra i valori sensitive in chiaro. Terraform registra inoltre i valori sensitive nello state, quindi chi può accedere ai dati di state può accedere anche ai valori sensitive.
+Con `terraform output -json` o `-raw`, invece, i valori compaiono in chiaro, e restano comunque nello state (vedi §4.15.3).
 
 **ephemeral** _(stepTitle)_
 
@@ -2887,12 +2753,7 @@ output "unique_name" {
 }
 ```
 
-Il blocco ha due argomenti obbligatori:
-
-- `condition`: un'espressione condizionale valida, che deve valere true perché Terraform prosegua con l'operazione;
-- `error_message`: la stringa da mostrare se la condizione vale false.
-
-Terraform valuta le precondition degli output quando crea o applica un piano. Se la `condition` vale false, genera un errore con `error_message` e interrompe l'operazione in corso.
+Gli argomenti obbligatori `condition` ed `error_message` funzionano come nel blocco `validation` (vedi §4.14.2). Terraform valuta le precondition degli output quando crea o applica un piano. Se la `condition` vale false, genera un errore con `error_message` e interrompe l'operazione in corso.
 
 ### 4.17.3 — Esempi
 
@@ -3526,11 +3387,11 @@ Quando `var.legacy_filenames` è `true`, la chiamata sostituisce i nomi dei docu
 
 ## 4.22 — Gestire il lifecycle delle risorse
 
-Gli argomenti lifecycle aiutano a controllare il flusso delle operazioni di Terraform, con regole personalizzate per la creazione e la distruzione delle risorse. Invece di lasciare che Terraform gestisca le operazioni solo in base al grafo delle dipendenze integrato, gli argomenti lifecycle aiutano a ridurre i possibili disservizi in base alle esigenze delle risorse. Proteggono anche risorse specifiche, perché non cambino e non abbiano impatto sull'infrastruttura.
+Gli argomenti lifecycle personalizzano creazione e distruzione delle risorse oltre al grafo delle dipendenze, per ridurre i disservizi e proteggere le risorse critiche (vedi §4.23).
 
 ### 4.22.1 — La configurazione di esempio
 
-La configurazione di esempio crea un'istanza EC2 e un security group che permette l'accesso all'istanza sulla porta TCP 8080. Nel file `terraform.tfvars` si imposta la region corrispondente alla configurazione della AWS CLI. Le due risorse principali sono in `main.tf`:
+Un'istanza EC2 e un security group che apre la porta TCP 8080; la region si imposta in `terraform.tfvars`:
 
 ```
 resource "aws_instance" "example" {
@@ -3563,11 +3424,11 @@ resource "aws_security_group" "sg_web" {
 }
 ```
 
-Dopo `terraform init` e `terraform apply`, il comando `terraform state list` mostra le risorse gestite da Terraform nel file di state.
+Dopo `terraform init` e `terraform apply`, `terraform state list` mostra le risorse gestite.
 
 ### 4.22.2 — Impedire l'eliminazione di una risorsa
 
-Per impedire a Terraform di distruggere risorse specifiche si aggiunge l'argomento `prevent_destroy` alla definizione della risorsa. Serve a proteggere le risorse critiche che Terraform potrebbe distruggere per errore mentre elabora la configurazione. Attivare `prevent_destroy` però non impedisce a Terraform di distruggere la risorsa se se ne commenta o rimuove la configurazione. Si aggiunge `prevent_destroy` all'istanza EC2:
+`prevent_destroy` protegge le risorse critiche, ma non impedisce la distruzione se se ne rimuove la configurazione:
 
 ```
 resource "aws_instance" "example" {
@@ -3583,11 +3444,11 @@ resource "aws_instance" "example" {
 }
 ```
 
-Eseguendo `terraform destroy` si osserva il comportamento: Terraform rifiuta il piano di distruzione. L'attributo `prevent_destroy` è utile quando la modifica di un attributo forzerebbe una sostituzione e causerebbe un disservizio.
+`terraform destroy` viene rifiutato. È utile quando la modifica di un attributo forzerebbe una sostituzione con disservizio.
 
 ### 4.22.3 — Creare le risorse prima di distruggerle
 
-Per le modifiche che possono causare disservizi ma vanno fatte comunque, l'attributo `create_before_destroy` crea la nuova risorsa prima di distruggere quella vecchia. Nel tutorial si cambia la regola del security group perché permetta l'accesso sulla porta 80 invece della 8080 (`from_port` e `to_port` a `"80"`). Poi si aggiorna l'istanza EC2: si aggiunge l'attributo `create_before_destroy` al posto di `prevent_destroy`, e si toglie dallo script la riga che sposta Apache sulla porta 8080, così la macchina risponde sulla porta 80:
+Si porta la regola del security group dalla porta 8080 alla 80, e nell'istanza si sostituisce `prevent_destroy` con `create_before_destroy`, togliendo dallo script la riga che sposta Apache sulla 8080:
 
 ```
 resource "aws_instance" "example" {
@@ -3612,17 +3473,17 @@ resource "aws_instance" "example" {
 }
 ```
 
-Con `terraform apply` si osservano le modifiche che forzano una sostituzione. Senza `create_before_destroy`, Terraform distruggerebbe l'istanza prima di ricrearla, con un possibile disservizio.
+`terraform apply` mostra modifiche che forzano la sostituzione: senza `create_before_destroy` l'istanza verrebbe distrutta prima di essere ricreata.
 
 ### 4.22.4 — Ignorare le modifiche
 
-Per le modifiche fatte al di fuori del workflow Terraform, che non devono influire sulle operazioni di Terraform, si usa l'argomento `ignore_changes`. Nel tutorial si cambia il tag `drift_example` con la AWS CLI:
+Si cambia il tag `drift_example` fuori da Terraform, con la AWS CLI:
 
 ```
 $ aws ec2 create-tags --resources $(terraform output -raw instance_id) --tags Key=drift_example,Value=v2
 ```
 
-Poi si aggiunge l'attributo `ignore_changes` al blocco `lifecycle` dell'istanza EC2:
+e si aggiunge `ignore_changes` al blocco `lifecycle`:
 
 ```
 resource "aws_instance" "example" {
@@ -3634,7 +3495,7 @@ resource "aws_instance" "example" {
 }
 ```
 
-Al successivo `terraform apply`, Terraform aggiorna il file di state con il valore `v2` invece di sovrascrivere il tag con il valore `v1` scritto nella configurazione. Con `terraform state show aws_instance.example` si verifica nel file di state che il tag `drift_example` vale `v2`.
+Al successivo apply Terraform registra nello state il valore `v2` invece di ripristinare `v1`, come conferma `terraform state show aws_instance.example`.
 
 - Fonte: [Manage resource lifecycle](https://developer.hashicorp.com/terraform/tutorials/state/resource-lifecycle)
 
@@ -3642,14 +3503,7 @@ Al successivo `terraform apply`, Terraform aggiorna il file di state con il valo
 
 ## 4.23 — Il meta-argomento lifecycle
 
-Quando si applica una configurazione, Terraform esegue queste operazioni:
-
-- crea le risorse definite nella configurazione che nello state non sono associate a un oggetto reale dell'infrastruttura;
-- distrugge le risorse che esistono nello state ma non nella configurazione;
-- aggiorna sul posto le risorse i cui argomenti sono cambiati;
-- distrugge e ricrea le risorse i cui argomenti sono cambiati, se i limiti delle API remote impediscono a Terraform di aggiornarle sul posto.
-
-Il blocco `lifecycle` accetta regole che personalizzano il modo in cui Terraform esegue queste fasi del ciclo di vita per ogni risorsa.
+Quando si applica una configurazione, Terraform crea, distrugge, aggiorna sul posto o distrugge e ricrea le risorse (vedi §4.2.4). Il blocco `lifecycle` accetta regole che personalizzano il modo in cui Terraform esegue queste fasi del ciclo di vita per ogni risorsa.
 
 ### 4.23.1 — Uso
 
@@ -3744,7 +3598,7 @@ Gli esempi per ignorare le modifiche agli attributi (`ignore_changes = [tags]`) 
 
 **Validare l'AMI per creare le istanze** _(stepTitle)_
 
-Il blocco `precondition` verifica che l'AMI recuperata dal blocco `data` abbia `x86_64` come attributo `architecture`. Il blocco `postcondition` richiede che all'istanza EC2 venga assegnato un hostname DNS pubblico. Se una delle due condizioni non è soddisfatta, Terraform restituisce l'`error_message` della condizione fallita:
+È l'esempio di §4.3.7: la precondition richiede l'architettura `x86_64` e la postcondition un hostname DNS pubblico, con lo stesso blocco `resource "aws_instance" "example"`. Qui il data source seleziona l'AMI più recente di Amazon:
 
 ```
 data "aws_ami" "example" {
@@ -3755,46 +3609,11 @@ data "aws_ami" "example" {
     values = ["ami-*"]
   }
 }
-
-resource "aws_instance" "example" {
-  instance_type = "t3.micro"
-  ami           = data.aws_ami.example.id
-
-  lifecycle {
-    precondition {
-      condition     = data.aws_ami.example.architecture == "x86_64"
-      error_message = "The selected AMI must be for the x86_64 architecture."
-    }
-
-    postcondition {
-      condition     = self.public_dns != ""
-      error_message = "EC2 instance must be in a VPC that has public DNS hostnames enabled."
-    }
-  }
-}
 ```
 
 **Validare che il volume root sia cifrato** _(stepTitle)_
 
-Il blocco `data` recupera il volume di storage root collegato all'istanza EC2 `aws_instance.example`, tramite l'attributo `volume_id`. Quando un data source verifica il risultato di una managed resource dichiarata nella stessa configurazione, il controllo va messo in un blocco `postcondition`. Così Terraform attende che le modifiche alla managed resource siano completate prima di leggere il data source:
-
-```
-data "aws_ebs_volume" "example" {
-  filter {
-    name = "volume-id"
-    values = [aws_instance.example.root_block_device[0].volume_id]
-  }
-  lifecycle {
-    # The EC2 instance will have an encrypted root volume.
-    postcondition {
-      condition     = self.encrypted
-      error_message = "The server's root volume is not encrypted."
-    }
-  }
-}
-```
-
-In questo esempio la validazione fallisce, e Terraform stampa nella console questo messaggio:
+È l'esempio `data "aws_ebs_volume"` di §4.3.7, con la postcondition `self.encrypted`. Quando la validazione fallisce, Terraform stampa nella console questo messaggio:
 
 ```
 │ Error: Resource postcondition failed
@@ -3886,80 +3705,19 @@ La validazione delle input variable serve a:
 - verificare che i valori di input rientrino in intervalli accettabili;
 - impedire le operazioni di Terraform se una variabile è configurata male.
 
-Ad esempio, si può verificare che il valore di una variabile abbia la sintassi di un ID di AMI valido:
-
-```
-variable "image_id" {
-  type        = string
-  description = "The id of the machine image (AMI) to use for the server."
-
-  validation {
-    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
-    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
-  }
-}
-```
-
-Se si assegna a `image_id` una stringa che non ha la sintassi di un ID di AMI, la condizione vale false. Quando una validazione di variabile fallisce, Terraform dà errore, mostra l'`error_message` configurato e blocca l'operazione. Spesso anche le API dei provider danno errore sugli stessi controlli. La validazione però evita l'errore agli utenti e mostra un messaggio d'errore utile. Queste validazioni servono anche a imporre le scelte di design dell'organizzazione, come le convenzioni di naming (sezione 4.14).
+Ad esempio, la validazione della variabile `image_id` vista in §4.14.3 verifica che il valore abbia la sintassi di un ID di AMI (prefisso `ami-`). Quando una validazione di variabile fallisce, Terraform dà errore, mostra l'`error_message` configurato e blocca l'operazione. Spesso anche le API dei provider danno errore sugli stessi controlli. La validazione però evita l'errore agli utenti e mostra un messaggio d'errore utile. Queste validazioni servono anche a imporre le scelte di design dell'organizzazione, come le convenzioni di naming (sezione 4.14).
 
 **Precondition** _(stepTitle)_
 
 I blocchi `precondition` verificano le ipotesi della configurazione su risorse, data source e output prima che Terraform li crei. I blocchi `postcondition` validano invece le garanzie che risorse e data source devono offrire perché la configurazione funzioni.
 
-Terraform valuta le precondition di risorse, data source e output quando crea un piano. Le precondition hanno la precedenza sugli eventuali errori sugli argomenti segnalati dai provider per risorse, data source e output configurati male. L'esempio usa una precondition per verificare che l'AMI configurata per un `aws_instance` usi l'architettura CPU `x86_64`:
+Terraform valuta le precondition di risorse, data source e output quando crea un piano, e hanno la precedenza sugli errori sugli argomenti segnalati dai provider (vedi §4.23.1). Un esempio è la precondition sull'architettura `x86_64` dell'AMI di un `aws_instance` (vedi §4.3.7). La precondition rileva se il chiamante ha scelto per errore un'AMI di un'altra architettura, che potrebbe non eseguire il software ospitato dall'istanza. Terraform valuta la precondition mentre costruisce il piano. Se la precondition fallisce, genera un errore con l'argomento `error_message` e interrompe l'operazione in corso.
 
-```
-resource "aws_instance" "example" {
-  instance_type = "t3.micro"
-  ami           = data.aws_ami.example.id
-
-  lifecycle {
-    # The AMI ID must refer to an AMI that contains an operating system
-    # for the `x86_64` architecture.
-    precondition {
-      condition     = data.aws_ami.example.architecture == "x86_64"
-      error_message = "The selected AMI must be for the x86_64 architecture."
-    }
-  }
-}
-```
-
-La precondition rileva se il chiamante ha scelto per errore un'AMI di un'altra architettura, che potrebbe non eseguire il software ospitato dall'istanza. Terraform valuta la precondition mentre costruisce il piano. Se la precondition fallisce, genera un errore con l'argomento `error_message` e interrompe l'operazione in corso.
-
-Anche un blocco `output` può includere una precondition, per verificare l'output di un modulo. Le precondition sugli output verificano che i valori di output soddisfino i requisiti prima che Terraform li esponga o li salvi nello state. Ad esempio, una precondition può garantire che il security group di un server abbia almeno una regola in ingresso che consenta il traffico sulle porte 80 o 443:
-
-```
-output "instance_public_ip" {
-  value = aws_instance.web.public_ip
-
-  precondition {
-    condition     = length([for rule in aws_security_group.web.ingress : rule if rule.to_port == 80 || rule.to_port == 443]) > 0
-    error_message = "Security group must allow HTTP (port 80) or HTTPS (port 443) traffic."
-  }
-}
-```
-
-Se la precondition fallisce, Terraform genera un errore con `error_message` e interrompe l'operazione in corso (sezione 4.17).
+Anche un blocco `output` può includere una precondition, verificata prima che Terraform esponga il valore o lo salvi nello state: ad esempio quella sulle porte 80 o 443 del security group vista in §4.17.3.
 
 **Postcondition** _(stepTitle)_
 
-Terraform valuta i blocchi `postcondition` dopo aver pianificato e applicato le modifiche a una risorsa, oppure dopo aver letto un data source. Ad esempio, una postcondition può rilevare se un utente ha fornito per errore un'AMI destinata a un altro componente del sistema:
-
-```
-data "aws_ami" "example" {
-  id = var.aws_ami_id
-
-  lifecycle {
-    # The AMI ID must refer to an existing AMI that has the tag "nomad-server".
-    postcondition {
-      condition     = self.tags["Component"] == "nomad-server"
-      error_message = "tags[\"Component\"] must be \"nomad-server\"."
-    }
-  }
-}
-```
-
-Se il componente non ha il tag `"nomad-server"`, la postcondition fallisce e impedisce di usare l'AMI sbagliata per creare un server. Terraform genera un errore con `error_message` e interrompe l'operazione in corso. Le postcondition possono anche evitare modifiche a cascata sulle altre risorse dipendenti.
+Terraform valuta i blocchi `postcondition` dopo aver pianificato e applicato le modifiche a una risorsa, oppure dopo aver letto un data source. Ad esempio, la postcondition sul tag `nomad-server` vista in §4.5.5 rileva se un utente ha fornito per errore un'AMI destinata a un altro componente del sistema: se il tag manca, la postcondition fallisce e impedisce di usare l'AMI sbagliata per creare un server. Terraform genera un errore con `error_message` e interrompe l'operazione in corso. Le postcondition possono anche evitare modifiche a cascata sulle altre risorse dipendenti.
 
 Le postcondition fanno da protezioni statiche, per imporre gli aspetti obbligatori della configurazione dei blocchi `data` e `resource`. Per verificare l'infrastruttura in modo dinamico rispetto a condizioni esterne o che cambiano, è consigliato usare i blocchi `check`. I check vengono eseguiti come ultimo passo di un'operazione di Terraform, dopo le postcondition.
 
@@ -4004,7 +3762,7 @@ Se l'endpoint del sito restituisce il codice di stato 200, il sito è funzionant
 
 ### 4.24.3 — La validazione continua in HCP Terraform
 
-Se si attivano gli health check su un workspace, HCP Terraform valida continuamente i blocchi `check`, le precondition e le postcondition della configurazione del workspace, per verificare regolarmente l'infrastruttura. Ad esempio, un blocco `check` può monitorare in continuo la validità del certificato di un API gateway. La validazione continua avvisa quando la condizione fallisce. Così si può aggiornare il certificato ed evitare errori al successivo aggiornamento dell'infrastruttura (Modulo 8).
+Con gli health assessment attivi su un workspace, HCP Terraform valida continuamente i blocchi `check`, le precondition e le postcondition, ad esempio la validità del certificato di un API gateway, e avvisa quando una condizione fallisce (vedi §4.26.3 e §8.24).
 
 ### 4.24.4 — L'ordine della validazione
 
@@ -4051,13 +3809,11 @@ L'argomento `error_message` accetta qualsiasi espressione che restituisca una st
 
 ## 4.25 — Validare i moduli con le custom condition
 
-Terraform permette di definire custom condition nella configurazione dei moduli, per validare risorse, data source e output. Quando pianifica e applica le modifiche all'infrastruttura, Terraform valuta questi blocchi di condizione e segnala un errore se una condizione fallisce. Terraform supporta le precondition, che valuta prima di creare il blocco che le contiene, e le postcondition, che valuta dopo.
-
-Nel tutorial si creano le risorse con un modulo locale che rappresenta il deployment di un'applicazione, con un load balancer e istanze EC2. Il modulo include già la validazione delle variabili, ma gli utenti possono comunque configurare male l'applicazione. Si aggiungono quindi al modulo dei blocchi di condizione, perché gli utenti configurino correttamente la VPC e le istanze EC2.
+Le custom condition dei moduli validano risorse, data source e output: le precondition prima del blocco che le contiene, le postcondition dopo (vedi §4.24). Nel tutorial un modulo locale distribuisce un load balancer e istanze EC2; ha già la validazione delle variabili, ma gli utenti possono comunque configurarlo male, quindi si aggiungono condizioni su VPC e istanze.
 
 ### 4.25.1 — La configurazione di esempio
 
-La configurazione di esempio definisce una VPC che ospita l'applicazione, sceglie un'AMI AWS con un data source, e usa un modulo locale per distribuire nella VPC istanze EC2 e un load balancer. Il blocco `module.app` in `main.tf` configura il modulo `example-app-deployment` con diversi argomenti:
+La configurazione definisce una VPC, sceglie un'AMI con un data source e chiama il modulo locale `example-app-deployment`:
 
 ```
 module "app" {
@@ -4074,7 +3830,7 @@ module "app" {
 }
 ```
 
-La configurazione del modulo in `modules/example-app-deployment/main.tf` definisce l'infrastruttura che ospita l'applicazione: un load balancer, dei security group e delle istanze EC2. Per creare i security group e il load balancer, il modulo locale usa moduli pubblici del Terraform Registry. La configurazione delle istanze EC2 usa le input variable passate dal modulo root, per impostare il numero di istanze, il tipo di istanza, l'ID dell'AMI e le subnet private in cui creare le istanze:
+Il modulo crea security group e load balancer con moduli pubblici del Registry, e le istanze EC2 con numero, tipo, AMI e subnet passati dal root:
 
 ```
 resource "aws_instance" "app" {
@@ -4088,7 +3844,7 @@ resource "aws_instance" "app" {
 }
 ```
 
-Il file `variables.tf` del modulo definisce diverse input variable, tra cui l'ID della VPC e le subnet in cui distribuire l'applicazione. Alcune hanno già una validazione: almeno due subnet private e almeno due istanze EC2.
+In `variables.tf` alcune variabili hanno già una validazione: almeno due subnet private e almeno due istanze.
 
 ```
 # Input variables
@@ -4136,9 +3892,7 @@ variable "aws_instance_type" {
 
 ### 4.25.2 — Pianificare le modifiche
 
-Una configurazione Terraform può essere sintatticamente valida e distribuibile, e non soddisfare comunque altri vincoli, come i requisiti specifici di un'applicazione. Chi mantiene un modulo può usare le custom condition nella configurazione per imporre questi requisiti.
-
-Nel modulo root si rinomina il file `terraform.tfvars.example` in `terraform.tfvars`, così Terraform trova il file con le variabili configurate dall'utente finale. Il file imposta i valori di tre variabili. Con questi valori Terraform può distribuire l'infrastruttura, ma i valori non rispettano i requisiti ipotetici dell'applicazione di esempio. L'applicazione richiede infatti un'istanza EC2 che supporti l'ottimizzazione EBS e una VPC con il supporto DNS attivo.
+Si rinomina `terraform.tfvars.example` in `terraform.tfvars`. I suoi valori sono distribuibili, ma non rispettano i requisiti ipotetici dell'applicazione: un tipo di istanza con ottimizzazione EBS e una VPC con supporto DNS.
 
 ```
 aws_instance_type = "t2.micro"
@@ -4148,19 +3902,11 @@ aws_instance_count = 3
 enable_dns = false
 ```
 
-Se si distribuisse un'applicazione reale con questi requisiti, l'applicazione fallirebbe sull'infrastruttura configurata, con pochi indizi su cosa non va. Uno sviluppatore che conosce i requisiti dovrebbe diagnosticare i problemi ad applicazione già distribuita, e risalire a queste variabili configurate male. Nel tutorial si aggiungono quindi al modulo condizioni che garantiscono che:
-
-- ogni subnet privata abbia lo stesso numero di istanze EC2;
-- il tipo di istanza EC2 supporti l'ottimizzazione EBS;
-- la VPC abbia il supporto DNS attivo.
-
-Con queste condizioni gli utenti non possono distribuire l'applicazione su un'infrastruttura che non ne rispetta i requisiti. Prima di aggiungerle, `terraform plan` riporta che Terraform è pronto ad applicare la configurazione.
+Un'applicazione reale fallirebbe dopo il deployment, con pochi indizi sulla causa. Si aggiungono quindi condizioni che garantiscono lo stesso numero di istanze in ogni subnet privata, un tipo di istanza con ottimizzazione EBS e una VPC con supporto DNS. Per ora `terraform plan` è pronto ad applicare.
 
 ### 4.25.3 — Aggiungere le precondition
 
-Terraform permette di aggiungere precondition e postcondition al `lifecycle` dei blocchi `resource`, `data` e `output`. Valuta le precondition prima del blocco che le contiene, e così verifica che la configurazione sia conforme prima di applicarla. Valuta le postcondition dopo il blocco che le contiene, e così conferma che i risultati delle modifiche applicate siano conformi prima di applicare il resto della configurazione.
-
-In `modules/example-app-deployment/main.tf` si aggiunge un data source che legge il tipo di istanza, e due precondition al blocco `aws_instance.app` delle istanze EC2, per controllare il numero di istanze per subnet e il tipo di istanza:
+In `modules/example-app-deployment/main.tf` si aggiungono un data source sul tipo di istanza e due precondition su `aws_instance.app`:
 
 ```
 data "aws_ec2_instance_type" "app" {
@@ -4190,13 +3936,11 @@ resource "aws_instance" "app" {
 }
 ```
 
-La prima precondition verifica che ogni subnet privata contenga lo stesso numero di istanze. Divide il numero di istanze per il numero di subnet e controlla che il resto sia 0. Così il traffico dell'applicazione si distribuisce in modo uniforme sulle subnet usate dall'applicazione. La seconda precondition verifica che il tipo di istanza EC2 scelto supporti l'ottimizzazione EBS, leggendo l'attributo `ebs_optimized_support` del tipo di istanza dal data source.
+La prima verifica che il numero di istanze diviso per il numero di subnet dia resto 0, per distribuire il traffico in modo uniforme. La seconda legge `ebs_optimized_support` dal data source.
 
 ### 4.25.4 — Provocare il fallimento di una condizione
 
-Pianificando la configurazione, Terraform riporta che le precondition sono fallite. La configurazione usa il meta-argomento `count` per creare un numero di istanze EC2 pari al valore di `aws_instance_count`, attualmente 3. Terraform riporta quindi gli errori di entrambe le precondition per ogni istanza. Quando una condizione fallisce, Terraform segnala l'errore e non prosegue con il plan o l'apply: bisogna risolvere gli errori prima di poter distribuire la configurazione.
-
-Si aggiornano quindi in `terraform.tfvars` i valori compatibili con le condizioni aggiunte al modulo. Il tipo di istanza diventa uno che supporta l'ottimizzazione EBS (`t3.micro`). Il numero di istanze diventa quattro, divisibile per il numero di subnet private:
+Il plan fallisce: con `count = 3` Terraform riporta gli errori di entrambe le precondition per ogni istanza, e non prosegue finché non sono risolti. In `terraform.tfvars` si usano allora `t3.micro`, che supporta l'ottimizzazione EBS, e quattro istanze, divisibili per il numero di subnet:
 
 ```
 aws_instance_type = "t3.micro"
@@ -4206,11 +3950,11 @@ aws_instance_count = 4
 enable_dns = false
 ```
 
-Pianificando di nuovo, entrambe le precondition passano e Terraform è pronto ad applicare la configurazione.
+Al nuovo plan entrambe le precondition passano.
 
 ### 4.25.5 — Aggiungere una postcondition
 
-La configurazione root del progetto crea una VPC con un modulo pubblico, e il modulo `example-app-deployment` si aspetta che la VPC abbia il supporto DNS attivo. Si aggiunge quindi al modulo dell'applicazione un data source che cerca la VPC creata in base al suo ID, con una postcondition che verifica che il supporto DNS sia attivo:
+Il modulo si aspetta il supporto DNS sulla VPC creata dal root. Un data source cerca la VPC per ID, con una postcondition che vi fa riferimento tramite `self`:
 
 ```
 data "aws_vpc" "app" {
@@ -4225,9 +3969,7 @@ data "aws_vpc" "app" {
 }
 ```
 
-La postcondition fa riferimento al data source con il valore `self`. Terraform non crea la VPC finché non si applica la configurazione di esempio, quindi non può validare la condizione prima di aver iniziato a creare l'infrastruttura. Con `terraform apply`, Terraform inizia ad applicare la configurazione, e crea la VPC prima di leggerne gli attributi dal data source. Poi valuta la postcondition e segnala un errore se fallisce.
-
-Applicando la configurazione, Terraform inizia a fare le modifiche e poi segnala l'errore della postcondition sul data source. Per risolverlo si attiva il supporto DNS sulla VPC, impostando `enable_dns = true` in `terraform.tfvars`, e si applica di nuovo. Dopo l'aggiornamento della VPC, Terraform legge il nuovo valore di `enable_dns_support` dal data source `aws_vpc.app` dentro il modulo `example-app-deployment`, e valuta la postcondition. Ora il supporto DNS è attivo, e la postcondition ha successo.
+La VPC non esiste prima dell'apply, quindi la condizione si può valutare solo dopo averla creata e letta: `terraform apply` inizia le modifiche e poi segnala l'errore della postcondition. Con `enable_dns = true` in `terraform.tfvars` e un nuovo apply, Terraform rilegge `enable_dns_support` da `aws_vpc.app` e la postcondition passa.
 
 - Fonte: [Validate modules with custom conditions](https://developer.hashicorp.com/terraform/tutorials/configuration-language/custom-conditions)
 
@@ -4281,7 +4023,7 @@ resource "aws_launch_configuration" "terramino" {
 
 Questa volta Terraform sa già al momento del plan che il check della configurazione fallisce. Segnala il fallimento, ma permette comunque di procedere con il ridimensionamento dell'istanza.
 
-Terraform valuta i check dopo aver generato il piano. A differenza degli errori delle custom condition o della validazione delle variabili, i check falliti non bloccano gli apply. Terraform segnala gli eventuali fallimenti o problemi da risolvere, e lascia decidere se procedere con l'operazione.
+Come visto in §4.24.2, i check falliti non bloccano gli apply: Terraform segnala i problemi e lascia decidere se procedere.
 
 A differenza degli altri meccanismi di validazione, i check sono separati dagli altri componenti e risorse della configurazione. La validazione delle variabili verifica che gli input della configurazione soddisfino i requisiti. Le custom condition definiscono condizioni come parte delle definizioni delle risorse, e sono legate al ciclo di vita di una risorsa specifica. I check invece riguardano la configurazione nel suo insieme.
 
@@ -4295,6 +4037,9 @@ Gli health assessment di HCP Terraform vengono eseguiti ogni giorno per verifica
 Gli assessment si attivano su un workspace specifico o su tutti i workspace dell'organizzazione. Nel tutorial li si attiva sul workspace `learn-terraform-checks`: nella sezione **Health** si sceglie **Settings**, poi **Enable** e **Save settings**.
 
 Una volta attivati, gli health assessment vengono eseguiti ogni 12 ore. Se ne può però avviare uno a mano per confermare lo stato del workspace, dalla pagina **Health** del workspace con **Start health assessment**. Dopo qualche istante HCP Terraform mostra il risultato del check fallito.
+
+> **Nota**: la pagina originale si contraddice, perché prima dice che gli assessment vengono eseguiti ogni giorno (*daily*) e poi ogni 12 ore. Secondo il tutorial sulla drift detection e la pagina sulla salute dei workspace (sezioni 8.23.2 e 8.24.3), HCP Terraform li esegue circa una volta ogni 24 ore.
+_(infoBox)_
 
 Si possono configurare le notifiche del workspace perché avvisino il team dei risultati degli assessment. Gli health assessment automatici individuano in modo proattivo i problemi nella configurazione dell'infrastruttura, senza aspettare un'operazione manuale che validi i check. Risolvendo i problemi subito, il workflow di gestione dell'infrastruttura torna prevedibile, perché il team non deve decidere come riconciliarli durante altre operazioni. Gli assessment automatici aiutano a individuare e correggere presto i problemi, senza aggiungere complessità operativa ai run di Terraform.
 
@@ -4366,13 +4111,11 @@ Si esegue `terraform init` per scaricare il provider http, poi `terraform apply`
 
 ## 4.27 — Proteggere le input variable sensibili
 
-Spesso l'infrastruttura va configurata con informazioni sensibili o segrete, come nomi utente, password, token API o dati personali (PII). In questi casi bisogna evitare di esporre questi dati per errore nell'output della CLI, nei log o nel controllo sorgente. Terraform offre diverse funzionalità che aiutano a evitarlo.
-
-Nel tutorial si usa Terraform per distribuire su AWS un'applicazione web: una VPC, un load balancer, istanze EC2 e un database. Le credenziali del database scritte a mano si sostituiscono con variabili configurate con il flag `sensitive`, e Terraform ne oscura i valori nell'output dei comandi e nei messaggi di log. Poi si impostano i valori di queste variabili con le variabili d'ambiente e con un file `.tfvars`. Infine si individuano i valori sensibili nello state, e si vedono i modi per proteggere il file di state.
+Credenziali, token e dati personali non devono finire nell'output della CLI, nei log o nel controllo sorgente (vedi §4.28). Nel tutorial si sostituiscono le credenziali fisse del database con variabili sensitive, le si valorizzano con un file `.tfvars` e con le variabili d'ambiente, e si osserva come restano nello state.
 
 ### 4.27.1 — Riorganizzare le credenziali del database
 
-In fondo a `main.tf`, il blocco `aws_db_instance.database` definisce il database, con nome utente e password scritti a mano. Per toglierli dalla configurazione, prima si dichiarano in `variables.tf` le input variable per il nome utente e la password dell'amministratore del database, marcate come sensitive:
+Il blocco `aws_db_instance.database` in `main.tf` ha nome utente e password scritti a mano. Si dichiarano due variabili sensitive e le si usa:
 
 ```
 variable "db_username" {
@@ -4388,8 +4131,6 @@ variable "db_password" {
 }
 ```
 
-Poi si aggiorna `main.tf` perché usi queste variabili:
-
 ```
 resource "aws_db_instance" "database" {
   allocated_storage = 5
@@ -4404,30 +4145,26 @@ resource "aws_db_instance" "database" {
 }
 ```
 
-Con un `terraform apply` a questo punto, Terraform chiederebbe i valori delle nuove variabili, perché non hanno un default. Inserire i valori a mano però richiede tempo ed è soggetto a errori. Il tutorial mostra quindi due metodi per impostare i valori delle variabili sensitive, con le considerazioni di sicurezza di ognuno.
+Senza default, `terraform apply` chiederebbe i valori.
 
 ### 4.27.2 — Impostare i valori con un file .tfvars
 
-Terraform permette di impostare i valori delle variabili con i file di definizione delle variabili (`.tfvars`). Se ne possono usare più d'uno, e molti usano un file separato per i valori sensibili o segreti. Si crea un nuovo file `secret.tfvars` che assegna i valori alle nuove variabili:
+Si mettono i segreti in un file separato, `secret.tfvars` (vedi §4.13.4):
 
 ```
 db_username = "admin"
 db_password = "insecurepassword"
 ```
 
-Poi si applicano le modifiche con il parametro `-var-file`:
-
 ```
 $ terraform apply -var-file="secret.tfvars"
 ```
 
-Le nuove variabili sono marcate come sensitive, quindi Terraform ne oscura i valori nell'output dei comandi plan, apply e destroy. La password compare come *sensitive value*, mentre il nome utente compare come *sensitive*. Il provider AWS considera sensitive l'argomento `password` di qualsiasi istanza di database, anche se la variabile non è dichiarata sensitive, e lo oscura comunque. Conviene però dichiarare la variabile come sensitive, perché venga oscurata anche se la si usa in punti diversi dallo specifico argomento `password`.
-
-Un file `.tfvars` separa i valori sensibili dagli altri valori delle variabili, e rende chiaro a chi lavora sulla configurazione quali valori sono sensibili. Bisogna però mantenere il file `secret.tfvars` e condividerlo solo con le persone autorizzate. Bisogna anche fare attenzione a non includere nel controllo versione i file `.tfvars` con valori sensibili. Per questo il file `.gitignore` per Terraform raccomandato da GitHub ignora i file che corrispondono allo schema `*.tfvars`.
+Terraform oscura i valori in plan, apply e destroy: la password come *sensitive value*, il nome utente come *sensitive*. Il provider AWS oscura comunque l'argomento `password` dei database, ma dichiarare la variabile sensitive la protegge anche negli altri punti in cui la si usa. Il file va condiviso solo con chi è autorizzato e non va incluso nel controllo versione: il `.gitignore` per Terraform raccomandato da GitHub esclude `*.tfvars`.
 
 ### 4.27.3 — Impostare i valori con le variabili
 
-Il nome utente e la password dell'amministratore del database si possono impostare anche con le variabili d'ambiente, con Terraform Community Edition, o con le variabili di Terraform, con HCP Terraform. Quando viene eseguito, Terraform cerca nell'ambiente le variabili che corrispondono allo schema `TF_VAR_<VARIABLE_NAME>`, e ne assegna i valori alle variabili corrispondenti della configurazione. Ecco i comandi per bash, PowerShell e il prompt dei comandi di Windows:
+Con Terraform Community Edition si usano le variabili d'ambiente `TF_VAR_<VARIABLE_NAME>` (vedi §4.13.4), in bash, PowerShell o nel prompt dei comandi di Windows:
 
 ```
 $ export TF_VAR_db_username=admin TF_VAR_db_password=adifferentpassword
@@ -4435,16 +4172,14 @@ $ $Env:TF_VAR_db_username = "admin"; $Env:TF_VAR_db_password = "adifferentpasswo
 $ set "TF_VAR_db_username=admin" & set "TF_VAR_db_password=adifferentpassword"
 ```
 
-HCP Terraform offre una gestione sicura delle variabili: cifra tutti i valori delle variabili e permette di marcarle come sensitive al momento della creazione. Una variabile marcata come sensitive diventa write-only. Nessun utente può vederne il valore nell'interfaccia di HCP Terraform o leggerlo tramite l'endpoint Variables dell'API. Gli utenti con il permesso di leggere e scrivere le variabili possono impostare nuovi valori per le variabili sensitive. Per modificarne gli altri attributi, però, bisogna eliminare e ricreare la variabile.
-
-Nel tutorial si creano nella pagina **Variables** del workspace `learn-terraform-sensitive-variables` le input variable `db_username` (`admin`) e `db_password` (`adifferentpassword`), selezionando la casella **Sensitive**. Al successivo `terraform apply`, Terraform assegna questi valori alle nuove variabili.
+HCP Terraform cifra tutti i valori delle variabili; una variabile marcata sensitive diventa write-only, e il suo valore non si vede nell'interfaccia né tramite l'API Variables. Chi ha il permesso di scrittura può impostarne un nuovo valore, ma per cambiarne gli altri attributi bisogna eliminarla e ricrearla. Nel tutorial si creano nel workspace `learn-terraform-sensitive-variables` le variabili `db_username` (`admin`) e `db_password` (`adifferentpassword`), con la casella **Sensitive**.
 
 > **Nota**: quando si impostano valori sensibili con le variabili d'ambiente, bisogna ricordare che quei valori restano nell'ambiente e nella cronologia della riga di comando.
 _(infoBox)_
 
 ### 4.27.4 — Fare riferimento alle variabili sensitive
 
-Le variabili sensitive si usano nella configurazione come qualsiasi altra variabile. Terraform ne oscura i valori nell'output dei comandi e nei file di log, e dà errore quando rileva che verrebbero esposte in altri modi. Si aggiunge a `outputs.tf` questo output:
+Un output derivato da variabili sensitive dà errore se non è a sua volta marcato sensitive:
 
 ```
 output "db_connect_string" {
@@ -4453,13 +4188,11 @@ output "db_connect_string" {
 }
 ```
 
-Applicando la modifica, Terraform dà errore, perché l'output deriva da variabili sensitive. Si marca quindi come sensitive l'output della stringa di connessione al database, aggiungendo `sensitive = true` al blocco. Applicando di nuovo, Terraform oscura l'output della stringa di connessione.
+Dopo aver aggiunto `sensitive = true` al blocco, Terraform oscura la stringa di connessione.
 
 ### 4.27.5 — I valori sensitive nello state
 
-Quando si eseguono i comandi di Terraform con un file di state locale, Terraform conserva lo state in chiaro, compresi i valori delle variabili, anche se sono marcate come sensitive. Terraform deve conservare questi valori nello state per sapere se sono cambiati dall'ultimo apply della configurazione. Nel tutorial lo si verifica cercando `password` nel file `terraform.tfstate` con `grep`.
-
-Marcare le variabili come sensitive non basta a proteggerle. Bisogna anche tenerle al sicuro mentre le si passa alla configurazione Terraform, e proteggerle nel file di state. HCP Terraform e Terraform Enterprise gestiscono e condividono i valori sensibili, e cifrano tutti i valori delle variabili prima di salvarli. HashiCorp Vault protegge, conserva e controlla rigorosamente l'accesso a token, password e altri valori sensibili.
+Con uno state locale i valori, anche sensitive, restano in chiaro, perché a Terraform servono per rilevare le modifiche: nel tutorial lo si verifica con `grep password terraform.tfstate`. Oltre a marcarle sensitive, le variabili vanno protette quando si passano a Terraform e nello state: HCP Terraform e Terraform Enterprise cifrano i valori delle variabili, e HashiCorp Vault protegge token, password e altri segreti.
 
 - Fonte: [Protect sensitive input variables](https://developer.hashicorp.com/terraform/tutorials/configuration-language/sensitive-variables)
 
@@ -4503,7 +4236,7 @@ Si possono anche aggiungere entrambi gli argomenti `ephemeral` e `sensitive` ai 
 
 ### 4.28.4 — Nascondere variabili e output sensibili
 
-L'argomento `sensitive` nei blocchi `variable` e `output` serve quando si vogliono oscurare quei valori nei log della CLI di Terraform e nell'interfaccia di HCP Terraform. Terraform considera inoltre sensitive per natura tutte le espressioni che fanno riferimento a una variabile o a un output sensitive. L'argomento si aggiunge ai blocchi `variable` e `output` che contengono dati sensibili:
+L'argomento `sensitive` nei blocchi `variable` e `output` serve quando si vogliono oscurare quei valori nei log della CLI di Terraform e nell'interfaccia di HCP Terraform. L'argomento si aggiunge ai blocchi `variable` e `output` che contengono dati sensibili:
 
 ```
 variable "database_password" {
@@ -4519,7 +4252,7 @@ output "connection_string" {
 }
 ```
 
-Terraform oscura poi le variabili e gli output sensitive nel log delle operazioni della CLI: nel riepilogo dell'apply, ad esempio, l'output `connection_string` compare come *(sensitive value)*. Terraform considera automaticamente sensitive anche qualsiasi espressione che fa riferimento a una variabile o a un output sensitive. Se l'argomento `password` di un'altra risorsa fa riferimento a `var.database_password`, Terraform oscura quell'argomento nelle operazioni di plan e apply:
+Terraform oscura poi le variabili e gli output sensitive nel log delle operazioni della CLI: nel riepilogo dell'apply, ad esempio, l'output `connection_string` compare come *(sensitive value)*. Le espressioni derivate diventano sensitive (vedi §4.28.3): se l'argomento `password` di un'altra risorsa fa riferimento a `var.database_password`, Terraform oscura quell'argomento nelle operazioni di plan e apply:
 
 ```
 resource "aws_db_instance" "main" {
@@ -4530,7 +4263,7 @@ resource "aws_db_instance" "main" {
 }
 ```
 
-Terraform conserva i valori con l'argomento `sensitive` sia nei file di state sia in quelli di piano, e chiunque possa accedere a quei file può accedere ai valori sensibili. Inoltre, con le opzioni `-json` o `-raw` del comando `terraform output`, Terraform mostra in chiaro le variabili e gli output sensitive. Se non si vogliono conservare i valori sensibili, li si esclude dai file di state e di piano come descritto più avanti. Se i file di state e di piano contengono valori sensibili, è consigliato proteggere lo state.
+I valori sensitive restano però nei file di state e di piano, e `terraform output -json` o `-raw` li mostra in chiaro (vedi §4.15.3). Per non conservarli si usano i valori ephemeral descritti più avanti; altrimenti è consigliato proteggere lo state.
 
 ### 4.28.5 — Nascondere i valori senza conservarli
 
@@ -4588,16 +4321,9 @@ output "session_token" {
 
 **Il blocco ephemeral** _(stepTitle)_
 
-Il blocco `ephemeral` dichiara una ephemeral resource temporanea, che esiste solo durante l'operazione di Terraform in corso. Terraform non conserva le ephemeral resource nei file di state o di piano. Sono quindi ideali per gestire dati sensibili o temporanei che non si vogliono salvare, come password temporanee o connessioni ad altri sistemi. È ogni provider a definire le ephemeral resource disponibili. Ad esempio, si può usare l'ephemeral resource `random_password` per generare una password temporanea:
+Il blocco `ephemeral` dichiara una ephemeral resource temporanea, che esiste solo durante l'operazione di Terraform in corso. Terraform non conserva le ephemeral resource nei file di state o di piano. Sono quindi ideali per gestire dati sensibili o temporanei che non si vogliono salvare, come password temporanee o connessioni ad altri sistemi. È ogni provider a definire le ephemeral resource disponibili.
 
-```
-ephemeral "random_password" "db_password" {
-  length           = 16
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
-```
-
-A un blocco `ephemeral` si può fare riferimento solo in altri contesti ephemeral, come un argomento write-only di una managed resource. Gli argomenti write-only permettono di passare in modo sicuro valori temporanei alle managed resource durante un'operazione, senza salvarli. Ad esempio, si può usare `db_password` nell'argomento write-only `password_wo`:
+A un blocco `ephemeral` si può fare riferimento solo in altri contesti ephemeral, come un argomento write-only di una managed resource (descritti più avanti). Ad esempio, l'ephemeral resource `random_password` genera una password temporanea, che si usa nell'argomento write-only `password_wo`:
 
 ```
 ephemeral "random_password" "db_password" {
@@ -4828,7 +4554,7 @@ ephemeral "random_password" "db_password" {
 
 `random_password.db_password` è un'ephemeral resource, quindi Terraform non la conserva nei file di state o di piano. Le ephemeral resource e i valori ephemeral sono disponibili da Terraform 1.10.
 
-La configurazione usa `random_password.db_password` per impostare il valore di due argomenti write-only. Gli argomenti write-only di una risorsa sono disponibili solo durante l'operazione in corso, e Terraform non ne conserva i valori nei file di state o di piano. I provider di Terraform definiscono argomenti write-only per i valori da non conservare nello state di Terraform, come password o altri segreti.
+La configurazione usa `random_password.db_password` per impostare il valore di due argomenti write-only, che Terraform non conserva nei file di state o di piano (vedi §4.28.6).
 
 Il primo argomento write-only, `aws_db_instance.password_wo`, imposta la password dell'istanza RDS. Il secondo, `aws_ssm_parameter.value_wo`, conserva la password come segreto AWS SSM, cifrato con la chiave SSM di default. Con questa configurazione Terraform non conserva la password del database, e l'unico modo per recuperarla è interrogare il parametro AWS SSM.
 
@@ -4879,7 +4605,7 @@ output "rds_hostname" {
 }
 ```
 
-A differenza delle ephemeral resource e degli argomenti write-only, Terraform conserva i valori sensitive nel file di state. Li mostra inoltre in chiaro se si usa l'opzione `-raw` del comando `terraform output`, o l'opzione `-json` per stampare gli output del workspace in formato JSON. Terraform conserva i valori sensitive non cifrati nel file di state, quindi questo file va tenuto al sicuro.
+A differenza dei valori ephemeral e write-only, i valori sensitive restano in chiaro nello state e compaiono con `terraform output -raw` o `-json` (vedi §4.15.3), quindi lo state va tenuto al sicuro.
 
 Il tutorial si collega poi al database con l'utility `psql` e lo popola con dati di esempio, dal file `coffees.sql` del repository. La password viene letta dal parametro AWS SSM, estratta dalla risposta con `jq` e messa nella variabile d'ambiente `PGPASSWORD`, da cui `psql` la legge:
 

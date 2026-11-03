@@ -6,51 +6,37 @@ _Obiettivo 7 dell'esame: importare infrastruttura esistente nel workspace Terraf
 
 ## 7.1 — Importare configurazione Terraform
 
-Terraform permette di portare sotto la propria gestione l'infrastruttura esistente. Importando le risorse in Terraform, si gestisce l'infrastruttura in modo coerente con un workflow comune. Quando si crea nuova infrastruttura con Terraform, di solito si segue questo workflow:
-
-1. si scrive la configurazione Terraform che definisce l'infrastruttura da creare;
-2. si rivede il piano di Terraform, per verificare che la configurazione produca l'infrastruttura attesa;
-3. si applica la configurazione, perché Terraform crei l'infrastruttura.
+Importando in Terraform l'infrastruttura esistente, la si gestisce con lo stesso workflow usato per crearne di nuova: si scrive la configurazione, si rivede il piano e lo si applica (vedi §3.1).
 
 ![Figura 15](img/terraform-workflow-diagram.png) _(dimensioni: 737×280 px)_
 
 *Figura 15 — Il workflow tipico di Terraform: scrivere la configurazione, rivedere il piano, applicarlo. Fonte: HashiCorp Developer.* _(caption)_
 
-Terraform conserva le informazioni sull'infrastruttura in un file di state. Per aggiornare l'infrastruttura si modifica prima la configurazione, poi si usa Terraform per pianificare e applicare le modifiche necessarie. Terraform usa i dati del file di state per stabilire quali modifiche apportare all'infrastruttura.
+Da Terraform 1.5 l'import si fa con la configurazione, nel workflow di plan e apply (vedi §7.2). `terraform import` funziona ancora, ma l'import guidato dalla configurazione è più sicuro, funziona nelle pipeline CI/CD, mostra l'operazione in anteprima e può generare la configurazione. I passi sono:
 
-Da Terraform 1.5 si può usare la configurazione per importare risorse esistenti nel file di state, con il workflow di plan e apply. Il comando `terraform import` si può ancora usare. L'import guidato dalla configurazione però è più sicuro, funziona con le pipeline CI/CD e permette di vedere in anteprima l'operazione di import prima di modificare lo state. Si può anche, facoltativamente, far generare a Terraform una configurazione iniziale per le risorse da importare. L'import con la configurazione prevede questi passi:
+1. individuare l'infrastruttura da importare;
+2. definire un blocco `import`;
+3. eseguire `terraform plan`, eventualmente generando la configurazione;
+4. ridurre la configurazione generata agli argomenti necessari;
+5. applicare la configurazione per portare la risorsa nello state.
 
-1. individuare l'infrastruttura esistente da importare;
-2. definire un blocco `import` per le risorse;
-3. eseguire `terraform plan` per rivedere il piano di import ed eventualmente generare la configurazione delle risorse;
-4. ridurre la configurazione generata ai soli argomenti necessari;
-5. applicare la configurazione per portare la risorsa nel file di state di Terraform.
-
-Nel tutorial si crea un container Docker con la CLI di Docker. Poi si dichiara un blocco `import` per il container esistente e si usa Terraform per generarne la configurazione. Si modifica la configurazione generata, e con il workflow di plan e apply si porta il container sotto la gestione di Terraform.
+Nel tutorial si importa un container Docker creato con la CLI di Docker.
 
 ### 7.1.1 — Creare un container Docker
 
-Si crea un container chiamato `hashicorp-learn` con l'ultima immagine NGINX di Docker Hub. Si pubblica la porta 80 (HTTP) del container sulla porta 8080 del sistema locale:
+Si avvia il container `hashicorp-learn` con l'ultima immagine NGINX, pubblicando la porta 80 sulla 8080 locale:
 
 ```
 $ docker run --name hashicorp-learn --detach --publish "0.0.0.0:8080:80" nginx:latest
 ```
 
-Con `docker ps` si verifica che il container sia in esecuzione:
-
 ```
 $ docker ps --filter="name=hashicorp-learn"
 ```
 
-All'indirizzo `localhost:8080` si vede la pagina index predefinita di NGINX. Ora ci sono un'immagine e un container Docker da importare nel progetto e gestire con Terraform.
-
 ### 7.1.2 — Inizializzare la configurazione
 
-La directory di esempio organizza la configurazione Terraform in tre file:
-
-- `terraform.tf` configura le versioni di Terraform e del provider;
-- `main.tf` configura il provider Docker;
-- `docker.tf` conterrà la configurazione scritta durante il tutorial.
+`terraform.tf` configura le versioni, `main.tf` il provider Docker, e `docker.tf` conterrà la configurazione del tutorial:
 
 ```
 terraform {
@@ -65,16 +51,11 @@ terraform {
 }
 ```
 
-Il tutorial si può svolgere anche con HCP Terraform, decommentando il blocco `cloud`. L'esempio importa un container Docker, quindi con HCP Terraform bisogna usare l'esecuzione locale (local execution). Questo workflow esegue le operazioni di Terraform in locale, così Terraform accede ai container e alle risorse della macchina locale, e conserva il file di state in HCP Terraform per collaborare e versionarlo facilmente. Per abilitarla, nelle impostazioni **General** del workspace `learn-terraform-import` si sceglie **Local** in **Execution Mode** e si salva.
+Con HCP Terraform si decommenta il blocco `cloud` e, perché Terraform possa accedere ai container della macchina, si imposta l'**Execution Mode** del workspace `learn-terraform-import` su **Local** (vedi §8.3.1).
 
 ### 7.1.3 — Definire il blocco import
 
-L'import guidato dalla configurazione si basa sul blocco `import`, che ha due argomenti obbligatori:
-
-- `id` è l'identificatore, specifico del provider, dell'infrastruttura da importare;
-- `to` è l'identificatore che Terraform darà alla risorsa nello state, composto dal tipo e dal nome della risorsa.
-
-Prima si recupera l'ID completo SHA256 del container `hashicorp-learn` con `docker inspect --format="{{.ID}}" hashicorp-learn`. Poi in `docker.tf` si definisce un blocco `import` che guida l'operazione, sostituendo `FULL_CONTAINER_ID` con l'ID del container:
+Il blocco `import` ha due argomenti obbligatori: `id`, l'identificatore dell'oggetto secondo il provider, e `to`, l'indirizzo della risorsa nello state. Si ricava l'ID SHA256 del container con `docker inspect --format="{{.ID}}" hashicorp-learn` e lo si usa in `docker.tf`:
 
 ```
 import {
@@ -88,17 +69,13 @@ _(infoBox)_
 
 ### 7.1.4 — Generare la configurazione
 
-Quando si importa una risorsa, bisogna sia portarla nel file di state sia definire il blocco `resource` corrispondente nella configurazione. Si può definire la risorsa a mano. L'import guidato dalla configurazione però può generare una configurazione da usare come punto di partenza.
-
-La configurazione generata contiene tutti i possibili argomenti delle risorse importate, compresi quelli impostati ai valori di default e quelli senza valore. È consigliato ridurla ai soli argomenti obbligatori e a quelli con valori diversi dai default, per contenere le dimensioni della configurazione.
-
-Con `terraform plan` e l'opzione `-generate-config-out` si genera la configurazione del container da importare. Terraform costruisce un piano e scrive la configurazione generata del container nel file indicato:
+Oltre allo state serve il blocco `resource`, che si può scrivere a mano o generare. La configurazione generata contiene tutti gli argomenti, anche quelli di default o vuoti, e va ridotta a quelli obbligatori o diversi dal default:
 
 ```
 $ terraform plan -generate-config-out=generated.tf
 ```
 
-Terraform ha usato il provider docker per trovare una risorsa `docker_container` con l'ID indicato nel blocco `import`, e ha salvato la definizione della risorsa in `generated.tf`. Nel piano, però, Terraform prevede di sostituire il container dopo l'import, per il valore di default del parametro `env` restituito dal provider. Nel file generato, infatti, `env` è impostato a `null`:
+Il piano prevede però di sostituire il container dopo l'import, perché in `generated.tf` `env` vale `null`:
 
 ```
 # __generated__ by Terraform
@@ -112,9 +89,7 @@ resource "docker_container" "web" {
 }
 ```
 
-Secondo lo schema della risorsa container Docker, il provider si aspetta per il parametro `env` un set di stringhe. Si cambia quindi il valore di `env` in un set vuoto, con le parentesi quadre (`env = []`).
-
-Lo schema della risorsa container richiede gli argomenti `image` e `name`, che vanno quindi definiti nella configurazione. Il container è stato avviato con una mappatura delle porte, quindi la configurazione deve contenere anche un blocco `ports` corrispondente alla configurazione attuale del container. Si riduce la configurazione generata ai soli argomenti necessari:
+Lo schema richiede per `env` un set di stringhe, quindi si usa `env = []`. Si tengono poi gli argomenti obbligatori `image` e `name` e il blocco `ports` corrispondente alla mappatura attuale:
 
 ```
 resource "docker_container" "web" {
@@ -130,16 +105,14 @@ resource "docker_container" "web" {
 }
 ```
 
-Con `terraform plan` si verifica che la configurazione corrisponda alle impostazioni attuali del container. Ora Terraform pianifica di importare la risorsa e poi di modificarla sul posto, aggiungendo gli attributi `attach`, `container_read_refresh_timeout_milliseconds`, `logs`, `must_run`, `remove_volumes`, `start`, `wait` e `wait_timeout`. Sono modifiche non distruttive.
-
-Terraform usa questi attributi per creare i container Docker, ma Docker non li conserva. Docker non li registra, quindi Terraform non li ha inclusi nella configurazione generata. Applicando la configurazione, il provider Docker assegna loro i valori di default e li salva nello state, ma non influiscono sul container in esecuzione.
+Ora il plan importa la risorsa e la modifica sul posto in modo non distruttivo, aggiungendo attributi come `attach`, `logs`, `must_run`, `start` e `wait`: Terraform li usa per creare i container, ma Docker non li conserva, e il provider ne salva i default nello state.
 
 > **Nota**: la documentazione del provider potrebbe non indicare se una modifica è sicura. Per sapere se una modifica è sicura da applicare bisogna conoscere il ciclo di vita della risorsa sottostante.
 _(infoBox)_
 
 ### 7.1.5 — Importare e aggiornare la risorsa
 
-Quando si importa una risorsa, è consigliato limitare le modifiche distruttive e fare della prima operazione sulla risorsa un no-op. L'import guidato dalla configurazione permette però di importare e modificare una risorsa nella stessa operazione, così si gestisce subito la risorsa con il workflow di Terraform. Nel tutorial si cambia la porta esterna in 8081, una modifica distruttiva:
+Di solito conviene che la prima operazione sulla risorsa importata sia un no-op, ma si può anche importare e modificare insieme. Il tutorial cambia la porta esterna in 8081, una modifica distruttiva:
 
 ```
 resource "docker_container" "web" {
@@ -155,25 +128,23 @@ resource "docker_container" "web" {
 }
 ```
 
-Applicando la configurazione, Terraform importa la risorsa e poi sostituisce il container, perché è cambiata la mappatura della porta esterna. Con `docker ps`, o visitando `localhost:8081`, si verifica che Terraform ha sostituito il container con uno nuovo:
+L'apply importa il container e poi lo sostituisce; `docker ps` o `localhost:8081` lo confermano:
 
 ```
 $ docker ps --filter "name=hashicorp-learn"
 ```
 
-Con `terraform show` si esamina il contenuto del file di state. Ora file di configurazione, state di Terraform e container sono allineati, e Terraform può gestire le impostazioni e il ciclo di vita del container Docker.
+`terraform show` mostra che configurazione, state e container sono allineati.
 
 ### 7.1.6 — Creare la risorsa dell'immagine
 
-Alcune risorse si possono portare sotto la gestione di Terraform senza il blocco `import`. Capita spesso con le risorse definite da un singolo ID o tag univoco, come le immagini Docker.
-
-Nel file `generated.tf`, la risorsa `docker_container.web` indica l'ID hash SHA256 dell'immagine usata per creare il container. È così che Docker conserva internamente l'ID dell'immagine, e l'import ha caricato quell'ID direttamente nello state. Identificare l'immagine con il tag o il nome renderebbe però la configurazione più comprensibile. Si recupera quindi il tag dell'immagine:
+Alcune risorse, come le immagini Docker identificate da un solo ID o tag, si gestiscono senza `import`. In `generated.tf` il container indica l'immagine con l'ID SHA256; per renderla più leggibile se ne ricava il tag:
 
 ```
 $ docker image inspect -f {{.RepoTags}} `docker inspect --format="{{.Image}}" hashicorp-learn`
 ```
 
-In `docker.tf` si aggiunge poi la configurazione che rappresenta l'immagine come risorsa:
+e la si dichiara come risorsa in `docker.tf`:
 
 ```
 resource "docker_image" "nginx" {
@@ -184,7 +155,7 @@ resource "docker_image" "nginx" {
 > **Attenzione**: non bisogna ancora sostituire il valore di `image` nella risorsa `docker_container.web`, altrimenti Terraform distrugge e ricrea il container. Terraform non ha ancora caricato la risorsa `docker_image.nginx` nello state, quindi non ha un ID di immagine da confrontare con quello scritto a mano, e questo forza la sostituzione. La risorsa dell'immagine deve esistere nello state prima di potervi fare riferimento.
 _(infoBox)_
 
-Si esegue `terraform apply` per creare la risorsa dell'immagine nello state. Poi si cambia il valore di `image` di `docker_container.web` perché faccia riferimento alla nuova risorsa:
+Dopo `terraform apply` si fa riferimento alla nuova risorsa nel container:
 
 ```
 resource "docker_container" "web" {
@@ -193,26 +164,22 @@ resource "docker_container" "web" {
 }
 ```
 
-L'ID dell'immagine corrisponde a quello scritto a mano che si è sostituito, quindi `terraform apply` restituisce un no-op.
+L'ID coincide con quello scritto a mano, quindi l'apply è un no-op; se il tag `nginx:latest` cambiasse immagine, Terraform ricreerebbe il container.
 
 > **Nota**: qui la pagina originale scrive `docker_image.nginx.latest`, un attributo delle versioni precedenti del provider Docker. La configurazione usa invece `docker_image.nginx.image_id`.
 _(infoBox)_
 
-Se l'ID dell'immagine del tag `nginx:latest` cambiasse tra la creazione del container e l'aggiornamento della configurazione, Terraform distruggerebbe il container e lo ricreerebbe con la nuova immagine. Ora Terraform gestisce sia il container sia l'immagine Docker, e se ne può modificare la configurazione con Terraform.
-
 ### 7.1.7 — Limitazioni e altre considerazioni
 
-Quando si usa la configurazione per importare risorse in Terraform bisogna considerare diversi aspetti importanti:
+- L'import usa lo stato attuale riportato dal provider, e non può capire salute, intento o modifiche fuori dal controllo di Terraform, come il filesystem di un container.
+- Richiede passaggi manuali soggetti a errori: va rivisto con attenzione il plan prima dell'apply.
+- Modifica lo state durante l'apply, quindi conviene farne un backup.
+- Non rileva né genera le relazioni tra le risorse, che vanno aggiunte a mano.
+- Non rileva quali attributi di default si possono omettere.
+- Non tutti i provider e le risorse lo supportano.
+- Una risorsa importata non è detto che si possa distruggere e ricreare, ad esempio se dipende da infrastruttura non gestita.
 
-- l'import di Terraform usa lo stato attuale dell'infrastruttura riportato dal provider. Non può determinare la salute dell'infrastruttura, il suo intento, né le modifiche fuori dal controllo di Terraform, come lo stato del filesystem di un container Docker;
-- l'import richiede passaggi manuali, che possono essere soggetti a errori, soprattutto se l'operatore non conosce lo scopo e la storia dell'infrastruttura. È consigliato rivedere con attenzione l'output del plan prima dell'apply, per evitare modifiche distruttive;
-- l'import manipola il file di state di Terraform durante l'apply, quindi può essere utile farne un backup prima di importare nuova infrastruttura;
-- l'import di Terraform non rileva né genera le relazioni tra le risorse dell'infrastruttura. Le relazioni si possono aggiungere a mano alla configurazione prima di applicare le modifiche;
-- l'import di Terraform non rileva quali attributi di default si possono non impostare;
-- non tutti i provider e non tutte le risorse supportano l'import di Terraform;
-- importare una risorsa in Terraform non significa che Terraform possa distruggerla e ricrearla. Ad esempio, l'infrastruttura importata potrebbe dipendere da altra infrastruttura o configurazione non gestita.
-
-Seguire le best practice dell'Infrastructure as Code, come l'infrastruttura immutabile, aiuta a prevenire molti di questi problemi.
+Le best practice dell'IaC, come l'infrastruttura immutabile, aiutano a prevenire molti di questi problemi.
 
 - Fonte: [Import Terraform configuration](https://developer.hashicorp.com/terraform/tutorials/state/state-import)
 
@@ -345,7 +312,7 @@ Quando si applica una configurazione con blocchi `import`, Terraform registra di
 
 ### 7.2.5 — Operazioni dopo l'import
 
-Dopo l'import i blocchi `import` si possono rimuovere. Si possono anche lasciare nella configurazione, come registro dell'origine della risorsa per i futuri maintainer del modulo. La manutenzione delle configurazioni nel tempo è descritta nella pagina *Refactoring*.
+I blocchi `import` si possono rimuovere o conservare come registro (vedi §7.2.1). La manutenzione delle configurazioni nel tempo è descritta nella pagina *Refactoring*.
 
 - Fonte: [Import an existing resource](https://developer.hashicorp.com/terraform/language/v1.12.x/import)
 
@@ -363,7 +330,7 @@ La sintassi è `terraform import [options] ADDRESS ID`. Il comando trova la riso
 
 `ID` dipende dal tipo di risorsa da importare. Ad esempio, per le istanze AWS EC2 è l'ID dell'istanza (`i-abcd1234`), mentre per le zone AWS Route53 è l'ID della zona (`Z12ABC4UGMOZ2N`). Il formato dell'ID è descritto nella documentazione del provider. Nel dubbio si può semplicemente provare un ID: se non è valido, si riceve solo un messaggio d'errore.
 
-> **Attenzione**: Terraform si aspetta che ogni oggetto remoto che gestisce sia legato a un solo indirizzo di risorsa, cosa che di solito è garantita dal fatto che è Terraform stesso a creare tutti gli oggetti. Se si importano oggetti esistenti in Terraform, bisogna fare attenzione a importare ogni oggetto remoto in un solo indirizzo di risorsa. Se si importa lo stesso oggetto più volte, Terraform può comportarsi in modo indesiderato (sezione 6.1).
+> **Attenzione**: ogni oggetto remoto va importato in un solo indirizzo di risorsa, altrimenti Terraform può comportarsi in modo indesiderato (vedi §2.2.1 e §6.1.1).
 _(infoBox)_
 
 Invece di importare a mano le risorse, si può aggiungere il blocco `import` alla configurazione Terraform, così Terraform importa le risorse quando si esegue `terraform apply`. Con la configurazione si automatizza l'import delle risorse nelle pipeline CI/CD (sezione 7.2).
@@ -372,13 +339,10 @@ Le opzioni da riga di comando sono tutte facoltative:
 
 - `-config=path`: il percorso della directory dei file di configurazione Terraform che configurano il provider per l'import. Il default è la directory di lavoro. Se la directory non contiene file di configurazione Terraform, il provider va configurato con input manuale o con variabili d'ambiente.
 - `-input=true`: se chiedere input per la configurazione del provider.
-- `-lock=false`: non tiene il lock dello state durante l'operazione. È pericoloso se altri potrebbero eseguire contemporaneamente comandi sullo stesso workspace.
-- `-lock-timeout=0s`: la durata per cui riprovare ad acquisire il lock dello state.
-- `-no-color`: l'output non contiene colori.
-- `-parallelism=n`: limita il numero di operazioni simultanee mentre Terraform percorre il grafo; il default è 10.
+- `-lock=false`, `-lock-timeout=0s`, `-no-color` e `-parallelism=n` (default 10): come per `terraform plan` (vedi §3.8.5).
 - `-provider=provider`: deprecata. Sostituisce la configurazione del provider da usare per importare l'oggetto. Per default Terraform usa il provider indicato nella configurazione della risorsa di destinazione, ed è il comportamento migliore nella maggior parte dei casi.
 - `-var 'foo=bar'`: imposta una variabile della configurazione Terraform, e si può ripetere. I valori delle variabili sono interpretati come espressioni letterali del linguaggio Terraform, quindi con questa opzione si possono indicare anche valori list e map.
-- `-var-file=foo`: imposta le variabili della configurazione da un file di variabili. Se nella directory corrente ci sono `terraform.tfvars` o file `.auto.tfvars`, vengono caricati automaticamente: prima `terraform.tfvars`, poi i file `.auto.tfvars` in ordine alfabetico. I file indicati con `-var-file` sovrascrivono i valori impostati automaticamente dai file della directory di lavoro. L'opzione si può ripetere, ed è utile solo con l'opzione `-config`.
+- `-var-file=foo`: imposta le variabili da un file, sovrascrivendo i valori caricati automaticamente da `terraform.tfvars` e dai file `.auto.tfvars` (vedi §4.13.4). L'opzione si può ripetere, ed è utile solo con l'opzione `-config`.
 
 Per le configurazioni che usano l'integrazione della CLI con HCP Terraform o il backend `remote`, `terraform import` accetta anche l'opzione `-ignore-remote-version`. Per quelle che usano solo il backend `local` accetta anche le opzioni legacy `-state`, `-state-out` e `-backup`.
 
@@ -455,7 +419,7 @@ $ terraform import aws_instance.example i-abcd1234
 
 Il comando trova l'istanza AWS EC2 con ID `i-abcd1234`. Poi collega le impostazioni esistenti dell'istanza, come le descrive l'API EC2, al nome `aws_instance.example` di un modulo. Nell'esempio il percorso del modulo implica l'uso del modulo root. Infine la mappatura viene salvata nello state di Terraform.
 
-Si può importare anche in risorse di moduli figli, usando i loro percorsi, e in singole istanze di una risorsa con `count` o `for_each` (sezione 4.9). La sintassi dell'ID dipende dal tipo di risorsa da importare. Ad esempio, le istanze AWS usano un ID opaco emesso dall'API EC2, mentre le zone AWS Route53 usano il nome di dominio stesso. La forma dell'ID richiesta è nella documentazione di ogni risorsa importabile.
+Come visto in §7.3, si può importare anche in moduli figli e in singole istanze con `count` o `for_each` (vedi §4.9), e la sintassi dell'ID dipende dal tipo di risorsa.
 
 Con questo comando la risorsa viene registrata nel file di state. Ora si può eseguire `terraform plan` per vedere come la configurazione si confronta con la risorsa importata. Si adegua poi la configurazione allo stato attuale, o desiderato, dell'oggetto importato.
 
@@ -588,12 +552,12 @@ Partendo dal tipo di errore più vicino all'utente:
 
 - **Errori di linguaggio**: l'interfaccia principale di Terraform è l'HashiCorp Configuration Language (HCL), un linguaggio di configurazione dichiarativo, interpretato dall'applicazione core di Terraform. Quando trova un errore di sintassi nella configurazione, Terraform stampa i numeri di riga e una spiegazione dell'errore.
 - **Errori di state**: il file di state di Terraform conserva le informazioni sulle risorse create, le mappa sulla configurazione e tiene traccia di tutti i metadati associati. Se lo state non è allineato, Terraform può distruggere o modificare le risorse esistenti. Dopo aver escluso gli errori di configurazione, si esamina lo state, e si allinea la configurazione con refresh, import o sostituzione delle risorse.
-- **Errori del core**: l'applicazione core di Terraform contiene tutta la logica delle operazioni. Interpreta la configurazione, gestisce il file di state, costruisce il grafo delle dipendenze delle risorse e comunica con i plugin dei provider. Gli errori a questo livello possono essere un bug, e più avanti il tutorial mostra le best practice per aprire una issue GitHub per il team di sviluppo del core.
+- **Errori del core**: l'applicazione core di Terraform contiene tutta la logica delle operazioni (vedi §2.1.1). Gli errori a questo livello possono essere un bug, e più avanti il tutorial mostra le best practice per aprire una issue GitHub per il team di sviluppo del core.
 - **Errori dei provider**: i plugin dei provider gestiscono l'autenticazione, le chiamate API e la mappatura delle risorse sui servizi. Più avanti il tutorial mostra le best practice per aprire una issue GitHub per il team di sviluppo del provider.
 
 ### 7.8.2 — Formattare la configurazione
 
-Il comando `format` cerca i file di configurazione nella directory corrente e riscrive i file di configurazione Terraform nel formato raccomandato. Nel tutorial `terraform fmt` restituisce due errori, un carattere non valido e un'espressione non valida, entrambi alla riga 46. Terraform ha trovato problemi che non riesce a interpretare, e stampa gli errori perché li si corregga a mano nella configurazione.
+Il comando `terraform fmt` riscrive i file nel formato raccomandato (vedi §3.5). Nel tutorial `terraform fmt` restituisce due errori, un carattere non valido e un'espressione non valida, entrambi alla riga 46. Terraform ha trovato problemi che non riesce a interpretare, e stampa gli errori perché li si corregga a mano nella configurazione.
 
 **Correggere un errore di interpolazione** _(stepTitle)_
 
@@ -609,7 +573,7 @@ La versione errata era `Name = $var.name-learn`. Rieseguendo `terraform fmt`, gl
 
 ### 7.8.3 — Validare la configurazione
 
-`terraform fmt` analizza l'HCL solo alla ricerca di errori di interpolazione o di definizioni di risorse malformate. Per questo, dopo aver formattato la configurazione, si usa `terraform validate`, che controlla la configurazione nel contesto di ciò che si aspettano i provider. Prima si inizializza la directory con `terraform init`, per scaricare i provider richiesti dalla configurazione. Poi si esegue `terraform validate`. L'output contiene un errore di ciclo (cycle error), che evidenzia una dipendenza reciproca tra due risorse security group.
+`terraform fmt` analizza l'HCL solo alla ricerca di errori di interpolazione o di definizioni di risorse malformate. Per questo, dopo `terraform init`, si usa `terraform validate`, che controlla la configurazione rispetto a ciò che si aspettano i provider (vedi §3.6). L'output contiene un errore di ciclo (cycle error), che evidenzia una dipendenza reciproca tra due risorse security group.
 
 Gli errori di ciclo sono casi di logica circolare nell'albero delle dipendenze di Terraform. Terraform analizza le dipendenze tra le risorse della configurazione per stabilire l'ordine delle operazioni (sezione 3.13).
 
