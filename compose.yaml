@@ -1,0 +1,39 @@
+# Generazione dei documenti in un container: sull'host serve solo Docker.
+#
+#   docker compose build                                  # la prima volta, o se cambiano Dockerfile/dipendenze
+#   docker compose run --rm docs build:all                # tutti i documenti, .docx + .pdf
+#   docker compose run --rm docs build:az104 --module 3   # un solo modulo
+#   docker compose run --rm docs                          # elenca gli script disponibili
+#
+# I comandi sono identici in zsh/bash e in PowerShell. I documenti finiscono nella
+# cartella della certificazione, sull'host.
+name: certification-notes
+
+services:
+  docs:
+    build: .
+    image: certification-notes-docs
+    init: true             # npm non e' pensato per fare da PID 1 (segnali, processi orfani)
+    network_mode: none     # a runtime non serve la rete
+    volumes:
+      # create_host_path: false — se il percorso mancasse (checkout in corso, compose
+      # lanciato da un'altra cartella) Docker creerebbe sull'host una cartella vuota al
+      # suo posto, per esempio una directory chiamata package.json.
+      - type: bind
+        source: ./docs
+        target: /app/docs
+        bind: { create_host_path: false }
+      - type: bind
+        source: ./packages
+        target: /app/packages
+        bind: { create_host_path: false }
+      - type: bind
+        source: ./package.json
+        target: /app/package.json
+        read_only: true
+        bind: { create_host_path: false }
+      # Dump di verifica (npm run inspect:docx), ignorati da git.
+      - type: bind
+        source: ./.regress
+        target: /app/.regress
+        bind: { create_host_path: true }

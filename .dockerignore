@@ -1,0 +1,8 @@
+# Allowlist: al build servono solo i manifest npm e l'entry point. Tutto il resto
+# (docs/ con le immagini dei capitoli, node_modules, .git, i documenti generati)
+# resterebbe fuori comunque, ma escluderlo tiene il contesto di build minuscolo.
+*
+!package.json
+!package-lock.json
+!packages/doc-engine/package.json
+!docker/entrypoint.sh

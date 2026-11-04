@@ -8,3 +8,9 @@ node_modules/
 # File temporanei
 _debug.js
 _section*_new.md
+
+# Dump di verifica della regressione (npm run inspect:docx, check-pdf)
+.regress/
+
+# File di lock di LibreOffice
+.~lock.*#
