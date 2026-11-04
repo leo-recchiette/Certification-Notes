@@ -1,24 +1,32 @@
 {
-  "name": "az-104-appunti",
+  "name": "certification-notes",
   "version": "1.0.0",
-  "description": "Note di studio per la certificazione **Microsoft AZ-104 (Azure Administrator)**, generate tramite script Node.js in formato Word (.docx).",
-  "main": "script/create_az104.js",
+  "description": "Note di studio per certificazioni IT, in italiano, generate in formato Word (.docx) e PDF tramite script Node.js. Organizzate per provider e certificazione sotto docs/.",
   "scripts": {
-    "build": "node script/create_az104.js",
-    "build:toc": "node script/create_az104.js --toc"
+    "build:az104": "node docs/microsoft/AZ-104/script/create_az104.js",
+    "build:az104:toc": "node docs/microsoft/AZ-104/script/create_az104.js --toc",
+    "build:ta004": "node docs/hashicorp/TA-004/script/create_ta004.js",
+    "build:ta004:toc": "node docs/hashicorp/TA-004/script/create_ta004.js --toc",
+    "build:ta004:pocket": "node docs/hashicorp/TA-004/script/create_ta004.js --pocket"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lx2pwnd/az-104-appunti.git"
+    "url": "git+https://github.com/leo-recchiette/Certification-Notes.git"
   },
-  "keywords": [],
+  "keywords": [
+    "certification",
+    "appunti",
+    "az-104",
+    "terraform-associate",
+    "docx"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/lx2pwnd/az-104-appunti/issues"
+    "url": "https://github.com/leo-recchiette/Certification-Notes/issues"
   },
-  "homepage": "https://github.com/lx2pwnd/az-104-appunti#readme",
+  "homepage": "https://github.com/leo-recchiette/Certification-Notes#readme",
   "dependencies": {
     "docx": "^9.7.1"
   }
