@@ -147,7 +147,18 @@ async function build(config) {
   console.log('Dimensione: ' + (buffer.length / 1024).toFixed(1) + ' KB');
 
   // Esporta anche in PDF (default attivo; --no-pdf per saltarlo).
-  if (pdf) exportToPdf(outPath);
+  if (pdf) {
+    // Voci attese nel Sommario: per ogni modulo incluso, il titolo piu' le sue h2 e h3.
+    // Il motore uno le confronta con quelle che LibreOffice ha davvero generato.
+    const included = mode === 'module' ? [parsed[n - 1]] : parsed.filter(Boolean);
+    const expectedToc = included.reduce((s, r) => s + 1 + r.h2Count + r.h3Count, 0);
+    const res = exportToPdf(outPath, { expectedToc });
+    // Prima l'esito veniva ignorato: un PDF fallito usciva comunque con codice 0.
+    if (res.error && res.fatal) {
+      console.error(`PDF non generato: ${res.error}`);
+      process.exitCode = 1;
+    }
+  }
   return outPath;
 }
 
