@@ -2,7 +2,7 @@
 
 Note di studio per certificazioni IT, scritte in **italiano** e generate in formato Word (`.docx`) con esportazione automatica in **PDF**.
 
-Ogni certificazione vive in una propria cartella sotto `docs/<provider>/<certificazione>/` e contiene solo i contenuti: i `.md`, le immagini e un file di configurazione. Tutta la logica di generazione sta in un **motore condiviso** ([`packages/doc-engine`](packages/doc-engine)). Questo README è l'unica documentazione del progetto e copre tutte le certificazioni.
+Ogni certificazione vive in una propria cartella sotto `docs/<provider>/<certificazione>/` e contiene solo i contenuti: i `.md`, le immagini e un file di configurazione. Tutta la logica di generazione sta in un **motore condiviso** ([`packages/doc-engine`](packages/doc-engine)), e l'intero processo — `.md` → `.docx` → `.pdf` — gira in un **container Docker**: sulla macchina non serve altro. Questo README è l'unica documentazione del progetto e copre tutte le certificazioni.
 
 In tutte le certificazioni il contenuto risiede nei file `chapters/MODULE_*.md` (**unica fonte di verità**): il motore li legge e produce il documento. Per aggiornare un documento si modifica il `.md` e si rigenera — non serve toccare il codice JS, che va modificato solo per cambiare stili, marcatori o logica di parsing (vedi la [guida di stile](docs/STYLE_GUIDE.md)).
 
@@ -10,10 +10,10 @@ In tutte le certificazioni il contenuto risiede nei file `chapters/MODULE_*.md` 
 
 ## Certificazioni
 
-| Certificazione | Provider | Contenuto | Cartella | Build |
+| Certificazione | Provider | Contenuto | Cartella | Script |
 |---|---|---|---|---|
-| [AZ-104 — Azure Administrator](#az-104--azure-administrator-microsoft) | Microsoft | 6 moduli | `docs/microsoft/AZ-104/` | `npm run build:az104` |
-| [Terraform Associate (004)](#terraform-associate-004-hashicorp) | HashiCorp | 8 moduli + pocket guide (10 capitoli) | `docs/hashicorp/TA-004/` | `npm run build:ta004` |
+| [AZ-104 — Azure Administrator](#az-104--azure-administrator-microsoft) | Microsoft | 6 moduli | `docs/microsoft/AZ-104/` | `build:az104` |
+| [Terraform Associate (004)](#terraform-associate-004-hashicorp) | HashiCorp | 8 moduli + pocket guide (10 capitoli) | `docs/hashicorp/TA-004/` | `build:ta004`, `build:ta004:pocket` |
 
 ---
 
@@ -30,9 +30,13 @@ Certification-Notes/
 │       ├── render.js          ← gli helper di resa (paragrafi, tabelle, figure, copertina)
 │       ├── parser.js          ← la macchina a stati che legge i .md
 │       ├── document.js        ← campo TOC, sezioni, stili, numerazione
-│       ├── pdf.js             ← .docx → .pdf (Word via COM, altrimenti LibreOffice)
+│       ├── pdf.js             ← .docx → .pdf: sceglie il motore (LibreOffice-UNO, Word)
+│       ├── docx2pdf.py        ← pilota LibreOffice via UNO: aggiorna il Sommario ed esporta
 │       ├── cli.js             ← opzioni da riga di comando, dedotte dalla configurazione
-│       └── bin/inspect-docx.js ← ispettore .docx per verificare le modifiche
+│       └── bin/
+│           ├── build-all.js   ← build:all, tutti i documenti
+│           ├── inspect-docx.js ← dump del .docx, per verificare le modifiche
+│           └── check-pdf.js   ← verifica del PDF: Sommario, numeri di pagina, font
 ├── docs/
 │   ├── STYLE_GUIDE.md         ← marcatori Markdown + tutti gli stili (per tutte le cert.)
 │   ├── COVER_TOC.md           ← come nascono copertina e Sommario
@@ -49,7 +53,11 @@ Certification-Notes/
 │           ├── pocketguide/   ← variante sintetica (10 capitoli)
 │           ├── script/        ← config.js + entry point
 │           └── CLAUDE.md
+├── Dockerfile                 ← l'immagine: Node, LibreOffice, i font, le dipendenze npm
+├── compose.yaml               ← come si avvia il container (mount, opzioni)
+├── docker/entrypoint.sh       ← inoltra a npm lo script richiesto con le sue opzioni
 ├── package.json               ← dipendenza condivisa, workspace, script di build
+├── .dockerignore
 ├── .gitignore
 ├── .gitattributes
 ├── README.md                  ← questo file (documentazione di tutte le certificazioni)
@@ -62,7 +70,7 @@ Certification-Notes/
 
 I due generatori erano lo stesso programma duplicato: 560 righe su 709 identiche, l'export PDF uguale byte per byte. Ora c'è un solo motore, e di ciascuna certificazione resta solo ciò che la distingue davvero.
 
-Il motore è un **npm workspace** (`@certification-notes/doc-engine`), quindi i generatori lo risolvono risalendo al `node_modules/` di radice, esattamente come fanno con `docx`: funziona a qualunque profondità di annidamento. Serve `npm install` dalla radice; senza, l'entry point stampa un messaggio chiaro invece di un errore oscuro.
+Il motore è un **npm workspace** (`@certification-notes/doc-engine`), quindi i generatori lo risolvono risalendo al `node_modules/` di radice, esattamente come fanno con `docx`: funziona a qualunque profondità di annidamento. Nell'immagine Docker le dipendenze sono già installate.
 
 **Cosa sta nella certificazione** — `script/config.js`, una quarantina di righe:
 
@@ -81,7 +89,7 @@ L'entry point è di una quindicina di righe e non fa altro che `build(require('.
 
 ### Varianti di un documento
 
-Una variante — la pocket guide di TA-004, o un eventuale quaderno di quiz — **non** è una nuova certificazione: è una voce in più in `deliverables`, che dichiara dove sono i sorgenti, come si chiama l'output e cosa cambia in copertina. Le opzioni ammesse si deducono da quello che la voce dichiara: la pocket guide non ha un sommario proprio né moduli numerati, quindi `--toc` e `--module` vengono rifiutati con un messaggio chiaro. Vedi `deliverables.pocket` in [docs/hashicorp/TA-004/script/config.js](docs/hashicorp/TA-004/script/config.js).
+Una variante — la pocket guide di TA-004, o un eventuale quaderno di quiz — **non** è una nuova certificazione: è una voce in più in `deliverables`, che dichiara dove sono i sorgenti, come si chiama l'output e cosa cambia in copertina. Le opzioni ammesse si deducono da quello che la voce dichiara: la pocket guide non ha moduli numerati, quindi `--module` viene rifiutato con un messaggio chiaro. Vedi `deliverables.pocket` in [docs/hashicorp/TA-004/script/config.js](docs/hashicorp/TA-004/script/config.js).
 
 ### Numerazione automatica di figure e tabelle
 
@@ -95,74 +103,62 @@ Figure e tabelle sono numerate dal motore, in ordine di documento, con due conta
 
 ## Prerequisiti
 
-- [Node.js](https://nodejs.org/) v18 o superiore
-- Dipendenze npm, installate **una volta sola dalla radice del repository** (`npm install`): la dipendenza `docx` e il motore condiviso sono comuni a tutti i generatori
-- Per l'**esportazione in PDF** (automatica dopo il `.docx`): **Microsoft Word** (Windows, usato via automazione COM) oppure **LibreOffice**. Senza nessuno dei due il `.docx` viene prodotto comunque e viene solo stampato un avviso.
-
-> **Node portable (alternativa all'installazione di sistema)**
-> Invece di un'installazione classica, si può usare una versione **portable** di Node
-> (archivio `.zip` scaricabile da [nodejs.org](https://nodejs.org/), senza installer). Dopo averla
-> estratta, **aggiungere al `PATH`** la cartella che contiene `node.exe` e `npm.cmd`: in questo modo
-> `node` e `npm` sono richiamabili direttamente da qualsiasi cartella e i comandi qui sotto funzionano
-> senza dover indicare il percorso completo dell'eseguibile.
->
-> Esempio di percorso usato su una delle macchine di sviluppo:
-> `C:\Users\<utente>\AppData\Local\node-portable\node-v24.16.0-win-x64\`
+Solo **Docker** (su macOS e Windows: [Docker Desktop](https://www.docker.com/products/docker-desktop/)). Node, LibreOffice e i font stanno nell'immagine.
 
 ---
 
 ## Come generare i documenti
 
-```bash
-npm install                  # una volta sola, dalla radice del repo
-
-npm run build:az104          # AZ-104  → docs/microsoft/AZ-104/AZ-104_Note_di_Studio.docx + .pdf
-npm run build:az104:toc      # AZ-104  → solo copertina + sommario
-npm run build:ta004          # TA-004  → docs/hashicorp/TA-004/TA-004_Note_di_Studio.docx + .pdf
-npm run build:ta004:toc      # TA-004  → solo copertina + sommario
-npm run build:ta004:pocket   # TA-004  → docs/hashicorp/TA-004/TA-004_Pocket_Guide.docx + .pdf
-```
-
-Per le opzioni non coperte dagli script di `package.json` si invoca direttamente il generatore (i percorsi sono risolti rispetto alla cartella della certificazione, quindi si può lanciare da qualunque directory):
+Dalla radice del repository, con comandi identici in zsh/bash e in PowerShell:
 
 ```bash
-node docs/microsoft/AZ-104/script/create_az104.js --module 3   # un singolo modulo (1-6)
-node docs/hashicorp/TA-004/script/create_ta004.js --module 4   # un singolo modulo (1-8)
-node <generatore> --no-pdf                                     # salta l'export PDF
-node <generatore> --help                                       # tutte le opzioni disponibili
+docker compose build                                  # la prima volta (qualche minuto: scarica LibreOffice)
+
+docker compose run --rm docs build:all                # tutti i documenti, .docx + .pdf
+docker compose run --rm docs build:az104              # AZ-104  → docs/microsoft/AZ-104/AZ-104_Note_di_Studio.docx + .pdf
+docker compose run --rm docs build:ta004              # TA-004  → docs/hashicorp/TA-004/TA-004_Note_di_Studio.docx + .pdf
+docker compose run --rm docs build:ta004:pocket       # TA-004  → docs/hashicorp/TA-004/TA-004_Pocket_Guide.docx + .pdf
+
+docker compose run --rm docs build:az104 --module 3   # un singolo modulo
+docker compose run --rm docs build:all --no-pdf       # solo i .docx
+docker compose run --rm docs build:ta004 --help       # tutte le opzioni di un generatore
+docker compose run --rm docs                          # elenca gli script disponibili
 ```
+
+I documenti vengono scritti nella cartella della certificazione, sull'host, e sono artefatti di build ignorati da Git. AZ-104, il più pesante (151 immagini, circa 200 pagine), richiede meno di dieci secondi.
+
+Contenuti e motore non stanno nell'immagine: vengono montati dall'host a ogni esecuzione, quindi modificare un `.md` o il motore **non** richiede di ricostruire nulla. `docker compose build` serve solo la prima volta e quando cambiano `Dockerfile` o le dipendenze in `package.json` — in quel caso il container lo dice e si ferma, invece di fallire con un errore oscuro.
 
 `--help` elenca le opzioni ricavandole dalla configurazione, quindi è sempre aggiornato. Le opzioni sconosciute e le combinazioni incompatibili danno errore invece di essere ignorate in silenzio.
 
-I `.docx`/`.pdf` vengono scritti nella cartella della certificazione e sono artefatti di build ignorati da Git.
+> **Su Linux**, se il tuo utente non ha uid 1000, aggiungi `--user "$(id -u):$(id -g)"` dopo `run` perché il container possa scrivere i documenti. Su macOS e Windows non serve.
+
+> **Senza Docker**, con Node 18+ installato, `npm install` dalla radice e poi `npm run build:az104` (e così via) funzionano ancora. Per il PDF serve però Word o LibreOffice sulla macchina: vedi sotto.
 
 ### Esportazione in PDF
 
-Dopo aver generato il `.docx`, il motore esporta **automaticamente** anche un `.pdf` con lo stesso nome (es. `AZ-104_Note_di_Studio.pdf`), in tutte le modalità. La conversione usa, in ordine di preferenza:
+Dopo il `.docx` il motore esporta **automaticamente** anche il `.pdf` con lo stesso nome (`--no-pdf` per saltarlo). Il punto delicato è il **Sommario**: è un campo di Word che va calcolato prima di esportare, altrimenti nel PDF esce vuoto. I motori, in ordine:
 
-1. **Microsoft Word** (via automazione COM, solo Windows): apre il documento, **aggiorna il Sommario e i numeri di pagina** e lo esporta in PDF. È il motore preferito perché il PDF risulta già impaginato correttamente — l'indice riporta i numeri di pagina giusti, senza dover premere `F9` come accade aprendo il `.docx`. Funziona solo in una sessione interattiva (non headless, non come servizio).
-2. **LibreOffice** (`soffice --headless`, multipiattaforma): fallback se Word non è installato. In tal caso i numeri di pagina del Sommario potrebbero non essere aggiornati (in alternativa apri il `.docx` in Word, premi `F9` e ri-esporta).
-
-Se non è disponibile né Word né LibreOffice, il `.docx` viene comunque creato e si riceve solo un avviso. Per saltare del tutto la conversione usa `--no-pdf`.
+1. **LibreOffice via UNO** — quello del container, e quindi il **PDF di riferimento**. Lo script [`docx2pdf.py`](packages/doc-engine/docx2pdf.py) apre il documento, forza l'impaginazione, aggiorna il Sommario e solo allora esporta. I font sono **Carlito**, metricamente compatibile con Calibri (stesse larghezze, quindi stessi a capo), e **Liberation Mono** al posto di Courier New. Nel container è l'unico motore ammesso: se fallisce, il comando fallisce, invece di produrre in silenzio un PDF col Sommario vuoto.
+2. **Microsoft Word** via COM — solo lanciando il motore direttamente su Windows, fuori da Docker. Aggiorna anch'esso Sommario e numeri di pagina. L'impaginazione è molto simile a quella di LibreOffice ma non identica pagina per pagina.
+3. **`soffice --convert-to`** — ultimo ripiego fuori da Docker: esporta **senza** aggiornare il Sommario, che esce vuoto, e lo segnala con un avviso.
 
 ### Verificare una modifica al motore
 
-Non ci sono test automatici: la verifica consiste nel **rigenerare e confrontare**. Due `.docx` non si confrontano byte per byte né per md5 (la libreria `docx` genera gli id delle relazioni in modo casuale e lo zip porta i timestamp, quindi due esecuzioni dello stesso codice danno file diversi). Si confronta il contenuto estratto:
+Non ci sono test automatici: la verifica consiste nel **rigenerare e confrontare**. Due strumenti, entrambi nel container:
 
 ```bash
-npm run inspect:docx -- docs/hashicorp/TA-004/TA-004_Note_di_Studio.docx
+docker compose run --rm docs check:pdf                                  # tutti i PDF generati
+docker compose run --rm docs inspect:docx --out .regress/dopo docs/hashicorp/TA-004/TA-004_Note_di_Studio.docx
 ```
 
-Produce quattro file di testo: `counts` (paragrafi, tabelle, immagini, livelli di struttura), `spine` (la sequenza delle intestazioni), `text` (un paragrafo per riga, senza formattazione) e `captions` (le didascalie). **`text` è quello da confrontare con `diff`**: ignora l'impaginazione e mostra solo le differenze di contenuto. Il modo di procedere è salvare i dump *prima* della modifica e confrontarli dopo.
+**`check:pdf`** verifica ogni PDF contro il suo `.docx`: il Sommario ha tante voci quante sono le intestazioni, con gli stessi titoli; ogni voce rimanda alla pagina in cui l'intestazione compare davvero; la numerazione è contigua; i font sono quelli previsti e incorporati.
 
-Senza Node installato, tutto quanto sopra si esegue in un container:
+**`inspect:docx`** estrae dal `.docx` quattro file di testo in `.regress/` (ignorata da Git): `counts` (paragrafi, tabelle, immagini, livelli di struttura), `spine` (la sequenza delle intestazioni), `text` (un paragrafo per riga, senza formattazione) e `captions` (le didascalie). Due `.docx` non si confrontano byte per byte né per md5 — la libreria `docx` genera id casuali e lo zip porta i timestamp, quindi due esecuzioni dello stesso codice danno file diversi — ma i dump sì. **`text` è quello da confrontare**: ignora l'impaginazione e mostra solo le differenze di contenuto. Si salvano i dump *prima* della modifica e si confrontano dopo:
 
 ```bash
-docker run --rm -v "$PWD":/repo -w /repo -e HOME=/tmp -u "$(id -u):$(id -g)" \
-  node:22-bookworm-slim sh -c 'npm install && npm run build:ta004 -- --no-pdf'
+docker compose run --rm --entrypoint diff docs -r .regress/prima .regress/dopo
 ```
-
-In container va sempre passato `--no-pdf`: l'export PDF richiede Word o LibreOffice e non è verificabile lì.
 
 ---
 
@@ -187,11 +183,10 @@ docs/microsoft/AZ-104/
 └── CLAUDE.md
 ```
 
-| Comando | Output | Descrizione |
+| Comando (`docker compose run --rm docs …`) | Output | Descrizione |
 |---|---|---|
-| `npm run build:az104` | `AZ-104_Note_di_Studio.docx` + `.pdf` | Documento completo |
-| `npm run build:az104:toc` | `AZ-104_Sommario.docx` + `.pdf` | Solo copertina e sommario |
-| `node docs/microsoft/AZ-104/script/create_az104.js --module N` | `AZ-104_Modulo_N.docx` + `.pdf` | Solo il modulo N (1–6) |
+| `build:az104` | `AZ-104_Note_di_Studio.docx` + `.pdf` | Documento completo |
+| `build:az104 --module N` | `AZ-104_Modulo_N.docx` + `.pdf` | Solo il modulo N (1–6) |
 
 Le poche tabelle che non si possono esprimere in Markdown sono funzioni JS in `script/tables.js`, riferite dai `.md` come `[TABELLA: nome]`: `toolsTable`, `armStructureTable`, `reservedTable`, `publicIpAssocTable`, `publicIpSkuTable`, `privateIpTable`, `nsgRuleSettingsTable`. Tutto il resto è una normale tabella Markdown.
 
@@ -222,12 +217,11 @@ docs/hashicorp/TA-004/
 └── CLAUDE.md
 ```
 
-| Comando | Output | Descrizione |
+| Comando (`docker compose run --rm docs …`) | Output | Descrizione |
 |---|---|---|
-| `npm run build:ta004` | `TA-004_Note_di_Studio.docx` + `.pdf` | Documento completo |
-| `npm run build:ta004:toc` | `TA-004_Sommario.docx` + `.pdf` | Solo copertina e sommario |
-| `npm run build:ta004:pocket` | `TA-004_Pocket_Guide.docx` + `.pdf` | Pocket guide (10 capitoli) |
-| `node docs/hashicorp/TA-004/script/create_ta004.js --module N` | `TA-004_Modulo_N.docx` + `.pdf` | Solo il modulo N (1–8) |
+| `build:ta004` | `TA-004_Note_di_Studio.docx` + `.pdf` | Documento completo |
+| `build:ta004 --module N` | `TA-004_Modulo_N.docx` + `.pdf` | Solo il modulo N (1–8) |
+| `build:ta004:pocket` | `TA-004_Pocket_Guide.docx` + `.pdf` | Pocket guide (10 capitoli) |
 
 La pocket guide legge **tutti** i `.md` in `pocketguide/` in ordine di nome file (da qui i prefissi `NN-`): aggiungere un capitolo significa aggiungere un file numerato correttamente, nulla di più.
 
@@ -237,7 +231,7 @@ La pocket guide legge **tutti** i `.md` in `pocketguide/` in ordine di nome file
 
 1. Crea `docs/<provider>/<CERTIFICAZIONE>/` con le sottocartelle `chapters/` e `img/`. I nomi dei provider sono in minuscolo (`microsoft/`, `hashicorp/`), le cartelle delle certificazioni mantengono il codice ufficiale in maiuscolo (`AZ-104`, `TA-004`).
 2. Scrivi `script/config.js` (`id`, `root`, `banner`, `palette`, `cover`, `deliverables`) e un entry point di una quindicina di righe che chiami `build(require('./config'))`. Copiali da una certificazione esistente: **non c'è nessun generatore da duplicare**.
-3. Aggiungi gli script `build:<cert>` e `build:<cert>:toc` in [package.json](package.json).
+3. Aggiungi lo script `build:<cert>` in [package.json](package.json): `build:all` lo include da solo.
 4. Aggiungi la riga nella tabella **Certificazioni** qui sopra e una sezione dedicata in questo README.
 5. Aggiungi un `CLAUDE.md` nella nuova cartella (contiene le note specifiche di quella certificazione).
 
@@ -252,10 +246,11 @@ Le modifiche vanno su un branch dedicato, poi PR e merge in `main`. Messaggi di 
 ```bash
 git checkout -b feature/az104-modulo-3
 # modifica docs/microsoft/AZ-104/chapters/MODULE_3.md (il contenuto sta nei .md, non nel JS)
-npm run build:az104          # rigenera e verifica
+docker compose run --rm docs build:az104      # rigenera
+docker compose run --rm docs check:pdf        # verifica il PDF
 git commit -am "feat: aggiorna AZ-104 MODULE_3 - descrizione"
 git push -u origin feature/az104-modulo-3
 # apri PR su GitHub e mergia in main
 ```
 
-Una modifica al motore condiviso riguarda **tutte** le certificazioni: rigenera entrambi i documenti e confronta i dump prima di aprire la PR.
+Una modifica al motore condiviso riguarda **tutte** le certificazioni: rigenera tutto con `build:all`, confronta i dump e lancia `check:pdf` prima di aprire la PR.

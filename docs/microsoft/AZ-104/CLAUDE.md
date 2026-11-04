@@ -24,16 +24,12 @@ Each one **receives the render context injected** and imports nothing — `({ ma
 ## Build / run
 
 ```bash
-npm install                             # one-time, from the repo root
-
-npm run build:az104                     # full doc  -> AZ-104_Note_di_Studio.docx (+ .pdf)
-npm run build:az104:toc                 # cover+TOC -> AZ-104_Sommario.docx (+ .pdf)
-
-node docs/microsoft/AZ-104/script/create_az104.js --module 3   # one module (1-6)
-node docs/microsoft/AZ-104/script/create_az104.js --help       # every flag
+docker compose run --rm docs build:az104              # full doc -> AZ-104_Note_di_Studio.docx + .pdf
+docker compose run --rm docs build:az104 --module 3   # one module (1-6)
+docker compose run --rm docs build:az104 --help       # every flag
 ```
 
-All outputs land in `docs/microsoft/AZ-104/`. **Note:** the portable Node that used to live under `…\AppData\Local\node-portable\` was removed to free space — reinstall Node, or use the container command in the root [CLAUDE.md](../../../CLAUDE.md), before regenerating.
+All outputs land in `docs/microsoft/AZ-104/`. Everything runs in Docker (see the root [CLAUDE.md](../../../CLAUDE.md)); this machine has no Node, and the portable Node that once lived under `…\AppData\Local\node-portable\` is no longer needed.
 
 ## Non-obvious gotchas
 

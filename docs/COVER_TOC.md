@@ -46,7 +46,7 @@ di struttura delle intestazioni:
 | Riga di sezione | `##` (livello 1) | `TOC2` — 11pt grassetto `sectionBlue` |
 | Riga di sottosezione | `###` (livello 2) | `TOC3` — 10pt `tocEntry` |
 
-Numeri di pagina e dot leader li calcola Word, non la libreria `docx`.
+Numeri di pagina e dot leader li calcola Word, o LibreOffice nel container prima di esportare il PDF: mai la libreria `docx`.
 
 > **Per modificare il Sommario** non si tocca nulla qui: si modificano le intestazioni `#`,
 > `##`, `###` nei `.md` e si rigenera il documento.

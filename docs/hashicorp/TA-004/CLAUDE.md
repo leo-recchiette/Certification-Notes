@@ -30,24 +30,22 @@ pocket: {
 }
 ```
 
-`source.all` is why the chapters carry the `NN-` prefix: adding a chapter means adding a correctly-numbered file, nothing else. **Which flags are legal is derived from `output`**: this deliverable declares neither `toc` nor `module`, so `--toc` and `--module` are rejected with a clear message — there is no `if (mode === 'pocket')` anywhere in the engine.
+`source.all` is why the chapters carry the `NN-` prefix: adding a chapter means adding a correctly-numbered file, nothing else. **Which flags are legal is derived from `output`**: this deliverable declares no `module`, so `--module` is rejected with a clear message — there is no `if (mode === 'pocket')` anywhere in the engine.
 
 The pocket guide also demonstrates why the parser takes the outline level from the number of `#`: its titles are free-form (`# Appendice: la CLI di Terraform`, `### 3a.1: la Trinità di Terraform`) and never follow the `Modulo N — ` / `N.M — ` convention, yet it renders with the same parser, unmodified.
 
 ## Build / run
 
 ```bash
-npm install                             # one-time, from the repo root
-
-npm run build:ta004                     # full doc     -> TA-004_Note_di_Studio.docx (+ .pdf)
-npm run build:ta004:toc                 # cover+TOC    -> TA-004_Sommario.docx (+ .pdf)
-npm run build:ta004:pocket              # pocket guide -> TA-004_Pocket_Guide.docx (+ .pdf)
-
-node docs/hashicorp/TA-004/script/create_ta004.js --module 4   # one module (1-8)
-node docs/hashicorp/TA-004/script/create_ta004.js --help       # every flag
+docker compose run --rm docs build:ta004              # full doc     -> TA-004_Note_di_Studio.docx + .pdf
+docker compose run --rm docs build:ta004:pocket       # pocket guide -> TA-004_Pocket_Guide.docx + .pdf
+docker compose run --rm docs build:ta004 --module 4   # one module (1-8)
+docker compose run --rm docs build:ta004 --help       # every flag
 ```
 
-All outputs land in `docs/hashicorp/TA-004/`.
+All outputs land in `docs/hashicorp/TA-004/`. Everything runs in Docker (see the root [CLAUDE.md](../../../CLAUDE.md)).
+
+This folder is also the **stress test for the PDF Sommario**: 627 entries spread over 12 pages in the full document. The `uno` engine renders it in about 6 s and `check:pdf` verifies that every entry points to the right page.
 
 ## Non-obvious gotchas
 

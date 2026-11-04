@@ -16,9 +16,9 @@ dei file prodotti) sta nella sua `script/config.js`; i valori condivisi stanno i
 
 ## Come generare i documenti
 
-Vedi il [README](../README.md). In breve, dalla radice del repo: `npm run build:az104`,
-`npm run build:ta004`, `npm run build:ta004:pocket`; `--help` su un generatore elenca tutte
-le opzioni.
+Vedi il [README](../README.md). In breve, tutto gira in Docker, dalla radice del repo:
+`docker compose run --rm docs build:all` (oppure `build:az104`, `build:ta004`,
+`build:ta004:pocket`); `--help` dopo il nome dello script elenca tutte le opzioni.
 
 ---
 
@@ -175,8 +175,9 @@ in `theme.js`: `bodyText #333333`, `subtle #555555`, `caption #888888`, `white #
   modulo; gli altri moduli sono separati da un `PageBreak` esplicito.
 - **Aggiornamento**: i numeri sono **campi calcolati da Word** (la libreria `docx` non
   impagina). Il documento ha `features.updateFields = true`, quindi Word aggiorna il Sommario
-  all'apertura; se appare vuoto, `Ctrl+A` poi `F9`. L'export PDF via Word aggiorna i campi
-  prima di esportare, quello via LibreOffice no.
+  all'apertura; se appare vuoto, `Ctrl+A` poi `F9`. Nel PDF il Sommario è già calcolato: lo
+  aggiorna LibreOffice (via UNO, nel container) o Word prima di esportare. Il semplice
+  `soffice --convert-to` non lo fa, e il Sommario uscirebbe vuoto.
 
 ---
 
