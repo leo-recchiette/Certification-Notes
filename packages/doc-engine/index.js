@@ -70,8 +70,8 @@ async function build(config) {
   const { deliverable, mode, n, pdf } = parseArgs(config);
   const d = config.deliverables[deliverable];
 
-  const modeLabel = mode === 'toc' ? 'solo sommario'
-    : mode === 'module' ? `solo ${(d.moduleLabels && d.moduleLabels[n]) || 'Modulo ' + n}`
+  const modeLabel = mode === 'module'
+    ? `solo ${(d.moduleLabels && d.moduleLabels[n]) || 'Modulo ' + n}`
     : d.label;
   console.log(`Costruzione ${config.banner || config.id} — ${modeLabel}...`);
 
@@ -81,8 +81,8 @@ async function build(config) {
 
   const sources = resolveSources(config.root, d.source);
 
-  // Si parsificano TUTTI i sorgenti, in ordine di documento, anche con --module N
-  // o --toc. Non e' spreco: i contatori di figure e tabelle attraversano i moduli,
+  // Si parsificano TUTTI i sorgenti, in ordine di documento, anche con --module N.
+  // Non e' spreco: i contatori di figure e tabelle attraversano i moduli,
   // quindi un singolo modulo estratto conserva la numerazione del documento completo.
   // NON "ottimizzare" saltando i sorgenti non richiesti: i numeri cambierebbero.
   const counters = { fig: 0, tbl: 0 };
@@ -140,9 +140,7 @@ async function build(config) {
 
   const doc = assembleDocument(theme, R, frontMatter, content);
   const buffer = await Packer.toBuffer(doc);
-  const outName = mode === 'toc' ? d.output.toc
-    : mode === 'module' ? d.output.module(n)
-    : d.output.full;
+  const outName = mode === 'module' ? d.output.module(n) : d.output.full;
   const outPath = path.join(config.root, outName);   // output nella cartella della certificazione
   fs.writeFileSync(outPath, buffer);
   console.log('Documento salvato: ' + outName);

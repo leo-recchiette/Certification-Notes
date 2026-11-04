@@ -41,7 +41,6 @@ module.exports = {
       source: { dir: 'chapters', file: n => `MODULE_${n}.md`, count: 8 },
       output: {
         full: 'TA-004_Note_di_Studio.docx',
-        toc: 'TA-004_Sommario.docx',
         module: n => `TA-004_Modulo_${n}.docx`,
       },
       moduleLabels: {
@@ -59,8 +58,8 @@ module.exports = {
     // ─── MODELLO per aggiungere una variante ───────────────────────────────────
     // Un deliverable dichiara solo: come si seleziona da CLI (flag), dove sono i
     // sorgenti, come si chiama l'output e cosa cambia in copertina. Le modalita'
-    // disponibili si deducono da `output`: qui non ci sono `toc` ne' `module`,
-    // quindi --toc e --module vengono rifiutati con un messaggio chiaro.
+    // disponibili si deducono da `output`: qui non c'e' `module`, quindi --module
+    // viene rifiutato con un messaggio chiaro.
     pocket: {
       flag: '--pocket',
       label: 'Pocket Guide',

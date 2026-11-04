@@ -40,7 +40,6 @@ module.exports = {
       source: { dir: 'chapters', file: n => `MODULE_${n}.md`, count: 6 },
       output: {
         full: 'AZ-104_Note_di_Studio.docx',
-        toc: 'AZ-104_Sommario.docx',
         module: n => `AZ-104_Modulo_${n}.docx`,
       },
       moduleLabels: {

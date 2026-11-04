@@ -4,13 +4,14 @@
  * Argomenti da riga di comando, derivati DALLA CONFIGURAZIONE.
  *
  * Quali flag sono legali non e' scritto qui: si deduce dai `deliverables`. Un
- * deliverable che non dichiara `output.toc` non accetta --toc; uno che non dichiara
- * `output.module` non accetta --module. Cosi' aggiungere una variante (una pocket
- * guide, un quaderno di quiz...) non richiede nessun `if` nel motore.
+ * deliverable che non dichiara `output.module` non accetta --module. Cosi' aggiungere
+ * una variante (una pocket guide, un quaderno di quiz...) non richiede nessun `if`
+ * nel motore.
  *
- * Rispetto allo schema ad-hoc precedente: i flag sconosciuti vengono RIFIUTATI
- * (prima passavano in silenzio) e le combinazioni incompatibili danno errore invece
- * di applicare una precedenza implicita (--toc vinceva su --module senza dirlo).
+ * I flag sconosciuti vengono RIFIUTATI invece di passare in silenzio. Fra questi c'e'
+ * il vecchio --toc ("solo copertina + Sommario"), rimosso: dal passaggio al campo TOC
+ * nativo quel documento non conteneva intestazioni, quindi il suo Sommario usciva
+ * sempre vuoto. Il Sommario e' nelle prime pagine del documento completo.
  */
 
 function deliverableFlags(config) {
@@ -31,7 +32,6 @@ function usage(config) {
   lines.push('', 'Modalita\':');
   for (const [key, d] of Object.entries(config.deliverables)) {
     const where = d.flag ? ` (con ${d.flag})` : '';
-    if (d.output.toc) lines.push(`  --toc          solo copertina + sommario -> ${d.output.toc}${where}`);
     if (d.output.module) lines.push(`  --module N     solo il modulo N (1-${d.source.count}) -> ${d.output.module('N')}${where}`);
   }
   lines.push('', 'Altre opzioni:', '  --no-pdf       non esportare il PDF dopo il .docx',
@@ -41,7 +41,7 @@ function usage(config) {
 
 function parseArgs(config, argv = process.argv.slice(2)) {
   const flags = deliverableFlags(config);
-  const known = new Set(['--no-pdf', '--help', '-h', '--toc', '--module', ...Object.keys(flags)]);
+  const known = new Set(['--no-pdf', '--help', '-h', '--module', ...Object.keys(flags)]);
 
   if (argv.includes('--help') || argv.includes('-h')) {
     console.log(usage(config));
@@ -71,23 +71,8 @@ function parseArgs(config, argv = process.argv.slice(2)) {
   if (!d) { console.error(`Errore: deliverable "${key}" non definito in config.deliverables`); process.exit(1); }
 
   // Quale modalita'
-  const wantToc = argv.includes('--toc');
   const mi = argv.indexOf('--module');
-  const wantModule = mi !== -1;
-  if (wantToc && wantModule) {
-    console.error('Errore: --toc e --module sono alternativi, non usarli insieme');
-    process.exit(1);
-  }
-
-  if (wantToc) {
-    if (!d.output.toc) {
-      console.error(`Errore: --toc non e' disponibile per "${d.label}"`);
-      process.exit(1);
-    }
-    return { deliverable: key, mode: 'toc', pdf };
-  }
-
-  if (wantModule) {
+  if (mi !== -1) {
     if (!d.output.module) {
       console.error(`Errore: --module non e' disponibile per "${d.label}" (non ha moduli numerati)`);
       process.exit(1);
