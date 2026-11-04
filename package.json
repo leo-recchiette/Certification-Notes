@@ -10,7 +10,8 @@
     "build:ta004": "node docs/hashicorp/TA-004/script/create_ta004.js",
     "build:ta004:pocket": "node docs/hashicorp/TA-004/script/create_ta004.js --pocket",
     "build:all": "node packages/doc-engine/bin/build-all.js",
-    "inspect:docx": "node packages/doc-engine/bin/inspect-docx.js"
+    "inspect:docx": "node packages/doc-engine/bin/inspect-docx.js",
+    "check:pdf": "node packages/doc-engine/bin/check-pdf.js"
   },
   "repository": {
     "type": "git",
