@@ -2,12 +2,16 @@
   "name": "certification-notes",
   "version": "1.0.0",
   "description": "Note di studio per certificazioni IT, in italiano, generate in formato Word (.docx) e PDF tramite script Node.js. Organizzate per provider e certificazione sotto docs/.",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build:az104": "node docs/microsoft/AZ-104/script/create_az104.js",
     "build:az104:toc": "node docs/microsoft/AZ-104/script/create_az104.js --toc",
     "build:ta004": "node docs/hashicorp/TA-004/script/create_ta004.js",
     "build:ta004:toc": "node docs/hashicorp/TA-004/script/create_ta004.js --toc",
-    "build:ta004:pocket": "node docs/hashicorp/TA-004/script/create_ta004.js --pocket"
+    "build:ta004:pocket": "node docs/hashicorp/TA-004/script/create_ta004.js --pocket",
+    "inspect:docx": "node packages/doc-engine/bin/inspect-docx.js"
   },
   "repository": {
     "type": "git",

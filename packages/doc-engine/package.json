@@ -1,0 +1,12 @@
+{
+  "name": "@certification-notes/doc-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Motore condiviso: parser Markdown -> .docx (libreria docx) -> .pdf. Nessun testo di documento, nessun percorso: tutto arriva dalla configurazione della certificazione.",
+  "main": "index.js",
+  "type": "commonjs",
+  "license": "ISC",
+  "dependencies": {
+    "docx": "^9.7.1"
+  }
+}
