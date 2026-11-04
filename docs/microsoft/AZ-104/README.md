@@ -4,12 +4,14 @@ Note di studio per la certificazione **Microsoft AZ-104 (Azure Administrator)**,
 
 Il contenuto risiede nei file `chapters/MODULE_*.md` (**unica fonte di verità**): lo script `script/create_az104.js` li legge e produce il documento. Per aggiornare il documento si modifica il `.md` e si rigenera — non serve toccare il codice JS.
 
+Questa certificazione fa parte del monorepo [Certification Notes](../../../README.md): il tooling (Node + la dipendenza `docx`) è condiviso dalla radice del repository, i contenuti sono tutti qui.
+
 ---
 
-## Struttura del repository
+## Struttura della cartella
 
 ```
-az-104-appunti/
+docs/microsoft/AZ-104/
 ├── script/
 │   └── create_az104.js    ← script di generazione (parser .md → .docx, + export .pdf)
 ├── chapters/              ← contenuto del documento (unica fonte di verità)
@@ -22,16 +24,16 @@ az-104-appunti/
 │   └── MODULE_6.md        ← Monitorare ed eseguire il backup
 ├── style/
 │   └── STYLE_GUIDE.md     ← stili + marcatori Markdown riconosciuti dal parser
-├── package.json           ← dipendenza docx + script npm
-├── .gitignore             ← ignora node_modules/ e i .docx/.pdf generati
+├── img/                   ← figure (sottocartelle per modulo)
+│   ├── Module 1 - Prerequisiti per gli amministratori di Azure/
+│   ├── Module 2 - Gestire identità e governance in Azure/
+│   ├── Module 3 - Configurare e gestire reti virtuali/
+│   └── ...
 ├── README.md
-├── CLAUDE.md
-└── img/                   ← figure (sottocartelle per modulo)
-    ├── Module 1 - Prerequisiti per gli amministratori di Azure/
-    ├── Module 2 - Gestire identità e governance in Azure/
-    ├── Module 3 - Configurare e gestire reti virtuali/
-    └── ...
+└── CLAUDE.md
 ```
+
+Alla radice del repository stanno invece i file condivisi: `package.json` (dipendenza `docx` + script di build), `.gitignore`, `.gitattributes`.
 
 ---
 
@@ -40,10 +42,10 @@ az-104-appunti/
 ### Prerequisiti
 
 - [Node.js](https://nodejs.org/) v18 o superiore
-- Dipendenze npm:
+- Dipendenze npm, installate **una volta sola dalla radice del repository**:
 
 ```bash
-npm install docx
+npm install
 ```
 
 - Per l'**esportazione in PDF** (automatica dopo il `.docx`): **Microsoft Word**
@@ -62,35 +64,37 @@ npm install docx
 
 ### Generazione
 
-Lo script supporta tre modalità tramite argomenti da riga di comando:
+Dalla radice del repository, tramite gli script npm:
 
 | Comando | Output | Descrizione |
 |---|---|---|
-| `node script/create_az104.js` | `AZ-104_Note_di_Studio.docx` + `.pdf` | Documento completo |
-| `node script/create_az104.js --toc` | `AZ-104_Sommario.docx` + `.pdf` | Solo copertina e sommario |
-| `node script/create_az104.js --module N` | `AZ-104_Modulo_N.docx` + `.pdf` | Solo il modulo N (1–6) |
-| `node script/create_az104.js --no-pdf` | solo `.docx` | Salta l'esportazione in PDF |
+| `npm run build:az104` | `AZ-104_Note_di_Studio.docx` + `.pdf` | Documento completo |
+| `npm run build:az104:toc` | `AZ-104_Sommario.docx` + `.pdf` | Solo copertina e sommario |
+
+Per le modalità non coperte dagli script npm si invoca direttamente il generatore (i percorsi sono risolti rispetto a questa cartella, quindi il comando funziona da qualunque directory):
+
+| Comando | Output | Descrizione |
+|---|---|---|
+| `node docs/microsoft/AZ-104/script/create_az104.js --module N` | `AZ-104_Modulo_N.docx` + `.pdf` | Solo il modulo N (1–6) |
+| `node docs/microsoft/AZ-104/script/create_az104.js --no-pdf` | solo `.docx` | Salta l'esportazione in PDF |
 
 Esempi:
 
 ```bash
 # Documento completo
-node script/create_az104.js
+npm run build:az104
 
 # Solo il sommario
-node script/create_az104.js --toc
+npm run build:az104:toc
 
 # Solo il Modulo 2 — Gestire identità e governance in Azure
-node script/create_az104.js --module 2
-
-# Solo il Modulo 3 — Configurare e gestire reti virtuali
-node script/create_az104.js --module 3
+node docs/microsoft/AZ-104/script/create_az104.js --module 2
 
 # Documento completo senza esportazione PDF (solo .docx)
-node script/create_az104.js --no-pdf
+node docs/microsoft/AZ-104/script/create_az104.js --no-pdf
 ```
 
-> **Nota**: esegui i comandi dalla **radice del repo**. Lo script risolve `img/`, `chapters/` e i file di output rispetto alla radice (la cartella superiore a `script/`), quindi i `.docx` (e i `.pdf`) finiscono nella radice.
+> **Nota**: lo script risolve `img/`, `chapters/` e i file di output rispetto alla **cartella della certificazione** (`docs/microsoft/AZ-104/`, cioè la cartella superiore a `script/`), non rispetto alla directory corrente. I `.docx` e i `.pdf` generati finiscono quindi in `docs/microsoft/AZ-104/` e sono ignorati da Git.
 
 ### Esportazione in PDF
 
@@ -116,14 +120,14 @@ solo un avviso. Per saltare del tutto la conversione usa `--no-pdf`.
 Ogni modifica segue il pattern branch → PR → merge:
 
 ```bash
-git checkout -b feature/update-module-X
-# modifica chapters/MODULE_X.md (il contenuto sta nei .md, non nel JS)
+git checkout -b feature/az104-modulo-X
+# modifica docs/microsoft/AZ-104/chapters/MODULE_X.md (il contenuto sta nei .md, non nel JS)
+npm run build:az104          # rigenera e verifica
 git add .
-git commit -m "feat: update MODULE_X - descrizione modifica"
-git push origin feature/update-module-X
+git commit -m "feat: aggiorna AZ-104 MODULE_X - descrizione modifica"
+git push -u origin feature/az104-modulo-X
 # apri PR su GitHub e mergia in main
 ```
 
-Dopo le modifiche, rigenera il `.docx` (vedi sopra). Lo script `script/create_az104.js`
-va modificato solo per cambiare stile, marcatori o logica di parsing
-(vedi [STYLE_GUIDE.md](style/STYLE_GUIDE.md)).
+Lo script `script/create_az104.js` va modificato solo per cambiare stile, marcatori o
+logica di parsing (vedi [STYLE_GUIDE.md](style/STYLE_GUIDE.md)).

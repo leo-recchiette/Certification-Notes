@@ -4,12 +4,14 @@ Note di studio per la certificazione **HashiCorp Certified: Terraform Associate 
 
 Il contenuto segue la [exam content list](https://developer.hashicorp.com/terraform/tutorials/certification-004/associate-review-004) e il [percorso di studio](https://developer.hashicorp.com/terraform/tutorials/certification-004/associate-study-004) ufficiali HashiCorp. Ogni modulo traduce in forma discorsiva le pagine collegate per il relativo obiettivo d'esame, nell'ordine del percorso di studio, e ogni sezione indica la pagina di origine. Il contenuto risiede nei file `chapters/MODULE_*.md` (**unica fonte di verità**): lo script `script/create_ta004.js` li legge e produce il documento.
 
+Questa certificazione fa parte del monorepo [Certification Notes](../../../README.md): il tooling (Node + la dipendenza `docx`) è condiviso dalla radice del repository, i contenuti sono tutti qui.
+
 ---
 
-## Struttura del repository
+## Struttura della cartella
 
 ```
-TA-004-Appunti/
+docs/hashicorp/TA-004/
 ├── script/create_ta004.js   ← generatore (parser .md → .docx, + export .pdf)
 ├── chapters/
 │   ├── COVER_TOC.md         ← copertina (il sommario è generato da Word)
@@ -21,11 +23,14 @@ TA-004-Appunti/
 │   ├── MODULE_6.md          ← Gestione dello state             (obiettivo 6)
 │   ├── MODULE_7.md          ← Manutenzione dell'infrastruttura (obiettivo 7)
 │   └── MODULE_8.md          ← HCP Terraform                    (obiettivo 8)
+├── pocketguide/             ← variante sintetica: 01-…md … 10-Appendice-CLI.md
 ├── style/STYLE_GUIDE.md     ← stili + marcatori Markdown riconosciuti dal parser
-├── img/                     ← figure (opzionale)
-├── package.json
+├── img/                     ← figure (sottocartelle per modulo)
+├── README.md
 └── CLAUDE.md
 ```
+
+Alla radice del repository stanno invece i file condivisi: `package.json` (dipendenza `docx` + script di build), `.gitignore`, `.gitattributes`.
 
 ---
 
@@ -34,24 +39,32 @@ TA-004-Appunti/
 Prerequisiti: [Node.js](https://nodejs.org/) v18+ e, per il PDF, **Microsoft Word** (Windows, via COM) oppure **LibreOffice**.
 
 ```bash
-npm install
-node script/create_ta004.js              # documento completo -> TA-004_Note_di_Studio.docx + .pdf
-node script/create_ta004.js --module 4   # solo il modulo 4   -> TA-004_Modulo_4.docx + .pdf
-node script/create_ta004.js --toc        # copertina+sommario -> TA-004_Sommario.docx + .pdf
-node script/create_ta004.js --no-pdf     # solo .docx
+npm install                  # una volta sola, dalla radice del repo
+
+npm run build:ta004          # documento completo -> TA-004_Note_di_Studio.docx + .pdf
+npm run build:ta004:toc      # copertina+sommario -> TA-004_Sommario.docx + .pdf
+npm run build:ta004:pocket   # pocket guide       -> TA-004_Pocket_Guide.docx + .pdf
 ```
 
-Esegui i comandi dalla radice del repo. I `.docx`/`.pdf` sono artefatti di build ignorati da Git.
+Per le modalità non coperte dagli script npm si invoca direttamente il generatore (funziona da qualunque directory, i percorsi sono relativi a questa cartella):
+
+```bash
+node docs/hashicorp/TA-004/script/create_ta004.js --module 4   # solo il modulo 4 (1-8)
+node docs/hashicorp/TA-004/script/create_ta004.js --no-pdf     # solo .docx
+```
+
+I `.docx`/`.pdf` vengono scritti in `docs/hashicorp/TA-004/` (la cartella superiore a `script/`, risolta dallo script stesso) e sono artefatti di build ignorati da Git.
 
 ---
 
 ## Workflow di aggiornamento
 
 ```bash
-git checkout -b feature/update-module-X
-# modifica chapters/MODULE_X.md
-git commit -am "feat: aggiorna MODULE_X - descrizione"
-git push origin feature/update-module-X
+git checkout -b feature/ta004-modulo-X
+# modifica docs/hashicorp/TA-004/chapters/MODULE_X.md
+npm run build:ta004          # rigenera e verifica
+git commit -am "feat: aggiorna TA-004 MODULE_X - descrizione"
+git push -u origin feature/ta004-modulo-X
 # apri PR e mergia in main
 ```
 
