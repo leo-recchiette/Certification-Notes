@@ -4,20 +4,20 @@ _Questo percorso copre la progettazione e la gestione dell'infrastruttura di ret
 Una rete ben configurata garantisce connettività sicura, isolamento delle risorse e prestazioni ottimali._
 
 **Immagini usate in questo modulo:**
-- `img/ip-addressing.png` (850×138) — Figura 28
-- `img/nsg-portal.png` (861×191) — Figura 29
-- `img/nsg-inbound-rules.png` (858×247) — Figura 30
-- `img/nsg-outbound-rules.png` (858×236) — Figura 31
-- `img/nsg-multiple.png` (650×478) — Figura 32
-- `img/nsg-effective-rules.png` (859×65) — Figura 33
-- `img/asg-diagram.png` (320×274) — Figura 34
+- `img/ip-addressing.png` (850×138)
+- `img/nsg-portal.png` (861×191)
+- `img/nsg-inbound-rules.png` (858×247)
+- `img/nsg-outbound-rules.png` (858×236)
+- `img/nsg-multiple.png` (650×478)
+- `img/nsg-effective-rules.png` (859×65)
+- `img/asg-diagram.png` (320×274)
 
 **Tabelle generate da codice:**
-- `reservedTable()` — Tabella 3: Indirizzi riservati per subnet
-- `publicIpAssocTable()` — Tabella 4: Associazione IP pubblici per tipo di risorsa
-- `publicIpSkuTable()` — Tabella 5: Funzionalità SKU Standard IP pubblici
-- `privateIpTable()` — Tabella 6: Risorse Azure che supportano IP privati
-- `nsgRuleSettingsTable()` — Tabella 7: Impostazioni configurabili per una regola NSG
+- `reservedTable()` — Indirizzi riservati per subnet
+- `publicIpAssocTable()` — Associazione IP pubblici per tipo di risorsa
+- `publicIpSkuTable()` — Funzionalità SKU Standard IP pubblici
+- `privateIpTable()` — Risorse Azure che supportano IP privati
+- `nsgRuleSettingsTable()` — Impostazioni configurabili per una regola NSG
 
 ---
 
@@ -78,7 +78,7 @@ Per ogni subnet Azure riserva sempre 5 indirizzi IP che non possono essere asseg
 
 [TABELLA: reservedTable] _(tabella generata da codice)_
 
-*Tabella 3 — I 5 indirizzi riservati da Azure in ogni subnet (esempio con 192.168.1.0/24).* _(caption)_
+*I 5 indirizzi riservati da Azure in ogni subnet (esempio con 192.168.1.0/24).* _(caption)_
 
 **Considerazioni di progettazione** _(stepTitle)_
 
@@ -110,9 +110,9 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 In Azure gli indirizzi IP possono essere pubblici o privati, e assegnati in modo statico o dinamico.
 
-![Figura 28](img/ip-addressing.png) _(dimensioni: 850×138 px)_
+![](img/ip-addressing.png) _(dimensioni: 850×138 px)_
 
-*Figura 28 — Una risorsa Azure con indirizzo IP privato (comunicazione con VNet, reti locali, VPN Gateway, ExpressRoute) e indirizzo IP pubblico (comunicazione con Internet e servizi pubblici).* _(caption)_
+*Una risorsa Azure con indirizzo IP privato (comunicazione con VNet, reti locali, VPN Gateway, ExpressRoute) e indirizzo IP pubblico (comunicazione con Internet e servizi pubblici).* _(caption)_
 
 **Indirizzi IP pubblici** _(stepTitle)_
 
@@ -165,13 +165,13 @@ Un indirizzo IP pubblico può essere associato a diverse risorse Azure. Il punto
 
 [TABELLA: publicIpAssocTable] _(tabella generata da codice)_
 
-*Tabella 4 — Come associare un IP pubblico in base al tipo di risorsa Azure.* _(caption)_
+*Come associare un IP pubblico in base al tipo di risorsa Azure.* _(caption)_
 
 **Funzionalità dello SKU Standard** _(stepTitle)_
 
 [TABELLA: publicIpSkuTable] _(tabella generata da codice)_
 
-*Tabella 5 — Funzionalità dello SKU Standard per gli indirizzi IP pubblici.* _(caption)_
+*Funzionalità dello SKU Standard per gli indirizzi IP pubblici.* _(caption)_
 
 
 ### 3.1.8 — Allocare o assegnare indirizzi IP privati
@@ -183,7 +183,7 @@ Gli indirizzi IP privati vengono assegnati alle risorse che risiedono all'intern
 
 [TABELLA: privateIpTable] _(tabella generata da codice)_
 
-*Tabella 6 — Risorse Azure che supportano indirizzi IP privati e modalità di assegnazione.* _(caption)_
+*Risorse Azure che supportano indirizzi IP privati e modalità di assegnazione.* _(caption)_
 
 **Metodi di assegnazione** _(stepTitle)_
 
@@ -224,9 +224,9 @@ Assegnando un NSG a una subnet si crea una subnet protetta, detta anche zona dem
 
 È possibile assegnare un NSG anche direttamente a una NIC per controllare tutto il traffico che transita attraverso quell'interfaccia. La pagina Panoramica di una VM nel portale mostra tutti gli NSG associati, le subnet e le NIC assegnate e le regole di sicurezza definite.
 
-![Figura 29](img/nsg-portal.png) _(dimensioni: 861×191 px)_
+![](img/nsg-portal.png) _(dimensioni: 861×191 px)_
 
-*Figura 29 — Panoramica di un NSG nel portale Azure: gruppo di risorse, località, subnet e interfacce di rete associati, regole personalizzate in entrata e in uscita.* _(caption)_
+*Panoramica di un NSG nel portale Azure: gruppo di risorse, località, subnet e interfacce di rete associati, regole personalizzate in entrata e in uscita.* _(caption)_
 
 > **Best practice**: Associare NSG a livello di subnet anziché di singola NIC per una gestione più semplice e scalabile. Usare gli NSG a livello di NIC solo per casi eccezionali che richiedono regole differenziate per VM nella stessa subnet.
 _(infoBox)_
@@ -252,19 +252,19 @@ _(infoBox)_
 
 [TABELLA: nsgRuleSettingsTable] _(tabella generata da codice)_
 
-*Tabella 7 — Impostazioni configurabili per una regola di sicurezza NSG.* _(caption)_
+*Impostazioni configurabili per una regola di sicurezza NSG.* _(caption)_
 
 **Regole predefinite inbound** _(stepTitle)_
 
-![Figura 30](img/nsg-inbound-rules.png) _(dimensioni: 858×247 px)_
+![](img/nsg-inbound-rules.png) _(dimensioni: 858×247 px)_
 
-*Figura 30 — Regole di sicurezza in ingresso predefinite: AllowVnetInBound (65000), AllowAzureLoadBalancerInBound (65001), DenyAllInBound (65500).* _(caption)_
+*Regole di sicurezza in ingresso predefinite: AllowVnetInBound (65000), AllowAzureLoadBalancerInBound (65001), DenyAllInBound (65500).* _(caption)_
 
 **Regole predefinite outbound** _(stepTitle)_
 
-![Figura 31](img/nsg-outbound-rules.png) _(dimensioni: 858×236 px)_
+![](img/nsg-outbound-rules.png) _(dimensioni: 858×236 px)_
 
-*Figura 31 — Regole di sicurezza in uscita predefinite: AllowVnetOutBound (65000), AllowInternetOutBound (65001), DenyAllOutBound (65500).* _(caption)_
+*Regole di sicurezza in uscita predefinite: AllowVnetOutBound (65000), AllowInternetOutBound (65001), DenyAllOutBound (65500).* _(caption)_
 
 
 ### 3.2.4 — Determinare le regole effettive dei gruppi di sicurezza di rete
@@ -276,9 +276,9 @@ Ogni NSG e le sue regole vengono valutati in modo indipendente. Azure elabora le
 - **Traffico in uscita** — Azure elabora prima le regole dell'NSG della NIC, poi quelle dell'NSG della subnet.
 - Azure considera anche il traffico intra-subnet: le regole dell'NSG associato a una subnet possono influire sul traffico tra VM nella stessa subnet.
 
-![Figura 32](img/nsg-multiple.png) _(dimensioni: 650×478 px)_
+![](img/nsg-multiple.png) _(dimensioni: 650×478 px)_
 
-*Figura 32 — Due NSG applicati a una subnet: NSG1 associato alla NIC di VM1 e NSG2 associato alla subnet. Ogni NSG viene valutato in modo indipendente per determinare le regole effettive.* _(caption)_
+*Due NSG applicati a una subnet: NSG1 associato alla NIC di VM1 e NSG2 associato alla subnet. Ogni NSG viene valutato in modo indipendente per determinare le regole effettive.* _(caption)_
 
 **Considerazioni per regole efficaci** _(stepTitle)_
 
@@ -291,9 +291,9 @@ Ogni NSG e le sue regole vengono valutati in modo indipendente. Azure elabora le
 
 Se sono presenti più NSG e non si è certi delle regole applicate, è possibile usare il collegamento **Regole di sicurezza valide** nel portale Azure. Si trova nella pagina della VM → Rete → Regole di sicurezza valide.
 
-![Figura 33](img/nsg-effective-rules.png) _(dimensioni: 859×65 px)_
+![](img/nsg-effective-rules.png) _(dimensioni: 859×65 px)_
 
-*Figura 33 — Regole di sicurezza effettive (valide) di un NSG visualizzate nel portale di Azure.* _(caption)_
+*Regole di sicurezza effettive (valide) di un NSG visualizzate nel portale di Azure.* _(caption)_
 
 > **Network Watcher**: Azure Network Watcher offre una visualizzazione consolidata delle regole NSG. La funzionalità **IP Flow Verify** valuta il traffico rispetto alle regole effettive e indica se una connessione specifica verrebbe consentita o negata.
 _(infoBox)_
@@ -357,9 +357,9 @@ I gruppi di sicurezza delle applicazioni (ASG) permettono di raggruppare le VM i
 
 Scenario con due livelli: `WebServers` (gestiscono traffico HTTP/HTTPS da Internet) e `AppLServers` (elaborano richieste SQL dai WebServers).
 
-![Figura 34](img/asg-diagram.png) _(dimensioni: 320×274 px)_
+![](img/asg-diagram.png) _(dimensioni: 320×274 px)_
 
-*Figura 34 — ASG applicati a una VNet: Internet accede ai WebServers su porte 80/443; i WebServers accedono agli AppLServers sulla porta SQL 1433.* _(caption)_
+*ASG applicati a una VNet: Internet accede ai WebServers su porte 80/443; i WebServers accedono agli AppLServers sulla porta SQL 1433.* _(caption)_
 
 La configurazione richiede 3 regole NSG:
 
@@ -475,13 +475,13 @@ Una zona DNS pubblica ospita i record DNS di un dominio rendendoli visibili su I
 
 - **Passo 5** — Configurare i record personalizzati: aggiungere record A (nome host + TTL + IP) e record CNAME (es. `www` → `wideworldimports.com`, TTL 600s).
 
-![Figura 35](img/3-create-dns-zone.png) _(dimensioni: 550×331 px)_
+![](img/3-create-dns-zone.png) _(dimensioni: 550×331 px)_
 
-*Figura 35 — Pagina Crea zona DNS nel portale Azure.* _(caption)_
+*Pagina Crea zona DNS nel portale Azure.* _(caption)_
 
-![Figura 36](img/3-name-server.png) _(dimensioni: 550×234 px)_
+![](img/3-name-server.png) _(dimensioni: 550×234 px)_
 
-*Figura 36 — Dettagli del server dei nomi nella zona DNS.* _(caption)_
+*Dettagli del server dei nomi nella zona DNS.* _(caption)_
 
 **Configurare una zona DNS privata** _(stepTitle)_
 
@@ -491,17 +491,17 @@ Le zone DNS private risolvono i nomi solo all'interno delle VNet collegate, senz
 - **Passo 2** — Identificare le reti virtuali: individuare le VNet in cui risiedono le VM che devono risolvere i nomi privati.
 - **Passo 3** — Collegare la VNet alla zona privata: nella zona DNS privata selezionare **Collegamenti di rete virtuale → Aggiungi** e scegliere la VNet. Ripetere per ogni VNet.
 
-![Figura 37](img/3-create-private-dns-zone.png) _(dimensioni: 550×423 px)_
+![](img/3-create-private-dns-zone.png) _(dimensioni: 550×423 px)_
 
-*Figura 37 — Pagina Crea zona DNS privata nel portale Azure.* _(caption)_
+*Pagina Crea zona DNS privata nel portale Azure.* _(caption)_
 
-![Figura 38](img/3-virtual-network-link-option.png) _(dimensioni: 550×314 px)_
+![](img/3-virtual-network-link-option.png) _(dimensioni: 550×314 px)_
 
-*Figura 38 — Pagina dei collegamenti di rete virtuale in una zona DNS privata.* _(caption)_
+*Pagina dei collegamenti di rete virtuale in una zona DNS privata.* _(caption)_
 
-![Figura 39](img/3-add-virtual-network-link.png) _(dimensioni: 550×326 px)_
+![](img/3-add-virtual-network-link.png) _(dimensioni: 550×326 px)_
 
-*Figura 39 — Pagina Aggiungi collegamento alla rete virtuale.* _(caption)_
+*Pagina Aggiungi collegamento alla rete virtuale.* _(caption)_
 
 > **Vantaggi delle zone private**: nessuna infrastruttura DNS dedicata, supporto per tutti i tipi di record (A, AAAA, CNAME, MX, TXT, SOA, PTR, SRV), aggiornamento automatico dei nomi host delle VM, supporto split-horizon DNS.
 _(infoBox)_
@@ -565,9 +565,9 @@ Il peering di reti virtuali è il modo più semplice e rapido per connettere due
 - **Peering a livello di area** — connette reti virtuali nella stessa area Azure (cloud pubblico, Azure Cina o Azure per enti pubblici).
 - **Peering globale** — connette reti virtuali in aree diverse (solo cloud pubblico o Azure Cina; non consentito tra aree diverse di Azure per enti pubblici).
 
-![Figura 40](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-types.png) _(dimensioni: 550×110 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-types.png) _(dimensioni: 550×110 px)_
 
-*Figura 40 — I due tipi di peering di reti virtuali Azure: peering a livello di area (stessa area) e peering globale (aree diverse).* _(caption)_
+*I due tipi di peering di reti virtuali Azure: peering a livello di area (stessa area) e peering globale (aree diverse).* _(caption)_
 
 **Vantaggi** _(stepTitle)_
 
@@ -602,9 +602,9 @@ Il **Gateway VPN di Azure** può essere configurato come punto di transito in un
 - **Rete Hub** — contiene la subnet del gateway e il Gateway VPN di Azure.
 - **Reti A e B** — entrambe in peering con l'Hub; la rete B usa il gateway remoto dell'Hub per accedere a risorse esterne (on-premises o altre VNet).
 
-![Figura 41](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-gateway-transit.png) _(dimensioni: 550×308 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-gateway-transit.png) _(dimensioni: 550×308 px)_
 
-*Figura 41 — Peering a livello di area: la rete B usa il gateway VPN remoto dell'hub per accedere a risorse esterne senza un proprio gateway.* _(caption)_
+*Peering a livello di area: la rete B usa il gateway VPN remoto dell'hub per accedere a risorse esterne senza un proprio gateway.* _(caption)_
 
 **Impostazioni chiave nella configurazione del peering** _(stepTitle)_
 
@@ -615,9 +615,9 @@ Il **Gateway VPN di Azure** può essere configurato come punto di transito in un
 | **Gateway di rete virtuale o Server di route** | Abilita il transito: consente alle reti con peering di usare il gateway VPN o il Route Server di questa rete. |
 | **Gateway di rete virtuale remoto o Route Server** | Permette a questa rete di usare il gateway VPN o il Route Server della rete remota. |
 
-![Figura 42](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-settings-portal.png) _(dimensioni: 550×393 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-settings-portal.png) _(dimensioni: 550×393 px)_
 
-*Figura 42 — Opzioni di configurazione del peering nel portale Azure: traffico verso/da rete remota, gateway di rete virtuale e Route Server.* _(caption)_
+*Opzioni di configurazione del peering nel portale Azure: traffico verso/da rete remota, gateway di rete virtuale e Route Server.* _(caption)_
 
 **Caratteristiche del Gateway VPN con peering** _(stepTitle)_
 
@@ -676,9 +676,9 @@ Il peering di rete virtuale **non è transitivo**: se A è in peering con B e B 
 
 Nella topologia hub-spoke il traffico tra due reti spoke non scorre direttamente, ma transita sempre attraverso la rete hub dove risiedono le risorse condivise (NVA, firewall, gateway VPN). Questo centralizza il controllo e la sicurezza del traffico.
 
-![Figura 43](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-service-chains.png) _(dimensioni: 416×159 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/vnet-peering-service-chains.png) _(dimensioni: 416×159 px)_
 
-*Figura 43 — Rete hub-spoke con gateway VPN e NVA: le reti spoke raggiungono risorse esterne tramite route definite dall'utente e concatenamento dei servizi.* _(caption)_
+*Rete hub-spoke con gateway VPN e NVA: le reti spoke raggiungono risorse esterne tramite route definite dall'utente e concatenamento dei servizi.* _(caption)_
 
 > **Esempio**: La rete A vuole raggiungere la rete C. Entrambe sono in peering con l'hub B. Senza UDR la comunicazione non è possibile. Con una UDR che instrada il traffico di A verso la NVA nell'hub, il traffico transita per B e raggiunge C.
 _(infoBox)_
@@ -728,9 +728,9 @@ Il traffico di rete in Azure viene instradato automaticamente tra subnet, reti v
 
 Il tipo di hop successivo determina il percorso del traffico: **Rete virtuale** crea route per ogni intervallo di indirizzi della VNet; **Internet** instrada tutto il traffico non corrispondente verso Internet; **Nessuno** elimina il traffico verso gli intervalli privati non instradabili a livello globale.
 
-![Figura 44](img/Module 3 - Configurare e gestire reti virtuali/route5-system-routes.png) _(dimensioni: 550×390 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/route5-system-routes.png) _(dimensioni: 550×390 px)_
 
-*Figura 44 — Flusso del traffico tra subnet e Internet con le route di sistema predefinite: le subnet comunicano liberamente e il traffico non interno raggiunge Internet.* _(caption)_
+*Flusso del traffico tra subnet e Internet con le route di sistema predefinite: le subnet comunicano liberamente e il traffico non interno raggiunge Internet.* _(caption)_
 
 **Route di sistema aggiuntive** _(stepTitle)_
 
@@ -740,17 +740,17 @@ Azure crea route di sistema aggiuntive quando si abilitano le seguenti funzional
 
 Il peering consente l'interconnessione delle reti virtuali nella stessa area o in aree diverse, creando route aggiuntive nella tabella di route. Il concatenamento dei servizi consente di sostituire tali route con route definite dall'utente tra reti con peering.
 
-![Figura 45](img/Module 3 - Configurare e gestire reti virtuali/route5-vnet-peering-udrs.png) _(dimensioni: 550×347 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/route5-vnet-peering-udrs.png) _(dimensioni: 550×347 px)_
 
-*Figura 45 — Peering di rete virtuale con route definite dall'utente: il traffico viene instradato attraverso un'appliance virtuale di rete o un Gateway VPN di Azure.* _(caption)_
+*Peering di rete virtuale con route definite dall'utente: il traffico viene instradato attraverso un'appliance virtuale di rete o un Gateway VPN di Azure.* _(caption)_
 
 **Gateway di rete virtuale** _(stepTitle)_
 
 Un gateway di rete virtuale invia traffico crittografato tra Azure e l'ambiente locale tramite Internet, o tra reti Azure. Contiene le tabelle di routing e i servizi gateway.
 
-![Figura 46](img/Module 3 - Configurare e gestire reti virtuali/route5-vnet-gateway.png) _(dimensioni: 550×291 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/route5-vnet-gateway.png) _(dimensioni: 550×291 px)_
 
-*Figura 46 — Struttura di un gateway di rete virtuale: connette la rete Azure all'ambiente locale o ad altre reti tramite VPN crittografata.* _(caption)_
+*Struttura di un gateway di rete virtuale: connette la rete Azure all'ambiente locale o ad altre reti tramite VPN crittografata.* _(caption)_
 
 Gli endpoint di rete virtuale estendono lo spazio indirizzi privato fornendo connessione diretta alle risorse Azure, limitando il flusso e impedendo l'accesso da VM pubbliche.
 
@@ -778,9 +778,9 @@ Una UDR sovrascrive le route di sistema predefinite per instradare il traffico a
 
 Un gateway di rete locale può scambiare route con un gateway di rete virtuale in Azure usando BGP — il protocollo di routing standard per scambiare informazioni tra sistemi autonomi. Si usa tipicamente con Azure ExpressRoute o connessioni VPN da sito a sito.
 
-![Figura 47](img/Module 3 - Configurare e gestire reti virtuali/route5-bgp.png) _(dimensioni: 550×198 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/route5-bgp.png) _(dimensioni: 550×198 px)_
 
-*Figura 47 — Topologia BGP: percorsi che consentono il passaggio dei dati tra il Gateway VPN di Azure e le reti locali tramite il protocollo Border Gateway.* _(caption)_
+*Topologia BGP: percorsi che consentono il passaggio dei dati tra il Gateway VPN di Azure e le reti locali tramite il protocollo Border Gateway.* _(caption)_
 
 BGP offre stabilità della rete: i router modificano rapidamente le connessioni se un percorso non è disponibile.
 
@@ -804,9 +804,9 @@ Un'appliance virtuale di rete (NVA) è una VM virtuale multistrato che può svol
 
 Le NVA sono VM che controllano il flusso del traffico gestendo il routing. Vengono in genere usate per gestire il flusso tra un ambiente di rete perimetrale e altre reti o subnet.
 
-![Figura 48](img/Module 3 - Configurare e gestire reti virtuali/route5-nva.png) _(dimensioni: 550×367 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/route5-nva.png) _(dimensioni: 550×367 px)_
 
-*Figura 48 — Architettura di rete con NVA: l'appliance virtuale controlla il traffico tra la rete perimetrale, le subnet applicative e Internet.* _(caption)_
+*Architettura di rete con NVA: l'appliance virtuale controlla il traffico tra la rete perimetrale, le subnet applicative e Internet.* _(caption)_
 
 **Microsegmentazione** _(stepTitle)_
 
@@ -897,17 +897,17 @@ Azure Load Balancer opera al **livello di trasporto (livello 4)** del modello OS
 
 È l'indirizzo a cui i client si connettono. Può essere pubblico o privato, e questa scelta determina il tipo di load balancer: un **IP pubblico** crea un load balancer pubblico (mapping IP pubblico:porta → IP privato:porta della VM), un **IP privato** crea un load balancer interno (accesso limitato alla rete virtuale, raggiungibile anche da risorse locali tramite VPN o ExpressRoute). Un load balancer può avere più indirizzi IP front-end.
 
-![Figura 49](img/Module 3 - Configurare e gestire reti virtuali/lb-types.png) _(dimensioni: 326×522 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/lb-types.png) _(dimensioni: 326×522 px)_
 
-*Figura 49 — Confronto tra load balancer pubblico e interno in Azure Load Balancer.* _(caption)_
+*Confronto tra load balancer pubblico e interno in Azure Load Balancer.* _(caption)_
 
 **Regole di bilanciamento del carico** _(stepTitle)_
 
 Una regola definisce come il traffico viene distribuito al pool back-end, mappando una combinazione di IP e porta front-end a un set di combinazioni di IP e porta back-end.
 
-![Figura 50](img/Module 3 - Configurare e gestire reti virtuali/lb-rules.png) _(dimensioni: 550×161 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/lb-rules.png) _(dimensioni: 550×161 px)_
 
-*Figura 50 — Funzionamento delle regole di bilanciamento del carico in Azure Load Balancer.* _(caption)_
+*Funzionamento delle regole di bilanciamento del carico in Azure Load Balancer.* _(caption)_
 
 Il traffico viene gestito con un **hash a cinque tuple**:
 
@@ -947,25 +947,25 @@ Per impostazione predefinita il traffico è distribuito uniformemente e qualsias
 
 Una regola di bilanciamento configurata con `protocol = All` e `port = 0` è una *regola per porte a disponibilità elevata*: una singola regola bilancia tutti i flussi TCP e UDP che arrivano su tutte le porte di un load balancer Standard interno. È utile in scenari critici come la disponibilità elevata e il ridimensionamento delle appliance virtuali di rete (NVA), o quando occorre bilanciare un numero elevato di porte.
 
-![Figura 51](img/Module 3 - Configurare e gestire reti virtuali/lb-ha-ports.png) _(dimensioni: 420×275 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/lb-ha-ports.png) _(dimensioni: 420×275 px)_
 
-*Figura 51 — Funzionamento delle porte a disponibilità elevata in Azure Load Balancer.* _(caption)_
+*Funzionamento delle porte a disponibilità elevata in Azure Load Balancer.* _(caption)_
 
 **Regole NAT in ingresso** _(stepTitle)_
 
 Si combinano le regole di bilanciamento con le regole NAT (Network Address Translation). Ad esempio, si può applicare NAT dall'indirizzo pubblico del load balancer alla porta TCP 3389 di una VM specifica, consentendo l'accesso desktop remoto (RDP) dall'esterno di Azure.
 
-![Figura 52](img/Module 3 - Configurare e gestire reti virtuali/lb-inbound-nat.png) _(dimensioni: 550×160 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/lb-inbound-nat.png) _(dimensioni: 550×160 px)_
 
-*Figura 52 — Funzionamento delle regole NAT in ingresso in Azure Load Balancer.* _(caption)_
+*Funzionamento delle regole NAT in ingresso in Azure Load Balancer.* _(caption)_
 
 **Regole in uscita** _(stepTitle)_
 
 Una regola in uscita configura la **SNAT (Source Network Address Translation)** per le VM identificate dal pool back-end, consentendo alle istanze di comunicare verso Internet o verso altri endpoint pubblici.
 
-![Figura 53](img/Module 3 - Configurare e gestire reti virtuali/lb-outbound-rule.png) _(dimensioni: 550×161 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/lb-outbound-rule.png) _(dimensioni: 550×161 px)_
 
-*Figura 53 — Funzionamento delle regole in uscita in Azure Load Balancer.* _(caption)_
+*Funzionamento delle regole in uscita in Azure Load Balancer.* _(caption)_
 
 
 ### 3.6.4 — Quando usare Azure Load Balancer
@@ -1025,9 +1025,9 @@ Il gateway applicazione di Azure gestisce le richieste inviate dalle applicazion
 
 Oltre al bilanciamento del carico del traffico HTTP, offre un **Web Application Firewall (WAF)** e supporta la crittografia **TLS/SSL** del traffico sia tra gli utenti e il gateway, sia tra il gateway e i server applicazioni.
 
-![Figura 54](img/Module 3 - Configurare e gestire reti virtuali/application-gateway-topology.png) _(dimensioni: 624×206 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/application-gateway-topology.png) _(dimensioni: 624×206 px)_
 
-*Figura 54 — Topologia del gateway applicazione di Azure: i client raggiungono il gateway, che bilancia il traffico verso il pool di server Web back-end.* _(caption)_
+*Topologia del gateway applicazione di Azure: i client raggiungono il gateway, che bilancia il traffico verso il pool di server Web back-end.* _(caption)_
 
 Il gateway usa una procedura **round robin** per distribuire le richieste ai server di ogni pool back-end. La **persistenza delle sessioni** garantisce che le richieste di uno stesso client nella stessa sessione siano indirizzate sempre allo stesso server: è essenziale per le applicazioni di e-commerce, dove una transazione non deve essere interrotta dal rimbalzo tra server diversi.
 
@@ -1045,9 +1045,9 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Il gateway applicazione combina una serie di componenti per instradare in modo sicuro e bilanciare il carico delle richieste verso il pool di server Web.
 
-![Figura 55](img/Module 3 - Configurare e gestire reti virtuali/application-gateway-components.png) _(dimensioni: 624×249 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/application-gateway-components.png) _(dimensioni: 624×249 px)_
 
-*Figura 55 — Componenti del gateway applicazione di Azure: indirizzo IP front-end, listener, regole di gestione e pool back-end.* _(caption)_
+*Componenti del gateway applicazione di Azure: indirizzo IP front-end, listener, regole di gestione e pool back-end.* _(caption)_
 
 **Indirizzo IP front-end** _(stepTitle)_
 
@@ -1086,13 +1086,13 @@ Per scegliere il server di destinazione il gateway applica le regole configurate
 - **Routing basato sul percorso** — invia le richieste a pool back-end diversi in base al percorso dell'URL (es. `/video/*` a un pool ottimizzato per lo streaming, `/images/*` a un pool per il recupero delle immagini).
 - **Routing multisito** — ospita più applicazioni Web sulla stessa istanza del gateway: si registrano più nomi di dominio (CNAME) sull'IP del gateway e listener separati instradano ciascun sito al proprio pool (es. `contoso.com` a un pool e `fabrikam.com` a un altro). Utile per applicazioni **multi-tenant**.
 
-![Figura 56](img/Module 3 - Configurare e gestire reti virtuali/path-based-routing.png) _(dimensioni: 534×354 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/path-based-routing.png) _(dimensioni: 534×354 px)_
 
-*Figura 56 — Routing basato sul percorso: percorsi URL diversi vengono indirizzati a pool back-end diversi.* _(caption)_
+*Routing basato sul percorso: percorsi URL diversi vengono indirizzati a pool back-end diversi.* _(caption)_
 
-![Figura 57](img/Module 3 - Configurare e gestire reti virtuali/multi-site-routing.png) _(dimensioni: 551×366 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/multi-site-routing.png) _(dimensioni: 551×366 px)_
 
-*Figura 57 — Routing multisito: nomi host diversi vengono serviti da pool back-end diversi sulla stessa istanza del gateway.* _(caption)_
+*Routing multisito: nomi host diversi vengono serviti da pool back-end diversi sulla stessa istanza del gateway.* _(caption)_
 
 Il routing offre anche **reindirizzamento** (verso un altro sito o da HTTP a HTTPS), **riscrittura delle intestazioni HTTP** e **pagine di errore personalizzate** con layout e marchio aziendali.
 
@@ -1102,9 +1102,9 @@ Terminando la connessione TLS/SSL sul gateway si esegue l'**offload** dai server
 
 Il traffico entra dal listener attraverso una porta front-end; il listener è configurato per un nome host e una porta specifici su un dato indirizzo IP e può usare un certificato per decifrare il traffico in ingresso, prima di applicare la regola di instradamento. Esponendo il sito solo tramite il gateway (porta 80 o 443) i server Web **non sono direttamente accessibili da Internet**, riducendo la superficie di attacco.
 
-![Figura 58](img/Module 3 - Configurare e gestire reti virtuali/tls-ssl-termination.png) _(dimensioni: 624×198 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/tls-ssl-termination.png) _(dimensioni: 624×198 px)_
 
-*Figura 58 — Terminazione TLS/SSL sul gateway applicazione: il listener decifra il traffico in ingresso e applica la regola di instradamento verso il pool back-end.* _(caption)_
+*Terminazione TLS/SSL sul gateway applicazione: il listener decifra il traffico in ingresso e applica la regola di instradamento verso il pool back-end.* _(caption)_
 
 **Probe di integrità (health probe)** _(stepTitle)_
 
@@ -1172,9 +1172,9 @@ Azure Network Watcher offre una suite di strumenti per **monitorare, diagnostica
 
 Gli strumenti si raggruppano in tre insiemi principali: monitoraggio, diagnostica di rete e traffico.
 
-![Figura 59](img/Module 3 - Configurare e gestire reti virtuali/network-watcher-tools.png) _(dimensioni: 1200×438 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/network-watcher-tools.png) _(dimensioni: 1200×438 px)_
 
-*Figura 59 — Gli strumenti di Azure Network Watcher, raggruppati in monitoraggio, diagnostica di rete e traffico.* _(caption)_
+*Gli strumenti di Azure Network Watcher, raggruppati in monitoraggio, diagnostica di rete e traffico.* _(caption)_
 
 **Monitoraggio** _(stepTitle)_
 
@@ -1202,9 +1202,9 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Network Watcher diventa **automaticamente disponibile** quando si crea una rete virtuale in un'area di Azure nella sottoscrizione. Vi si accede dal portale di Azure digitando *Network Watcher* nella barra di ricerca.
 
-![Figura 60](img/Module 3 - Configurare e gestire reti virtuali/portal-search.png) _(dimensioni: 1160×736 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/portal-search.png) _(dimensioni: 1160×736 px)_
 
-*Figura 60 — Ricerca di Network Watcher nella barra di ricerca del portale di Azure.* _(caption)_
+*Ricerca di Network Watcher nella barra di ricerca del portale di Azure.* _(caption)_
 
 **Topologia** _(stepTitle)_
 
@@ -1214,9 +1214,9 @@ Visualizza le risorse di una rete virtuale e le relazioni tra di esse: subnet, s
 
 Offre un monitoraggio della connettività end-to-end unificato per distribuzioni di Azure e ibride: misura la **latenza** tra risorse e rileva i cambiamenti che incidono sulla connettività (modifiche di configurazione di rete o regole NSG). Sonda le VM a intervalli regolari e spiega la causa del problema e i passi per risolverlo.
 
-![Figura 61](img/Module 3 - Configurare e gestire reti virtuali/connection-monitor-topology.png) _(dimensioni: 753×481 px)_
+![](img/Module 3 - Configurare e gestire reti virtuali/connection-monitor-topology.png) _(dimensioni: 753×481 px)_
 
-*Figura 61 — Monitoraggio connessione: interazione tra VM di Azure, host non Azure, endpoint e posizioni di archiviazione dati.* _(caption)_
+*Monitoraggio connessione: interazione tra VM di Azure, host non Azure, endpoint e posizioni di archiviazione dati.* _(caption)_
 
 > **Agenti di monitoraggio**: per usare Monitoraggio connessione occorre installare gli agenti sugli host monitorati. Sulle VM di Azure si installa l'**agente Network Watcher** (detto anche *estensione Network Watcher*).
 _(infoBox)_

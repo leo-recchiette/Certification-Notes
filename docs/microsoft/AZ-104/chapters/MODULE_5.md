@@ -3,29 +3,29 @@
 _Questo percorso copre le principali risorse di calcolo in Azure, dalla gestione delle macchine virtuali alle soluzioni PaaS di App Service fino ai container. Un amministratore deve saper scegliere e configurare la risorsa di calcolo più adatta a ciascun carico di lavoro, bilanciando controllo, scalabilità, costi e semplicità operativa._
 
 **Immagini usate in questo modulo:**
-- `img/3-create-new-resource.png` (1804×778) — Figura 88
-- `img/3-notifications.png` (357×241) — Figura 89
-- `img/3-public-ip-address.png` (1279×573) — Figura 90
-- `img/4-automation-script.png` (474×296) — Figura 91
-- `img/4-auto-shutdown-option.png` (1114×418) — Figura 92
-- `img/6-backup-server.png` (515×346) — Figura 93
-- `img/update-fault-domains-c1ceee00.png` (578×312) — Figura 94
-- `img/vertical-scaling-cdafa792.png` (304×167) — Figura 95
-- `img/horizontal-scaling-3e457e75.png` (342×187) — Figura 96
-- `img/implement-scale-sets-61516afb.png` (831×592) — Figura 97
-- `img/autoscale-45b054e0.png` (751×219) — Figura 98
-- `img/scale-methods.png` (651×252) — Figura 99
-- `img/implement-autoscale-74d25345.png` (551×648) — Figura 100
-- `img/web-app-autoscale-94c4da54.png` (1081×487) — Figura 101
-- `img/web-app-configuration-27facdc5.png` (881×471) — Figura 102
-- `img/continuous-development-a0dfd350.png` (582×260) — Figura 103
-- `img/deployment-center.png` (926×442) — Figura 104
-- `img/deployment-slots-5b3660cc.png` (570×302) — Figura 105
-- `img/custom-domain.png` (557×661) — Figura 106
-- `img/open-backups-page.png` (982×582) — Figura 107
-- `img/app-insights-16629887.png` (1379×734) — Figura 108
-- `img/container-overview-0e72c2ba.png` (358×424) — Figura 109
-- `img/container-groups-ea19ee6b.png` (763×354) — Figura 110
+- `img/3-create-new-resource.png` (1804×778)
+- `img/3-notifications.png` (357×241)
+- `img/3-public-ip-address.png` (1279×573)
+- `img/4-automation-script.png` (474×296)
+- `img/4-auto-shutdown-option.png` (1114×418)
+- `img/6-backup-server.png` (515×346)
+- `img/update-fault-domains-c1ceee00.png` (578×312)
+- `img/vertical-scaling-cdafa792.png` (304×167)
+- `img/horizontal-scaling-3e457e75.png` (342×187)
+- `img/implement-scale-sets-61516afb.png` (831×592)
+- `img/autoscale-45b054e0.png` (751×219)
+- `img/scale-methods.png` (651×252)
+- `img/implement-autoscale-74d25345.png` (551×648)
+- `img/web-app-autoscale-94c4da54.png` (1081×487)
+- `img/web-app-configuration-27facdc5.png` (881×471)
+- `img/continuous-development-a0dfd350.png` (582×260)
+- `img/deployment-center.png` (926×442)
+- `img/deployment-slots-5b3660cc.png` (570×302)
+- `img/custom-domain.png` (557×661)
+- `img/open-backups-page.png` (982×582)
+- `img/app-insights-16629887.png` (1379×734)
+- `img/container-overview-0e72c2ba.png` (358×424)
+- `img/container-groups-ea19ee6b.png` (763×354)
 
 ---
 
@@ -232,7 +232,7 @@ _(infoBox)_
 Per prima cosa si accede al [portale di Azure](https://portal.azure.com/) con le proprie credenziali. Nella home page, sotto la sezione **Azure services**, si seleziona **Create a resource**. Si apre il pannello «Create a resource», che mostra i prodotti più usati. Poiché vogliamo una macchina virtuale, si seleziona **Virtual machine**: si apre così il pannello «Create virtual machine», organizzato in più schede.
 
 ![Pagina Crea una risorsa](img/3-create-new-resource.png) _(dimensioni: 1804×778 px)_
-*Figura 88: La pagina «Create a resource» del portale di Azure, da cui si avvia la creazione di una nuova risorsa.* _(caption)_
+*La pagina «Create a resource» del portale di Azure, da cui si avvia la creazione di una nuova risorsa.* _(caption)_
 
 **Passo 2 — Compilare la scheda Basics** _(stepTitle)_
 
@@ -283,14 +283,14 @@ Se in precedenza si è scelta l'autenticazione tramite chiave SSH, si apre la fi
 L'avanzamento del deployment si può seguire dal riquadro **Deployment details** della pagina **Overview**, oppure dal pannello **Notifications**. L'icona delle notifiche, in alto a destra nella barra degli strumenti, mostra o nasconde questo pannello. La creazione richiede in genere alcuni minuti, al termine dei quali una notifica conferma che il deployment è andato a buon fine.
 
 ![Icona e pannello delle notifiche](img/3-notifications.png) _(dimensioni: 357×241 px)_
-*Figura 89: L'icona delle notifiche nella barra degli strumenti e una parte del pannello delle notifiche durante il deployment.* _(caption)_
+*L'icona delle notifiche nella barra degli strumenti e una parte del pannello delle notifiche durante il deployment.* _(caption)_
 
 **Passo 6 — Aprire la risorsa e trovare l'IP pubblico** _(stepTitle)_
 
 Completato il deployment, si seleziona **Go to resource** per aprire la pagina **Overview** della VM appena creata. Qui sono raccolte tutte le informazioni e le opzioni di configurazione della macchina. Tra i dati riportati c'è l'**indirizzo IP pubblico** (Public IP address): è il punto di contatto da Internet e serve per stabilire la connessione alla VM.
 
 ![Indirizzo IP pubblico della VM](img/3-public-ip-address.png) _(dimensioni: 1279×573 px)_
-*Figura 90: La sezione Essentials della VM con l'indirizzo IP pubblico evidenziato tra le proprietà.* _(caption)_
+*La sezione Essentials della VM con l'indirizzo IP pubblico evidenziato tra le proprietà.* _(caption)_
 
 Una volta individuato l'indirizzo IP pubblico, ci si può connettere alla macchina. Avendo abilitato l'autenticazione tramite chiave SSH, sarà possibile collegarsi alla VM Linux usando un qualsiasi client SSH e l'IP pubblico, ad esempio così:
 
@@ -324,7 +324,7 @@ I **modelli di Resource Manager** (ARM template) sono file in formato JSON che d
 Puoi creare un modello per la tua VM direttamente dal portale: dal menu della VM, nella sezione **Automation**, seleziona **Export template**.
 
 ![Opzione Export template per una VM](img/4-automation-script.png) _(dimensioni: 474×296 px)_
-*Figura 91: L'opzione «Export template» (script di automazione) disponibile dal menu di una macchina virtuale.* _(caption)_
+*L'opzione «Export template» (script di automazione) disponibile dal menu di una macchina virtuale.* _(caption)_
 
 > **Nota**: nell'ambiente sandbox di alcuni laboratori Learn le policy impediscono di esportare la VM appena creata. In ogni caso, un modello esportato è un file JSON facile da modificare: puoi scaricarlo o salvarlo per usarlo in seguito, oppure distribuire subito una nuova VM basata su di esso. Se la VM creata da un modello in ambiente di test non ti soddisfa, puoi eliminare il gruppo di risorse (cancellando così tutte le risorse), modificare il modello e riprovare. Se invece vuoi solo aggiornare risorse già distribuite, puoi modificare il modello usato per crearle e ridistribuirle: Resource Manager allineerà le risorse al nuovo modello.
 _(infoBox)_
@@ -454,7 +454,7 @@ L'**Auto-shutdown** è una funzionalità di Azure che consente di spegnere autom
 Per raggiungere la funzionalità Auto-shutdown nel portale di Azure, apri il pannello della VM, seleziona **Auto-shutdown** nella sezione **Operations** e configura le impostazioni in base alle tue esigenze.
 
 ![Opzione Auto-shutdown per una VM](img/4-auto-shutdown-option.png) _(dimensioni: 1114×418 px)_
-*Figura 92: L'opzione «Auto-shutdown» per la pianificazione dello spegnimento automatico di una macchina virtuale.* _(caption)_
+*L'opzione «Auto-shutdown» per la pianificazione dello spegnimento automatico di una macchina virtuale.* _(caption)_
 
 In sintesi, Azure mette a disposizione strumenti diversi per creare e amministrare le risorse, così da poter integrare le operazioni di gestione in un processo adatto alle proprie esigenze: dal portale per i primi passi, agli strumenti da riga di comando per lo scripting, fino ai modelli e agli SDK per scenari complessi e ripetibili.
 
@@ -531,7 +531,7 @@ Il backup e il ripristino dei dati sono una parte imprescindibile della pianific
 - Macchine client Linux e Windows 10
 
 ![Vault di Azure Backup che archivia diversi carichi di lavoro di una VM](img/6-backup-server.png) _(dimensioni: 515×346 px)_
-*Figura 93: Un vault di Azure Backup utilizzato per archiviare carichi di lavoro differenti provenienti da una macchina virtuale di Azure, come cartelle, file, Exchange, SharePoint e SQL Server.* _(caption)_
+*Un vault di Azure Backup utilizzato per archiviare carichi di lavoro differenti provenienti da una macchina virtuale di Azure, come cartelle, file, Exchange, SharePoint e SQL Server.* _(caption)_
 
 **Vantaggi dell'utilizzo di Azure Backup** _(stepTitle)_
 
@@ -666,7 +666,7 @@ Vediamo come questi concetti si combinano in pratica. Immaginiamo uno scenario c
 Il risultato è che, sia il livello web sia il livello SQL, hanno sempre almeno una istanza attiva anche se uno dei due fault domain dovesse guastarsi completamente. Questa è la logica con cui i set di disponibilità garantiscono la continuità del servizio.
 
 ![Due fault domain con due macchine virtuali ciascuno in set di disponibilità diversi](img/update-fault-domains-c1ceee00.png) _(dimensioni: 578×312 px)_
-*Figura 94: Due fault domain con due macchine virtuali ciascuno. Le macchine virtuali di ogni fault domain sono distribuite in set di disponibilità differenti (web e SQL).* _(caption)_
+*Due fault domain con due macchine virtuali ciascuno. Le macchine virtuali di ogni fault domain sono distribuite in set di disponibilità differenti (web e SQL).* _(caption)_
 
 ### 5.2.5 — Zone di disponibilità
 
@@ -712,7 +712,7 @@ Una configurazione robusta per una macchina virtuale deve prevedere il supporto 
 La scalabilità verticale, nota anche come *scale up e scale down*, consiste nell'aumentare o diminuire la **dimensione** (size) della macchina virtuale in risposta al carico di lavoro. In altre parole, con la scalabilità verticale si rende una singola macchina virtuale più potente (scale up) oppure meno potente (scale down), agendo sulle risorse che le sono assegnate, come CPU e memoria. Il numero di macchine resta sempre uno: ciò che cambia è la loro "taglia".
 
 ![Scalabilità verticale di una macchina virtuale](img/vertical-scaling-cdafa792.png) _(dimensioni: 304×167 px)_
-*Figura 95: Scalabilità verticale: una singola macchina virtuale aumenta o diminuisce di dimensione tramite scale up o scale down.* _(caption)_
+*Scalabilità verticale: una singola macchina virtuale aumenta o diminuisce di dimensione tramite scale up o scale down.* _(caption)_
 
 Ecco alcuni scenari in cui la scalabilità verticale può rivelarsi vantaggiosa:
 
@@ -724,7 +724,7 @@ Ecco alcuni scenari in cui la scalabilità verticale può rivelarsi vantaggiosa:
 La scalabilità orizzontale, indicata anche come *scale out e scale in*, viene utilizzata per modificare il **numero** di macchine virtuali presenti nella configurazione, in modo da adattarsi al variare del carico di lavoro. Quando si applica la scalabilità orizzontale, si ha un aumento (scale out) oppure una diminuzione (scale in) del numero di istanze di macchina virtuale. La logica qui è diversa: invece di rendere "più grande" una singola macchina, si aggiungono o si rimuovono macchine che lavorano in parallelo per distribuire il carico.
 
 ![Scalabilità orizzontale di un insieme di macchine virtuali](img/horizontal-scaling-3e457e75.png) _(dimensioni: 342×187 px)_
-*Figura 96: Scalabilità orizzontale: vengono aggiunte macchine virtuali (scale out) per sostenere il carico di lavoro.* _(caption)_
+*Scalabilità orizzontale: vengono aggiunte macchine virtuali (scale out) per sostenere il carico di lavoro.* _(caption)_
 
 **Aspetti da valutare nella scelta tra scalabilità verticale e orizzontale** _(stepTitle)_
 
@@ -783,7 +783,7 @@ I **Virtual Machine Scale Sets** si creano direttamente nel portale di Azure. In
 Nel portale di Azure ci sono diversi parametri da configurare per portare a termine la creazione di un Virtual Machine Scale Sets.
 
 ![Creazione di un Virtual Machine Scale Set nel portale di Azure](img/implement-scale-sets-61516afb.png) _(dimensioni: 831×592 px)_
-*Figura 97: La pagina di creazione dei Virtual Machine Scale Sets nel portale di Azure.* _(caption)_
+*La pagina di creazione dei Virtual Machine Scale Sets nel portale di Azure.* _(caption)_
 
 **Impostazioni di base (scheda Basics)** _(stepTitle)_
 
@@ -817,7 +817,7 @@ Una delle caratteristiche più potenti dei **Virtual Machine Scale Sets** è la 
 Il valore di questo approccio sta tutto nell'equilibrio tra prestazioni e costi. Quando la domanda è bassa, la scalabilità automatica riduce al minimo il numero di istanze inutili che restano accese: paghi solo per quello che serve davvero. Quando la domanda cresce, vengono aggiunte automaticamente nuove istanze, in modo che i tuoi clienti continuino a ricevere un livello di prestazioni accettabile senza alcun intervento manuale.
 
 ![Scale set che scala tra un numero minimo e massimo di VM](img/autoscale-45b054e0.png) _(dimensioni: 751×219 px)_
-*Figura 98: Un'implementazione di Virtual Machine Scale Sets che scala automaticamente tra un minimo (ad esempio due VM) e un massimo (ad esempio cinque VM) in base alla domanda del carico di lavoro.* _(caption)_
+*Un'implementazione di Virtual Machine Scale Sets che scala automaticamente tra un minimo (ad esempio due VM) e un massimo (ad esempio cinque VM) in base alla domanda del carico di lavoro.* _(caption)_
 
 **Aspetti da considerare quando si usa la scalabilità automatica** _(stepTitle)_
 
@@ -839,7 +839,7 @@ Quando crei un'implementazione di **Azure Virtual Machine Scale Sets** tramite i
 Nel portale di Azure puoi selezionare la modalità di scalabilità (scaling mode).
 
 ![Impostazioni per la scelta del metodo di scalabilità](img/scale-methods.png) _(dimensioni: 651×252 px)_
-*Figura 99: Le impostazioni per selezionare il metodo di scalabilità nel portale di Azure.* _(caption)_
+*Le impostazioni per selezionare il metodo di scalabilità nel portale di Azure.* _(caption)_
 
 **Modalità di scalabilità (scaling mode)** _(stepTitle)_
 
@@ -853,7 +853,7 @@ Le due modalità disponibili rispondono a esigenze diverse: la prima ti dà cont
 La scalabilità automatica si basa su una condizione di scalabilità (scaling condition): è la regola che descrive quando aggiungere o togliere istanze e di quante alla volta. Definire bene questi parametri è importante, perché soglie troppo aggressive farebbero oscillare continuamente il numero di macchine, mentre soglie troppo prudenti renderebbero il set lento a reagire ai picchi di traffico.
 
 ![Impostazioni per la configurazione delle istanze di VM e dell'autoscale](img/implement-autoscale-74d25345.png) _(dimensioni: 551×648 px)_
-*Figura 100: Le impostazioni per configurare le istanze di macchina virtuale e la scalabilità automatica nel portale di Azure.* _(caption)_
+*Le impostazioni per configurare le istanze di macchina virtuale e la scalabilità automatica nel portale di Azure.* _(caption)_
 
 I parametri principali da impostare sono i seguenti:
 
@@ -1024,7 +1024,7 @@ L'autoscale di un piano di **App Service** non agisce in modo arbitrario: si bas
 - Le **regole di autoscale** comprendono un *trigger* (la condizione che fa scattare l'azione) e un'*azione di scalabilità* (in o out). Il trigger può essere basato su metriche oppure su pianificazione temporale.
 
 ![Creazione di una condizione di autoscale nel portale di Azure](img/web-app-autoscale-94c4da54.png) _(dimensioni: 1081×487 px)_
-*Figura 101: Creazione di una condizione di autoscale nel portale di Azure, con le impostazioni per la modalità di scalabilità e il numero di istanze.* _(caption)_
+*Creazione di una condizione di autoscale nel portale di Azure, con le impostazioni per la modalità di scalabilità e il numero di istanze.* _(caption)_
 
 I due tipi di trigger disponibili rispondono a esigenze diverse:
 
@@ -1117,7 +1117,7 @@ Quando crei un'app devi indicare alcuni parametri fondamentali. Ognuno di essi d
 Una volta che l'app è stata creata, nel portale di Azure compare la sezione **Configuration**, che mette a disposizione ulteriori impostazioni, tra cui le opzioni di distribuzione dell'app e il mapping dei percorsi (path mapping). In altre parole, alcune scelte si fanno al momento della creazione, mentre altre si affinano in seguito man mano che l'app entra in esercizio.
 
 ![Opzioni di configurazione di un'app App Service nel portale di Azure](img/web-app-configuration-27facdc5.png) _(dimensioni: 881×471 px)_
-*Figura 102: Le opzioni di configurazione di un'app App Service nel portale di Azure.* _(caption)_
+*Le opzioni di configurazione di un'app App Service nel portale di Azure.* _(caption)_
 
 Alcune di queste impostazioni aggiuntive possono essere incluse direttamente nel codice dello sviluppatore, mentre altre si configurano a livello di app dal portale. Ecco alcune delle impostazioni applicative più rilevanti:
 
@@ -1137,14 +1137,14 @@ Il portale di Azure mette a disposizione una integrazione e distribuzione contin
 Con **Azure DevOps** è inoltre possibile definire un proprio processo di build e di rilascio: a ogni commit del codice, il sistema compila i sorgenti, esegue i test, costruisce il pacchetto e distribuisce la release nell'app web. Tutte queste operazioni avvengono in modo implicito, senza necessità di amministrazione umana. Questo è il cuore del valore di CI/CD: ridurre il lavoro ripetitivo e gli errori, accelerando il ciclo di rilascio.
 
 ![Due sviluppatori condividono un'unica sorgente GitHub per produrre un sito web con App Service](img/continuous-development-a0dfd350.png) _(dimensioni: 582×260 px)_
-*Figura 103: Due sviluppatori condividono un'unica sorgente GitHub per generare un sito web realizzato con Azure App Service.* _(caption)_
+*Due sviluppatori condividono un'unica sorgente GitHub per generare un sito web realizzato con Azure App Service.* _(caption)_
 
 **Distribuzione continua e distribuzione manuale** _(stepTitle)_
 
 Quando si crea un'app web con App Service è possibile scegliere tra distribuzione continua e distribuzione manuale. Nel valutare queste opzioni conviene ragionare su quale metodo di distribuzione adottare per le proprie app di App Service. Entrambe le modalità si configurano dal **Deployment Center** (Centro distribuzione).
 
 ![Opzioni di impostazione del Deployment Center](img/deployment-center.png) _(dimensioni: 926×442 px)_
-*Figura 104: Le opzioni di configurazione disponibili nel Deployment Center.* _(caption)_
+*Le opzioni di configurazione disponibili nel Deployment Center.* _(caption)_
 
 **Distribuzione continua (CI/CD)** _(stepTitle)_
 
@@ -1178,7 +1178,7 @@ Prima di sfruttarli, conviene capire come si comportano questi slot e quali vinc
 - Sia il contenuto dell'app sia gli elementi di configurazione possono essere scambiati («swap») tra due slot, incluso quello di produzione. È proprio questo scambio a permettere di mandare in produzione una nuova versione senza ridistribuirla da zero.
 
 ![Gestione degli slot di distribuzione nel portale di Azure](img/deployment-slots-5b3660cc.png) _(dimensioni: 570×302 px)_
-*Figura 105: La gestione degli slot di distribuzione nel portale di Azure.* _(caption)_
+*La gestione degli slot di distribuzione nel portale di Azure.* _(caption)_
 
 > **Nota**: lo scambio non è una semplice copia di file. Quando esegui uno swap, App Service riavvia i processi nello slot di destinazione e attende che le istanze siano «riscaldate» (warmed up) prima di reindirizzare il traffico, garantendo continuità di servizio.
 _(infoBox)_
@@ -1298,7 +1298,7 @@ Usare un dominio personalizzato ti consente di:
 La configurazione di un dominio personalizzato richiede informazioni su provider, sicurezza e denominazione. Il processo si svolge interamente dal portale di Azure, nella pagina dedicata ai domini personalizzati.
 
 ![Pagina dei domini personalizzati nel portale di Azure](img/custom-domain.png) _(dimensioni: 557×661 px)_
-*Figura 106: La pagina «Custom domain» del portale di Azure, dove si riservano i domini e si configurano i binding.* _(caption)_
+*La pagina «Custom domain» del portale di Azure, dove si riservano i domini e si configurano i binding.* _(caption)_
 
 I passaggi per creare un nome di dominio personalizzato sono tre.
 
@@ -1329,7 +1329,7 @@ I backup possono essere conservati per un periodo di tempo definito oppure a tem
 La pagina **Backups** elenca tutti i backup automatici e personalizzati dell'app e mostra lo stato di ciascuno, così da avere un quadro immediato di cosa è stato salvato e con quale esito.
 
 ![Pagina dei backup di App Service nel portale](img/open-backups-page.png) _(dimensioni: 982×582 px)_
-*Figura 107: La pagina «Backups» di App Service nel portale di Azure.* _(caption)_
+*La pagina «Backups» di App Service nel portale di Azure.* _(caption)_
 
 **Cosa sapere su Backup and Restore** _(stepTitle)_
 
@@ -1372,7 +1372,7 @@ Il motivo per cui questo strumento è importante è che ti consente di migliorar
 Il diagramma seguente mostra l'idea di fondo: Application Insights riceve la telemetria da più fonti — pagine web, applicazioni client e servizi web — e la rende disponibile a strumenti a valle come gli avvisi (Alerts), **Power BI** e **Visual Studio**. È quindi un punto di raccolta centrale da cui poi diramare verso analisi, dashboard e debugging.
 
 ![Diagramma di Application Insights che riceve telemetria e la inoltra ad Alerts, Power BI e Visual Studio](img/app-insights-16629887.png) _(dimensioni: 1379×734 px)_
-*Figura 108: Application Insights raccoglie le informazioni da pagine web, app client e servizi web e le trasferisce ad Alerts, Power BI e Visual Studio.* _(caption)_
+*Application Insights raccoglie le informazioni da pagine web, app client e servizi web e le trasferisce ad Alerts, Power BI e Visual Studio.* _(caption)_
 
 **Cosa sapere su Application Insights** _(stepTitle)_
 
@@ -1460,7 +1460,7 @@ Quando si crea un'immagine del container, questa diventa un'unità portabile che
 L'illustrazione seguente mostra un container che esegue un server web costruito con **Azure Container Instances**. Il container è in esecuzione su una macchina virtuale all'interno di una rete virtuale (virtual network).
 
 ![Container server web in esecuzione su una VM in una rete virtuale](img/container-overview-0e72c2ba.png) _(dimensioni: 358×424 px)_
-*Figura 109: Un container con un server web in esecuzione su una macchina virtuale all'interno di una rete virtuale.* _(caption)_
+*Un container con un server web in esecuzione su una macchina virtuale all'interno di una rete virtuale.* _(caption)_
 
 **Aspetti chiave di Azure Container Instances** _(stepTitle)_
 
@@ -1508,7 +1508,7 @@ I gruppi di container possono inoltre condividere un indirizzo IP esterno, una o
 Per rendere concreti questi concetti, considera l'esempio seguente di un gruppo multi-container composto da due container.
 
 ![Gruppo multi-container di Azure Container Instances con due container](img/container-groups-ea19ee6b.png) _(dimensioni: 763×354 px)_
-*Figura 110: Un gruppo multi-container di Azure Container Instances con due container, un indirizzo IP pubblico condiviso e due condivisioni file di Azure montate come volumi.* _(caption)_
+*Un gruppo multi-container di Azure Container Instances con due container, un indirizzo IP pubblico condiviso e due condivisioni file di Azure montate come volumi.* _(caption)_
 
 Il gruppo multi-container dell'esempio presenta le seguenti caratteristiche e configurazione:
 

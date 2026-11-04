@@ -10,9 +10,9 @@ Terraform è uno strumento per costruire, modificare e versionare l'infrastruttu
 
 Dal punto di vista logico Terraform è diviso in due parti principali: **Terraform Core** e i **plugin di Terraform**. Terraform Core comunica con i plugin tramite chiamate di procedura remota (RPC) e offre diversi modi per individuare e caricare i plugin da usare. I plugin forniscono l'implementazione per interagire con un servizio specifico, come AWS, o con un provisioner, come bash.
 
-![Figura 4](img/terraform-plugin-overview.png) _(dimensioni: 4096×728 px)_
+![](img/terraform-plugin-overview.png) _(dimensioni: 4096×728 px)_
 
-*Figura 4 — Terraform Core comunica con il provider via RPC; il provider usa una libreria client in Go per chiamare l'API della piattaforma in HTTP(S). Fonte: HashiCorp Developer.* _(caption)_
+*Terraform Core comunica con il provider via RPC; il provider usa una libreria client in Go per chiamare l'API della piattaforma in HTTP(S). Fonte: HashiCorp Developer.* _(caption)_
 
 ### 2.1.1 — Terraform Core
 

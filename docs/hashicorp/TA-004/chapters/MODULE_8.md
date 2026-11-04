@@ -322,9 +322,9 @@ terraform {
 
 Sono stati creati il project **Learn Terraform** e il workspace `learn-terraform-aws-get-started`. Nella pagina **Variables** del workspace si aggiungono `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` come **Environment Variables** sensitive.
 
-![Figura 17](img/hcp-workspace-variables.png) _(dimensioni: 2936×1568 px)_
+![](img/hcp-workspace-variables.png) _(dimensioni: 2936×1568 px)_
 
-*Figura 17 — La pagina Variables del workspace, con le credenziali AWS aggiunte come environment variable sensitive. Fonte: HashiCorp Developer.* _(caption)_
+*La pagina Variables del workspace, con le credenziali AWS aggiunte come environment variable sensitive. Fonte: HashiCorp Developer.* _(caption)_
 
 **Applicare la configurazione** _(stepTitle)_
 
@@ -435,9 +435,9 @@ Dopo la migrazione, nell'interfaccia web di HCP Terraform la pagina **States** d
 
 Verificato che lo state è stato migrato, si rimuove il file di state locale con `rm terraform.tfstate`, e si avvia un nuovo run con `terraform apply`. Terraform propone di sostituire la risorsa, per riflettere la modifica alla variabile `name_length`. Terraform trasmette i log nella console locale, e mostra i dettagli del run anche nell'interfaccia del workspace.
 
-![Figura 18](img/hcp-remote-run.png) _(dimensioni: 2048×2065 px)_
+![](img/hcp-remote-run.png) _(dimensioni: 2048×2065 px)_
 
-*Figura 18 — Il run avviato dalla CLI dopo la migrazione, in attesa di conferma: il log indica che la risorsa verrà sostituita. Fonte: HashiCorp Developer.* _(caption)_
+*Il run avviato dalla CLI dopo la migrazione, in attesa di conferma: il log indica che la risorsa verrà sostituita. Fonte: HashiCorp Developer.* _(caption)_
 
 - Fonte: [Migrate state to HCP Terraform](https://developer.hashicorp.com/terraform/tutorials/cloud/cloud-migrate)
 
@@ -636,9 +636,9 @@ Da **Workspaces > New > Workspace**, nel **Default Project**, si crea un workspa
 
 La configurazione impone Terraform 0.12, mentre il workspace usa l'ultima versione: un nuovo workspace riceve la più recente disponibile, uno migrato dalla CLI la versione del binario usato per la migrazione. La versione si cambia nelle impostazioni generali del workspace: qui si sceglie 0.12.31.
 
-![Figura 19](img/hcp-configure-version.png) _(dimensioni: 2360×269 px)_
+![](img/hcp-configure-version.png) _(dimensioni: 2360×269 px)_
 
-*Figura 19 — Il selettore della versione di Terraform nelle impostazioni generali del workspace. Fonte: HashiCorp Developer.* _(caption)_
+*Il selettore della versione di Terraform nelle impostazioni generali del workspace. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 8.10.3 — Creare l'infrastruttura e aggiornare il vincolo di versione
 
@@ -757,9 +757,9 @@ Gli health assessment si possono imporre a tutti i workspace idonei, o lasciare 
 
 Un run trigger fa sì che un apply riuscito in un workspace sorgente metta in coda un run nel workspace collegato (vedi §8.13): ad esempio, nuove subnet nella configurazione di rete possono far ridistribuire i server dell'applicazione. Così si costruiscono pipeline di infrastruttura. Nel tutorial un workspace gestisce la rete, un altro l'applicazione.
 
-![Figura 20](img/hcp-run-trigger-workspaces.png) _(dimensioni: 1940×439 px)_
+![](img/hcp-run-trigger-workspaces.png) _(dimensioni: 1940×439 px)_
 
-*Figura 20 — Due workspace collegati da un run trigger. Fonte: HashiCorp Developer.* _(caption)_
+*Due workspace collegati da un run trigger. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 8.12.1 — I repository
 
@@ -796,17 +796,17 @@ Conviene un'organizzazione dedicata all'esempio. Il workspace `learn-terraform-r
 
 HCP Terraform cifra lo state a riposo e ne limita l'accesso dagli altri workspace. Nel workspace di rete, in **Settings > General > Remote state sharing**, si seleziona `learn-terraform-run-triggers-application` in **Select workspaces to share with** e si salva.
 
-![Figura 21](img/hcp-remote-state-sharing.png) _(dimensioni: 2878×1398 px)_
+![](img/hcp-remote-state-sharing.png) _(dimensioni: 2878×1398 px)_
 
-*Figura 21 — La sezione Remote state sharing nelle impostazioni generali del workspace di rete, con il workspace dell'applicazione selezionato. Fonte: HashiCorp Developer.* _(caption)_
+*La sezione Remote state sharing nelle impostazioni generali del workspace di rete, con il workspace dell'applicazione selezionato. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 8.12.4 — Configurare un run trigger
 
 Nel workspace dell'applicazione, in **Settings > Run triggers**, si sceglie **Connect workspace** e si collega `learn-terraform-run-triggers-network`.
 
-![Figura 22](img/hcp-run-triggers.png) _(dimensioni: 1629×809 px)_
+![](img/hcp-run-triggers.png) _(dimensioni: 1629×809 px)_
 
-*Figura 22 — La pagina Run Triggers del workspace dell'applicazione, con il workspace di rete collegato come sorgente. Fonte: HashiCorp Developer.* _(caption)_
+*La pagina Run Triggers del workspace dell'applicazione, con il workspace di rete collegato come sorgente. Fonte: HashiCorp Developer.* _(caption)_
 
 Nel workspace di rete si avvia un run **Plan and apply**: al termine del plan un messaggio avvisa che l'apply attiverà un run nel workspace dell'applicazione. Dopo **Confirm & Apply** il run trigger accoda un plan nell'applicazione, che va applicato a mano salvo attivare l'auto-apply (vedi §8.13.2). Il valore `public_dns_name` degli output, nel browser, mostra "Hello, world!".
 
@@ -991,9 +991,9 @@ Nel tutorial si creano due project con accessi limitati a team diversi.
 
 Ogni workspace appartiene a un solo project, per default il Default Project (vedi §8.15.1), e lo si può spostare. Nella pagina **Projects** si creano con **+ New Project** i project `Platform` e `Application`.
 
-![Figura 23](img/hcp-new-project.png) _(dimensioni: 2910×418 px)_
+![](img/hcp-new-project.png) _(dimensioni: 2910×418 px)_
 
-*Figura 23 — La creazione di un nuovo project in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
+*La creazione di un nuovo project in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
 Il proprietario dell'organizzazione vede tutti i project; gli altri utenti, per amministrarli tutti, hanno bisogno dei permessi admin sul project o del permesso **Manage all Projects**.
 
@@ -1026,9 +1026,9 @@ A un project si possono dare permessi personalizzati o uno dei quattro insiemi f
 
 Nel project **Application**, da **Edit project > Team access > + Add team**, si assegnano **Maintain** al team `application` e Admin al team `platform`: un modello self-service in cui solo `platform` amministra il project. Nel project **Platform** solo `platform` è admin, e `application` non ne vede nemmeno l'esistenza.
 
-![Figura 24](img/hcp-project-team-access.png) _(dimensioni: 2059×2087 px)_
+![](img/hcp-project-team-access.png) _(dimensioni: 2059×2087 px)_
 
-*Figura 24 — I permessi finali del project Application: il team application ha i permessi Maintain, il team platform è admin. Fonte: HashiCorp Developer.* _(caption)_
+*I permessi finali del project Application: il team application ha i permessi Maintain, il team platform è admin. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 8.16.6 — Le conseguenze sugli accessi
 
@@ -1072,9 +1072,9 @@ _(infoBox)_
 
 Con **Apply to specific projects and workspaces** lo si applica ai due workspace, e si aggiungono `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` come environment variable sensitive (più `AWS_SESSION_TOKEN` con credenziali temporanee).
 
-![Figura 25](img/hcp-create-variable-set.png) _(dimensioni: 2380×940 px)_
+![](img/hcp-create-variable-set.png) _(dimensioni: 2380×940 px)_
 
-*Figura 25 — La creazione del variable set con le credenziali AWS come environment variable sensitive. Fonte: HashiCorp Developer.* _(caption)_
+*La creazione del variable set con le credenziali AWS come environment variable sensitive. Fonte: HashiCorp Developer.* _(caption)_
 
 **Un variable set per le impostazioni di configurazione** _(stepTitle)_
 
@@ -1438,9 +1438,9 @@ Il provider controlla le variabili d'ambiente per decidere se richiedere credenz
 
 Dal menu **Actions** del workspace si sceglie **Start new run**, con il tipo **Plan and apply**. HCP Terraform richiede credenziali dinamiche al cloud provider e le usa per eseguire il plan. Al termine, con **Confirm & Apply** e **Confirm Plan** si applica il plan, e HCP Terraform richiede un altro insieme di credenziali dinamiche per il passo di apply.
 
-![Figura 26](img/hcp-dynamic-credentials-apply.png) _(dimensioni: 1768×984 px)_
+![](img/hcp-dynamic-credentials-apply.png) _(dimensioni: 1768×984 px)_
 
-*Figura 26 — Il run completato nel workspace: l'istanza è creata con credenziali dinamiche, senza credenziali di lunga durata salvate nel workspace. Fonte: HashiCorp Developer.* _(caption)_
+*Il run completato nel workspace: l'istanza è creata con credenziali dinamiche, senza credenziali di lunga durata salvate nel workspace. Fonte: HashiCorp Developer.* _(caption)_
 
 Ora si è creata infrastruttura con HCP Terraform usando credenziali dinamiche invece di credenziali di lunga durata. Le credenziali non vanno conservate in HCP Terraform, e questo riduce il rischio di esporle per errore. Definire il ruolo e i permessi delle credenziali dinamiche permette di specificare esattamente per quali operazioni si possono usare quelle chiavi.
 
@@ -2080,9 +2080,9 @@ Gli assessment sono plan refresh-only non applicabili, che non modificano né lo
 
 **Start health assessment** rileva subito la modifica alla regola del bastion, oltre a valori di default assegnati da AWS a campi non impostati nella configurazione. I risultati compaiono nella panoramica del workspace.
 
-![Figura 27](img/hcp-drift-detection-overview.png) _(dimensioni: 2048×1208 px)_
+![](img/hcp-drift-detection-overview.png) _(dimensioni: 2048×1208 px)_
 
-*Figura 27 — I risultati dell'health assessment nella panoramica del workspace, con il numero di risorse con drift. Fonte: HashiCorp Developer.* _(caption)_
+*I risultati dell'health assessment nella panoramica del workspace, con il numero di risorse con drift. Fonte: HashiCorp Developer.* _(caption)_
 
 > **Nota**: la drift detection segnala solo le modifiche agli attributi delle risorse definiti nella configurazione. Per evitare drift accidentali, conviene impostare esplicitamente nella configurazione tutti gli attributi critici per le operazioni, anche quando ci si basa sul valore di default del provider.
 _(infoBox)_
@@ -2147,9 +2147,9 @@ Nella pagina **Workspaces** dell'organizzazione, HCP Terraform mostra uno stato 
 
 La pagina **Explorer** presenta una panoramica sintetica dello stato di salute dei workspace dell'organizzazione. Mostra i workspace che monitorano la salute, lo stato dei check di validazione continua configurati e il numero di risorse con drift di ogni workspace (sezione 8.30).
 
-![Figura 28](img/hcp-explorer-health.png) _(dimensioni: 2692×1070 px)_
+![](img/hcp-explorer-health.png) _(dimensioni: 2692×1070 px)_
 
-*Figura 28 — La salute dei workspace nell'Explorer: workspace monitorati, stato dei check e risorse con drift. Fonte: HashiCorp Developer.* _(caption)_
+*La salute dei workspace nell'Explorer: workspace monitorati, stato dei check e risorse con drift. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 8.24.5 — La drift detection
 
@@ -2551,9 +2551,9 @@ HCP Terraform impone le policy alle configurazioni degli Stack durante ogni oper
 
 Come in §8.25, al crescere dell'organizzazione conviene automatizzare validazione ed enforcement. Le run task di HCP Terraform inviano il piano, tra plan e apply, a strumenti esterni come scanner di vulnerabilità, calcolatori di costi o analizzatori del codice, e la loro risposta decide se applicare.
 
-![Figura 29](img/hcp-run-task-diagram.png) _(dimensioni: 960×263 px)_
+![](img/hcp-run-task-diagram.png) _(dimensioni: 960×263 px)_
 
-*Figura 29 — Una run task tra plan e apply: il piano viene inviato allo strumento esterno, e la sua risposta decide se procedere con l'apply. Fonte: HashiCorp Developer.* _(caption)_
+*Una run task tra plan e apply: il piano viene inviato allo strumento esterno, e la sua risposta decide se procedere con l'apply. Fonte: HashiCorp Developer.* _(caption)_
 
 Styra Declarative Authorization Service (DAS) offre deployment di OPA senza agent e un control plane centralizzato, con un policy builder e una libreria di policy pubbliche; OPA usa un unico linguaggio di policy-as-code per configurazioni e risorse diverse.
 
@@ -2578,9 +2578,9 @@ _(infoBox)_
 
 Come visto in §8.25.4, la validazione nella configurazione dipende dalla collaborazione di autori e utenti dei moduli. Una run task impone gli standard su un intero workspace, avvisando o bloccando l'operazione.
 
-![Figura 30](img/hcp-validation-mechanisms.png) _(dimensioni: 960×540 px)_
+![](img/hcp-validation-mechanisms.png) _(dimensioni: 960×540 px)_
 
-*Figura 30 — Lo scope dei meccanismi di validazione sulla configurazione Terraform. Fonte: HashiCorp Developer.* _(caption)_
+*Lo scope dei meccanismi di validazione sulla configurazione Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
 La run task Styra integra i controlli OPA nel workflow, in modo simile a Sentinel, ma vale solo per i workspace a cui è associata, mentre le policy Sentinel possono coprire tutta l'organizzazione. In Styra le policy sono raggruppate in sistemi, ad esempio per risorse Kubernetes o Terraform, dentro un workspace Styra. Per configurare la run task:
 

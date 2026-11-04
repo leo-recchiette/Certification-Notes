@@ -14,17 +14,17 @@ Per fare pratica, la pagina rimanda ai tutorial *Get Started*, che insegnano a g
 
 Terraform crea e gestisce le risorse sulle piattaforme cloud e su altri servizi attraverso le loro API (application programming interface). Sono i provider a consentire a Terraform di lavorare con praticamente qualsiasi piattaforma o servizio che esponga un'API accessibile.
 
-![Figura 1](img/intro-terraform-apis.png) _(dimensioni: 2048×644 px)_
+![](img/intro-terraform-apis.png) _(dimensioni: 2048×644 px)_
 
-*Figura 1 — Terraform crea e gestisce piattaforme e servizi cloud attraverso le loro API. Fonte: HashiCorp Developer.* _(caption)_
+*Terraform crea e gestisce piattaforme e servizi cloud attraverso le loro API. Fonte: HashiCorp Developer.* _(caption)_
 
 HashiCorp e la community di Terraform hanno già scritto migliaia di provider per gestire tipi di risorse e servizi molto diversi tra loro. Tutti i provider pubblici si trovano nel Terraform Registry: tra questi ci sono Amazon Web Services (AWS), Azure, Google Cloud Platform (GCP), Kubernetes, Helm, GitHub, Splunk, DataDog e molti altri.
 
 Il workflow principale di Terraform si compone di tre fasi. Nella fase di scrittura (**Write**) si definiscono le risorse, che possono appartenere a più cloud provider e servizi: ad esempio si può creare una configurazione che distribuisce un'applicazione su macchine virtuali in una rete VPC (Virtual Private Cloud), con security group e un load balancer. Nella fase di pianificazione (**Plan**) Terraform crea un piano di esecuzione che descrive l'infrastruttura che creerà, aggiornerà o distruggerà, in base all'infrastruttura esistente e alla configurazione. Nella fase di applicazione (**Apply**), dopo l'approvazione, Terraform esegue le operazioni proposte nell'ordine corretto, rispettando le dipendenze tra le risorse: se ad esempio si modificano le proprietà di una VPC e si cambia il numero di macchine virtuali al suo interno, Terraform ricrea la VPC prima di scalare le macchine virtuali.
 
-![Figura 2](img/intro-terraform-workflow.png) _(dimensioni: 2038×1773 px)_
+![](img/intro-terraform-workflow.png) _(dimensioni: 2038×1773 px)_
 
-*Figura 2 — Il workflow di Terraform si articola in tre fasi: Write, Plan e Apply. Fonte: HashiCorp Developer.* _(caption)_
+*Il workflow di Terraform si articola in tre fasi: Write, Plan e Apply. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 1.1.2 — Perché Terraform?
 
@@ -78,9 +78,9 @@ Il linguaggio è dichiarativo, a differenza dei linguaggi procedurali che richie
 
 Per distribuire infrastruttura con Terraform si seguono cinque passi. Prima si definisce l'ambito (*Scope*), cioè si individua l'infrastruttura necessaria al progetto; poi si scrive la configurazione dell'infrastruttura (*Author*); quindi si inizializza la directory (*Initialize*), installando i plugin di cui Terraform ha bisogno per gestire l'infrastruttura; si pianifica (*Plan*), visualizzando in anteprima le modifiche che Terraform farà per allineare l'infrastruttura alla configurazione; infine si applicano le modifiche pianificate (*Apply*).
 
-![Figura 3](img/terraform-iac.png) _(dimensioni: 2400×870 px)_
+![](img/terraform-iac.png) _(dimensioni: 2400×870 px)_
 
-*Figura 3 — Il workflow di deployment di Terraform. Fonte: HashiCorp Developer.* _(caption)_
+*Il workflow di deployment di Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 1.2.3 — Tenere traccia dell'infrastruttura
 

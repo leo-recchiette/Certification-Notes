@@ -4,36 +4,36 @@ _Questo percorso affronta la gestione delle identità digitali e la governance d
 Una corretta configurazione di identità, accessi e policy è fondamentale per sicurezza e conformità._
 
 **Immagini usate in questo modulo:**
-- `img/entra-domain-services.png` (850×437) — Figura 2
-- `img/entra-users.png` (946×398) — Figura 3
-- `img/entra-groups.png` (940×378) — Figura 4
-- `img/Figura_12_Azure_Service_Categories.jpg` (460×204) — Figura 12
-- `img/Figura_13_Azure_Account_Scope_Levels.jpg` (460×298) — Figura 13
-- `img/Figura_14_Azure_Physical_Infrastructure.jpg` (580×212) — Figura 14
-- `img/Figura_15_Availability_Zones_in_a_Region.jpg` (460×233) — Figura 15
-- `img/Figura_16_Azure_Service_Categories_for_AZ.jpg` (460×219) — Figura 16
-- `img/Figura_17_Azure_Region_Pairs.jpg` (460×241) — Figura 17
-- `img/Figura_18_Resource_Group_Rules.jpg` (460×180) — Figura 18
-- `img/Figura_19_Management_Group_Hierarchy.jpg` (460×277) — Figura 19
-- `img/Figura_20_Azure_Subscription_Boundaries.jpg` (460×204) — Figura 20
-- `img/microsoft-caf-for-azure.png` (2058×964) — Figura 21
-- `img/cloud-governance-steps.png` (2031×278) — Figura 22
-- `img/cloud-governance.png` (2220×1022) — Figura 23
-- `img/azure-governance-hierarchy.png` (1459×955) — Figura 24
-- `img/azure-policy-arm.png` (1853×964) — Figura 25
-- `img/operation-flows.png` (1996×978) — Figura 26
-- `img/policy-resources.png` (2070×984) — Figura 27
-- `img/safe-deployment.png` (2026×848) — Figura 28
-- `img/reacting-to-policy-changes.png` (1312×1104) — Figura 29
-- `img/rbac-security-principal.png` (357×134) — Figura 30
-- `img/rbac-role-definition.png` (537×352) — Figura 31
-- `img/rbac-roles-hierarchy.png` (895×598) — Figura 32
-- `img/rbac-iam-portal.png` (1069×708) — Figura 33
-- `img/3-enable-sspr.png` (1327×450) — Figura 34
-- `img/3-auth-methods.png` (1327×858) — Figura 35
-- `img/3-registration-options.png` (1872×629) — Figura 36
-- `img/3-notification-settings.png` (995×489) — Figura 37
-- `img/3-customization-settings.png` (1324×445) — Figura 38
+- `img/entra-domain-services.png` (850×437)
+- `img/entra-users.png` (946×398)
+- `img/entra-groups.png` (940×378)
+- `img/Figura_12_Azure_Service_Categories.jpg` (460×204)
+- `img/Figura_13_Azure_Account_Scope_Levels.jpg` (460×298)
+- `img/Figura_14_Azure_Physical_Infrastructure.jpg` (580×212)
+- `img/Figura_15_Availability_Zones_in_a_Region.jpg` (460×233)
+- `img/Figura_16_Azure_Service_Categories_for_AZ.jpg` (460×219)
+- `img/Figura_17_Azure_Region_Pairs.jpg` (460×241)
+- `img/Figura_18_Resource_Group_Rules.jpg` (460×180)
+- `img/Figura_19_Management_Group_Hierarchy.jpg` (460×277)
+- `img/Figura_20_Azure_Subscription_Boundaries.jpg` (460×204)
+- `img/microsoft-caf-for-azure.png` (2058×964)
+- `img/cloud-governance-steps.png` (2031×278)
+- `img/cloud-governance.png` (2220×1022)
+- `img/azure-governance-hierarchy.png` (1459×955)
+- `img/azure-policy-arm.png` (1853×964)
+- `img/operation-flows.png` (1996×978)
+- `img/policy-resources.png` (2070×984)
+- `img/safe-deployment.png` (2026×848)
+- `img/reacting-to-policy-changes.png` (1312×1104)
+- `img/rbac-security-principal.png` (357×134)
+- `img/rbac-role-definition.png` (537×352)
+- `img/rbac-roles-hierarchy.png` (895×598)
+- `img/rbac-iam-portal.png` (1069×708)
+- `img/3-enable-sspr.png` (1327×450)
+- `img/3-auth-methods.png` (1327×858)
+- `img/3-registration-options.png` (1872×629)
+- `img/3-notification-settings.png` (995×489)
+- `img/3-customization-settings.png` (1324×445)
 
 ---
 
@@ -135,9 +135,9 @@ Microsoft Entra Domain Services (Entra DS) è un servizio gestito che fornisce f
 - Non è possibile estendere lo schema del dominio gestito né creare OU personalizzate con piena libertà come in AD DS on-premise.
 - Caso d'uso tipico: lift-and-shift di applicazioni legacy su Azure VM che richiedono LDAP o Kerberos, senza mantenere DC on-premise.
 
-![Figura 2](img/entra-domain-services.png) _(dimensioni: 850×437 px)_
+![](img/entra-domain-services.png) _(dimensioni: 850×437 px)_
 
-*Figura 2 — Microsoft Entra Domain Services fornisce un dominio gestito nella VNet di Azure, sincronizzato da Microsoft Entra ID.* _(caption)_
+*Microsoft Entra Domain Services fornisce un dominio gestito nella VNet di Azure, sincronizzato da Microsoft Entra ID.* _(caption)_
 
 
 **Vantaggi principali** _(stepTitle)_
@@ -178,9 +178,9 @@ Ogni utente che deve accedere alle risorse Azure necessita di un account in Micr
 - **Identità sincronizzate con directory** — esistono in un'Active Directory on-premise e vengono resi disponibili in Entra ID tramite sincronizzazione. Riconoscibili perché la loro origine nel portale è `Windows Server AD`. Strumento raccomandato: Microsoft Entra Cloud Sync; Microsoft Entra Connect Sync rimane disponibile per scenari complessi.
 - **Utenti guest** — identità esterne all'organizzazione, invitate tramite Microsoft Entra B2B. L'origine nel portale è `Utente invitato`. Utili per fornitori, terzisti o partner. Quando la collaborazione termina, l'account guest può essere rimosso senza impattare l'identità originale dell'utente nel suo tenant.
 
-![Figura 3](img/entra-users.png) _(dimensioni: 946×398 px)_
+![](img/entra-users.png) _(dimensioni: 946×398 px)_
 
-*Figura 3 — Visualizzazione degli utenti nel portale Microsoft Entra ID con tipo utente, UPN, paese e ruolo.* _(caption)_
+*Visualizzazione degli utenti nel portale Microsoft Entra ID con tipo utente, UPN, paese e ruolo.* _(caption)_
 
 
 **Gestione degli account** _(stepTitle)_
@@ -205,9 +205,9 @@ I gruppi possono avere tre modalità di appartenenza:
 - **Dinamica utente** — i membri vengono aggiunti automaticamente in base a regole sulle proprietà utente (es. reparto, ruolo, paese). Richiede licenza Entra ID P1 o P2.
 - **Dinamica dispositivo** — come la dinamica utente ma basata su proprietà dei dispositivi.
 
-![Figura 4](img/entra-groups.png) _(dimensioni: 940×378 px)_
+![](img/entra-groups.png) _(dimensioni: 940×378 px)_
 
-*Figura 4 — Visualizzazione dei gruppi nel portale Microsoft Entra ID con tipo gruppo (Security e Microsoft 365).* _(caption)_
+*Visualizzazione dei gruppi nel portale Microsoft Entra ID con tipo gruppo (Security e Microsoft 365).* _(caption)_
 
 
 ### 2.2.4 — Configurare e gestire la registrazione dei dispositivi
@@ -349,9 +349,9 @@ Per creare e usare i servizi Azure è necessaria una **sottoscrizione di Azure**
 
 **Gerarchia degli ambiti di un account Azure** _(stepTitle)_
 
-![Figura 13](img/Figura_13_Azure_Account_Scope_Levels.jpg) _(dimensioni: 460×298 px)_
+![](img/Figura_13_Azure_Account_Scope_Levels.jpg) _(dimensioni: 460×298 px)_
 
-*Figura 13 — Quattro livelli di ambito di un account Azure: un account si connette a più sottoscrizioni (Sviluppo/Test, Produzione, Sandbox), ognuna contenente gruppi di risorse (Web, Dati, App, Rete) che a loro volta contengono le singole risorse come Servizio app, VM, SQL DB, Cosmos DB, Funzioni, API, VNet e NSG.* _(caption)_
+*Quattro livelli di ambito di un account Azure: un account si connette a più sottoscrizioni (Sviluppo/Test, Produzione, Sandbox), ognuna contenente gruppi di risorse (Web, Dati, App, Rete) che a loro volta contengono le singole risorse come Servizio app, VM, SQL DB, Cosmos DB, Funzioni, API, VNet e NSG.* _(caption)_
 
 La struttura gerarchica di un account Azure è:
 
@@ -398,9 +398,9 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 L'infrastruttura fisica di Azure parte dai **data center** e si organizza gerarchicamente in aree e zone di disponibilità per garantire resilienza e affidabilità globale. Non si interagisce mai direttamente con i singoli data center: sono sempre raggruppati in strutture di livello superiore che offrono ridondanza automatica.
 
-![Figura 14](img/Figura_14_Azure_Physical_Infrastructure.jpg) _(dimensioni: 580×212 px)_
+![](img/Figura_14_Azure_Physical_Infrastructure.jpg) _(dimensioni: 580×212 px)_
 
-*Figura 14 — Gerarchia dell'infrastruttura fisica di Azure dall'area geografica (Geography) all'area (Region) alla zona di disponibilità (Availability Zone) al data center.* _(caption)_
+*Gerarchia dell'infrastruttura fisica di Azure dall'area geografica (Geography) all'area (Region) alla zona di disponibilità (Availability Zone) al data center.* _(caption)_
 
 **Data Center** _(stepTitle)_
 
@@ -419,9 +419,9 @@ _(infoBox)_
 
 Le zone di disponibilità sono data center fisicamente separati all'interno della stessa area di Azure. Ogni zona è composta da uno o più data center con impianti indipendenti di alimentazione, raffreddamento e rete — configurati come limite di isolamento. Se una zona diventa inattiva, le altre continuano a funzionare. Le zone sono connesse tramite reti in fibra ottica private ad alta velocità.
 
-![Figura 15](img/Figura_15_Availability_Zones_in_a_Region.jpg) _(dimensioni: 460×233 px)_
+![](img/Figura_15_Availability_Zones_in_a_Region.jpg) _(dimensioni: 460×233 px)_
 
-*Figura 15 — Tre zone di disponibilità fisicamente separate all'interno di un'area di Azure, ciascuna con alimentazione, raffreddamento e rete indipendenti, connesse tra loro tramite collegamenti in fibra ottica.* _(caption)_
+*Tre zone di disponibilità fisicamente separate all'interno di un'area di Azure, ciascuna con alimentazione, raffreddamento e rete indipendenti, connesse tra loro tramite collegamenti in fibra ottica.* _(caption)_
 
 > **Requisito minimo**: Per garantire la resilienza, nelle aree abilitate per le zone di disponibilità sono sempre presenti almeno tre zone separate. Non tutte le aree di Azure supportano le zone di disponibilità.
 _(infoBox)_
@@ -432,9 +432,9 @@ Quando si gestisce un'infrastruttura on-premise, la ridondanza implica l'acquist
 
 **Tre categorie di servizi Azure rispetto alle zone di disponibilità** _(stepTitle)_
 
-![Figura 16](img/Figura_16_Azure_Service_Categories_for_AZ.jpg) _(dimensioni: 460×219 px)_
+![](img/Figura_16_Azure_Service_Categories_for_AZ.jpg) _(dimensioni: 460×219 px)_
 
-*Figura 16 — Le tre categorie di servizi delle zone di disponibilità di Azure: Zonale (Zonal), A ridondanza di zona (Zone-redundant) e Non a livello di area (Non-regional).* _(caption)_
+*Le tre categorie di servizi delle zone di disponibilità di Azure: Zonale (Zonal), A ridondanza di zona (Zone-redundant) e Non a livello di area (Non-regional).* _(caption)_
 
 - **Servizi di zona (Zonal)** — la risorsa viene associata a una zona specifica scelta dal cliente, che gestisce anche la replica tra zone. Esempi: macchine virtuali, dischi gestiti, indirizzi IP.
 - **Servizi a ridondanza di zona (Zone-redundant)** — la piattaforma replica automaticamente i dati e le operazioni tra le zone, senza intervento del cliente. Esempi: archiviazione con ridondanza di zona (ZRS), Azure SQL Database.
@@ -444,9 +444,9 @@ Quando si gestisce un'infrastruttura on-premise, la ridondanza implica l'acquist
 
 La maggior parte delle aree Azure è abbinata a un'altra area nella stessa collocazione geografica (es. USA, Europa, Asia) ad almeno **480 km di distanza**. Questo approccio consente la replica delle risorse tra due aree geografiche distinte, riducendo il rischio di interruzioni causate da calamità naturali, agitazioni sociali, interruzioni di corrente o guasti di rete su larga scala.
 
-![Figura 17](img/Figura_17_Azure_Region_Pairs.jpg) _(dimensioni: 460×241 px)_
+![](img/Figura_17_Azure_Region_Pairs.jpg) _(dimensioni: 460×241 px)_
 
-*Figura 17 — Due aree di Azure abbinate all'interno della stessa area geografica, con replica di failover bidirezionale e vantaggi di continuità operativa.* _(caption)_
+*Due aree di Azure abbinate all'interno della stessa area geografica, con replica di failover bidirezionale e vantaggi di continuità operativa.* _(caption)_
 
 Esempi di coppie: **Stati Uniti occidentali ↔ Stati Uniti orientali**, **Asia sud-orientale ↔ Asia orientale**, **Europa occidentale ↔ Europa settentrionale**.
 
@@ -485,9 +485,9 @@ Azure è un set di servizi cloud in continua espansione che consente di soddisfa
 
 Azure offre centinaia di servizi raggruppati in dieci categorie principali:
 
-![Figura 12](img/Figura_12_Azure_Service_Categories.jpg) _(dimensioni: 460×204 px)_
+![](img/Figura_12_Azure_Service_Categories.jpg) _(dimensioni: 460×204 px)_
 
-*Figura 12 — Le dieci categorie di servizi di Azure: Calcolo, Rete, Archiviazione, Database, AI + ML, Identità + Sicurezza, DevOps + Gestione, IoT, Analisi e Integrazione.* _(caption)_
+*Le dieci categorie di servizi di Azure: Calcolo, Rete, Archiviazione, Database, AI + ML, Identità + Sicurezza, DevOps + Gestione, IoT, Analisi e Integrazione.* _(caption)_
 
 - **Calcolo** — macchine virtuali, container, funzioni serverless, servizi app.
 - **Rete** — reti virtuali, bilanciamento del carico, CDN, gateway VPN.
@@ -536,9 +536,9 @@ Una **risorsa** è l'elemento costitutivo di base di Azure: tutto ciò che si cr
 
 I **gruppi di risorse** sono contenitori logici che raggruppano risorse correlate per semplificarne la gestione. Regole fondamentali:
 
-![Figura 18](img/Figura_18_Resource_Group_Rules.jpg) _(dimensioni: 460×180 px)_
+![](img/Figura_18_Resource_Group_Rules.jpg) _(dimensioni: 460×180 px)_
 
-*Figura 18 — Le tre regole del gruppo di risorse: una risorsa appartiene a un solo gruppo alla volta (con possibilità di spostamento), i gruppi non possono essere annidati né rinominati, e l'eliminazione di un gruppo elimina tutte le risorse al suo interno.* _(caption)_
+*Le tre regole del gruppo di risorse: una risorsa appartiene a un solo gruppo alla volta (con possibilità di spostamento), i gruppi non possono essere annidati né rinominati, e l'eliminazione di un gruppo elimina tutte le risorse al suo interno.* _(caption)_
 
 - Ogni risorsa deve appartenere a **esattamente un** gruppo di risorse alla volta.
 - È possibile spostare alcune risorse tra gruppi, ma una risorsa è associata a un solo gruppo in ogni momento.
@@ -556,9 +556,9 @@ Esempi pratici di organizzazione in gruppi di risorse:
 
 Le sottoscrizioni sono un'unità di **gestione, fatturazione e scalabilità** in Azure. Una sottoscrizione Azure è collegata a un account Azure (identità in Microsoft Entra ID) e funge da unità di fatturazione. Un account può avere più sottoscrizioni, ma ne è necessaria almeno una.
 
-![Figura 20](img/Figura_20_Azure_Subscription_Boundaries.jpg) _(dimensioni: 460×204 px)_
+![](img/Figura_20_Azure_Subscription_Boundaries.jpg) _(dimensioni: 460×204 px)_
 
-*Figura 20 — I due tipi di confini di sottoscrizione: limite di fatturazione (ogni sottoscrizione genera fattura separata) e limite di controllo degli accessi (criteri di accesso e limiti di spesa diversi per sviluppo e produzione).* _(caption)_
+*I due tipi di confini di sottoscrizione: limite di fatturazione (ogni sottoscrizione genera fattura separata) e limite di controllo degli accessi (criteri di accesso e limiti di spesa diversi per sviluppo e produzione).* _(caption)_
 
 Ogni sottoscrizione ha due confini principali:
 
@@ -582,9 +582,9 @@ Caratteristiche fondamentali dei gruppi di gestione:
 - Una singola directory supporta fino a **10.000 gruppi di gestione**.
 - Ogni gruppo di gestione e sottoscrizione può avere un **solo elemento padre**.
 
-![Figura 19](img/Figura_19_Management_Group_Hierarchy.jpg) _(dimensioni: 460×277 px)_
+![](img/Figura_19_Management_Group_Hierarchy.jpg) _(dimensioni: 460×277 px)_
 
-*Figura 19 — Gerarchia di gruppi di gestione dal gruppo radice del tenant verso il basso tramite gruppi (Marketing, IT) a sottoscrizioni (Web, Mobile, App, Server), gruppi di risorse e singole risorse, con policy e accessi che ereditano verso il basso.* _(caption)_
+*Gerarchia di gruppi di gestione dal gruppo radice del tenant verso il basso tramite gruppi (Marketing, IT) a sottoscrizioni (Web, Mobile, App, Server), gruppi di risorse e singole risorse, con policy e accessi che ereditano verso il basso.* _(caption)_
 
 Esempi di utilizzo dei gruppi di gestione:
 
@@ -636,17 +636,17 @@ Il **Cloud Adoption Framework (CAF)** è una guida Microsoft completa che aiuta 
 
 La cloud governance riguarda la gestione di tutti gli aspetti dell'uso del cloud all'interno dell'organizzazione: minimizza i rischi (conformità, sicurezza, gestione delle risorse, dati), ottimizza le operazioni e garantisce che le attività cloud siano coerenti con la strategia aziendale. Il **CAF Govern methodology** fornisce un framework sistematico per stabilire e migliorare la governance cloud.
 
-![Figura 21](img/microsoft-caf-for-azure.png) _(dimensioni: 2058×964 px)_
+![](img/microsoft-caf-for-azure.png) _(dimensioni: 2058×964 px)_
 
-*Figura 21 — Le metodologie del Microsoft Cloud Adoption Framework for Azure per ogni fase del ciclo di vita di adozione del cloud: Strategy, Plan, Ready, Adopt, Govern e Manage.* _(caption)_
+*Le metodologie del Microsoft Cloud Adoption Framework for Azure per ogni fase del ciclo di vita di adozione del cloud: Strategy, Plan, Ready, Adopt, Govern e Manage.* _(caption)_
 
 **I 5 step della cloud governance** _(stepTitle)_
 
 La cloud governance è un processo continuo che richiede monitoraggio, valutazione e aggiustamenti costanti per adattarsi a tecnologie, rischi e requisiti di conformità in evoluzione.
 
-![Figura 22](img/cloud-governance-steps.png) _(dimensioni: 2031×278 px)_
+![](img/cloud-governance-steps.png) _(dimensioni: 2031×278 px)_
 
-*Figura 22 — I 5 step della cloud governance: processo iterativo da Build a cloud governance team fino a Monitor cloud governance.* _(caption)_
+*I 5 step della cloud governance: processo iterativo da Build a cloud governance team fino a Monitor cloud governance.* _(caption)_
 
 1. **Costituire un team di governance** — un team dedicato responsabile di definire, mantenere e rendicontare le policy di governance cloud.
 2. **Valutare i rischi cloud** — analisi approfondita dei rischi specifici dell'organizzazione: conformità normativa, sicurezza, operazioni, costi, gestione dei dati, risorse e AI.
@@ -663,9 +663,9 @@ _(infoBox)_
 - **Policy e conformità** — tradurre le decisioni sui rischi in dichiarazioni di policy per definire in modo efficiente i confini di adozione del cloud.
 - **Processo** — stabilire processi per monitorare le violazioni e l'aderenza alle policy aziendali.
 
-![Figura 23](img/cloud-governance.png) _(dimensioni: 2220×1022 px)_
+![](img/cloud-governance.png) _(dimensioni: 2220×1022 px)_
 
-*Figura 23 — Le 3 considerazioni chiave per definire una policy di governance cloud: Business Risk, Policy and Compliance, Process.* _(caption)_
+*Le 3 considerazioni chiave per definire una policy di governance cloud: Business Risk, Policy and Compliance, Process.* _(caption)_
 
 **Le 5 discipline fondamentali della cloud governance** _(stepTitle)_
 
@@ -703,9 +703,9 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Azure Policy segue un approccio dichiarativo: si definisce lo stato desiderato delle risorse e Azure si occupa di valutare e applicare le regole. Azure fornisce quattro livelli di gestione per una governance corretta: Management Groups, Subscriptions, Resource Groups e Resources. I livelli inferiori ereditano le impostazioni da quelli superiori.
 
-![Figura 24](img/azure-governance-hierarchy.png) _(dimensioni: 500×327 px)_
+![](img/azure-governance-hierarchy.png) _(dimensioni: 500×327 px)_
 
-*Figura 24 — Gerarchia di governance Azure: Tenant Root Group → Management Groups → Subscriptions → Resource Groups → Resources, con policy e accessi che ereditano verso il basso.* _(caption)_
+*Gerarchia di governance Azure: Tenant Root Group → Management Groups → Subscriptions → Resource Groups → Resources, con policy e accessi che ereditano verso il basso.* _(caption)_
 
 **Azure Resource Manager e i due piani** _(stepTitle)_
 
@@ -714,9 +714,9 @@ Azure Resource Manager (ARM) è il servizio di deployment e gestione di Azure. T
 - **Control plane** — gestisce le risorse nella sottoscrizione (creare, aggiornare, eliminare). Azure Policy opera qui, integrata con ARM, valutando ogni richiesta prima dell'esecuzione. Quando arriva una richiesta tramite portale, CLI, PowerShell o API, ARM autentica, verifica RBAC e poi valuta Azure Policy nell'ordine indicato. ARM gestisce anche funzioni essenziali come deployment basati su template, auditing, monitoring e tagging.
 - **Data plane** — operazioni dirette sui dati all'interno di una risorsa già esistente (es. caricare file su uno storage account, leggere segreti da Key Vault, interrogare un database SQL). Queste operazioni bypassano ARM e vengono gestite direttamente dal resource provider del servizio tramite i propri endpoint dati.
 
-![Figura 25](img/azure-policy-arm.png) _(dimensioni: 500×260 px)_
+![](img/azure-policy-arm.png) _(dimensioni: 500×260 px)_
 
-*Figura 25 — Azure Policy e Azure Resource Manager: il Control Plane riceve le richieste da CLI, PowerShell, HTTP e portale Azure, le elabora tramite Azure Policy, RBAC, ARM Templates e altri servizi, e le instrada ai Resource Provider.* _(caption)_
+*Azure Policy e Azure Resource Manager: il Control Plane riceve le richieste da CLI, PowerShell, HTTP e portale Azure, le elabora tramite Azure Policy, RBAC, ARM Templates e altri servizi, e le instrada ai Resource Provider.* _(caption)_
 
 > **RBAC prima di Azure Policy**: Quando una richiesta arriva ad ARM, viene valutato prima RBAC e poi Azure Policy. Se l'utente non ha i permessi RBAC necessari, Azure Policy non viene nemmeno considerata — la richiesta fallisce già al controllo dei permessi.
 _(infoBox)_
@@ -736,9 +736,9 @@ Azure Policy permette ai singoli servizi Azure di implementare un'estensione che
 
 Azure Resource Manager gestisce due scenari distinti per l'applicazione delle policy:
 
-![Figura 26](img/operation-flows.png) _(dimensioni: 1996×978 px)_
+![](img/operation-flows.png) _(dimensioni: 1996×978 px)_
 
-*Figura 26 — I due scenari di gestione delle richieste ARM: Greenfield (policy-first, risorsa creata dopo la policy) e Brownfield (resource-first, policy assegnata a risorse già esistenti).* _(caption)_
+*I due scenari di gestione delle richieste ARM: Greenfield (policy-first, risorsa creata dopo la policy) e Brownfield (resource-first, policy assegnata a risorse già esistenti).* _(caption)_
 
 - **Greenfield (policy-first)** — la policy esiste già quando si crea o aggiorna una risorsa. La valutazione avviene in tempo reale: ARM riceve la richiesta, verifica RBAC, valuta Azure Policy e blocca immediatamente se la risorsa non è conforme. Per gli aggiornamenti, Azure Policy legge lo stato corrente della risorsa, lo fonde con il delta della modifica richiesta (target state), e valuta il risultato.
 - **Brownfield (resource-first)** — le risorse esistono già quando viene assegnata una nuova policy. La valutazione avviene tramite compliance scan automatico ogni 24 ore o manuale tramite `az policy state trigger-scan`. Le risorse esistenti non conformi vengono segnalate ma non eliminate; i tentativi futuri di creare risorse non conformi vengono bloccati.
@@ -752,9 +752,9 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Azure Policy mette a disposizione 6 risorse principali: Definizioni, Iniziative, Assegnazioni, Esenzioni, Attestazioni e Remediation task.
 
-![Figura 27](img/policy-resources.png) _(dimensioni: 2070×984 px)_
+![](img/policy-resources.png) _(dimensioni: 2070×984 px)_
 
-*Figura 27 — Le 6 risorse di Azure Policy e i concetti correlati: Definitions, Initiatives, Assignments, Exemptions, Attestations e Remediations.* _(caption)_
+*Le 6 risorse di Azure Policy e i concetti correlati: Definitions, Initiatives, Assignments, Exemptions, Attestations e Remediations.* _(caption)_
 
 **Definizioni (Definitions)** _(stepTitle)_
 
@@ -964,9 +964,9 @@ Assegnare la policy in modalità `DoNotEnforce` per osservare la conformità sen
 
 Distribuire le policy gradualmente in sottoinsiemi crescenti (ring):
 
-![Figura 28](img/safe-deployment.png) _(dimensioni: 2026×848 px)_
+![](img/safe-deployment.png) _(dimensioni: 2026×848 px)_
 
-*Figura 28 — Il framework di safe deployment per le assegnazioni di Azure Policy: dall'assegnazione con enforcementMode Disabled (Ring 5) alla validazione progressiva fino ai ring di produzione.* _(caption)_
+*Il framework di safe deployment per le assegnazioni di Azure Policy: dall'assegnazione con enforcementMode Disabled (Ring 5) alla validazione progressiva fino ai ring di produzione.* _(caption)_
 
 1. **Creare la definizione** — salvare la definizione con ambito root (tenant).
 2. **Creare l'assegnazione con Ring 5** — applicare la policy a un piccolo sottoinsieme (es. un gruppo di risorse di test) con `enforcementMode = DoNotEnforce`.
@@ -982,9 +982,9 @@ _(infoBox)_
 
 Azure Policy si integra con **Azure Event Grid** per consentire alle applicazioni di reagire ai cambiamenti di stato della conformità senza polling continuo. Gli eventi di Azure Policy (Event Source) vengono pubblicati su Event Grid che li instrada agli Event Handler configurati.
 
-![Figura 29](img/reacting-to-policy-changes.png) _(dimensioni: 1312×1104 px)_
+![](img/reacting-to-policy-changes.png) _(dimensioni: 1312×1104 px)_
 
-*Figura 29 — Integrazione Azure Policy → Event Grid → Event Handler: gli eventi di cambio stato della policy vengono pubblicati su Event Grid e instradati a Functions, Logic Apps o webhook personalizzati.* _(caption)_
+*Integrazione Azure Policy → Event Grid → Event Handler: gli eventi di cambio stato della policy vengono pubblicati su Event Grid e instradati a Functions, Logic Apps o webhook personalizzati.* _(caption)_
 
 - **Event Handler supportati**: Azure Functions, Logic Apps, webhook HTTP personalizzati.
 - **Event Grid** gestisce il routing, il filtraggio e il multicasting degli eventi verso le destinazioni tramite Event Grid Subscriptions, con policy di retry e dead-letter delivery.
@@ -1025,9 +1025,9 @@ Azure RBAC è un sistema di **autorizzazione** basato su Azure Resource Manager 
 
 Ogni sottoscrizione Azure è associata a **una singola directory di Microsoft Entra**. Utenti, gruppi e applicazioni in quella directory possono gestire le risorse nella sottoscrizione tramite Single Sign-On (SSO) e gestione degli accessi. Estendendo Active Directory locale al cloud con **Microsoft Entra Connect**, i dipendenti possono usare le identità aziendali esistenti per accedere ad Azure. Quando un account AD locale viene disabilitato, **perde automaticamente l'accesso a tutte le sottoscrizioni Azure** connesse a Microsoft Entra ID.
 
-![Figura 32](img/rbac-roles-hierarchy.png) _(dimensioni: 895×598 px)_
+![](img/rbac-roles-hierarchy.png) _(dimensioni: 895×598 px)_
 
-*Figura 32 — Relazione tra ruoli di amministratore della sottoscrizione classica, ruoli di Azure e ruoli di Microsoft Entra nella gerarchia Management Group → Sottoscrizione → Gruppo di risorse → Risorsa. Gli ambiti figlio ereditano i ruoli assegnati all'ambito padre.* _(caption)_
+*Relazione tra ruoli di amministratore della sottoscrizione classica, ruoli di Azure e ruoli di Microsoft Entra nella gerarchia Management Group → Sottoscrizione → Gruppo di risorse → Risorsa. Gli ambiti figlio ereditano i ruoli assegnati all'ambito padre.* _(caption)_
 
 **I tre elementi di un'assegnazione di ruolo** _(stepTitle)_
 
@@ -1037,17 +1037,17 @@ Per creare un'assegnazione di ruolo servono tre elementi — chi, cosa e dove:
 
 L'oggetto a cui si concede l'accesso: utente, gruppo, entità servizio (applicazione) o identità gestita.
 
-![Figura 30](img/rbac-security-principal.png) _(dimensioni: 357×134 px)_
+![](img/rbac-security-principal.png) _(dimensioni: 357×134 px)_
 
-*Figura 30 — Entità di sicurezza: utente, gruppo ed entità servizio (applicazione).* _(caption)_
+*Entità di sicurezza: utente, gruppo ed entità servizio (applicazione).* _(caption)_
 
 **2. Definizione del ruolo — Cosa**
 
 Una raccolta di autorizzazioni (talvolta chiamata semplicemente "ruolo") che elenca le operazioni consentite: lettura, scrittura, eliminazione e altro. I ruoli possono essere di livello superiore (es. Proprietario) o specifici (es. Collaboratore Macchina virtuale).
 
-![Figura 31](img/rbac-role-definition.png) _(dimensioni: 537×352 px)_
+![](img/rbac-role-definition.png) _(dimensioni: 537×352 px)_
 
-*Figura 31 — Definizione del ruolo: elenco dei ruoli predefiniti e personalizzati con dettaglio del ruolo Collaboratore e delle sue autorizzazioni.* _(caption)_
+*Definizione del ruolo: elenco dei ruoli predefiniti e personalizzati con dettaglio del ruolo Collaboratore e delle sue autorizzazioni.* _(caption)_
 
 I **quattro ruoli predefiniti fondamentali** sono:
 
@@ -1105,9 +1105,9 @@ In ogni risorsa, gruppo di risorse, sottoscrizione o gruppo di gestione è prese
 - Verificare i propri permessi effettivi tramite la scheda "Verifica accesso".
 - Visualizzare i log delle modifiche alle assegnazioni di ruolo nel log attività Azure.
 
-![Figura 33](img/rbac-iam-portal.png) _(dimensioni: 1069×708 px)_
+![](img/rbac-iam-portal.png) _(dimensioni: 1069×708 px)_
 
-*Figura 33 — Riquadro Controllo di accesso (IAM) nel portale Azure: scheda Assegnazioni di ruolo con la lista di utenti, gruppi, service principal e managed identity con i relativi ruoli e ambiti.* _(caption)_
+*Riquadro Controllo di accesso (IAM) nel portale Azure: scheda Assegnazioni di ruolo con la lista di utenti, gruppi, service principal e managed identity con i relativi ruoli e ambiti.* _(caption)_
 
 **Scenari pratici di utilizzo** _(stepTitle)_
 
@@ -1255,28 +1255,28 @@ La strategia consigliata è: abilitare con **Selezionato** per validare la confi
 1. **Portale Azure** → **Microsoft Entra ID** → **Gestire** → **Reimpostazione password**.
 2. **Proprietà** — abilitare SSPR e scegliere l'ambito (Nessuno / Selezionato / Tutti); se si sceglie Selezionato, specificare il gruppo di sicurezza.
 
-![Figura 34](img/3-enable-sspr.png) _(dimensioni: 1327×450 px)_
-*Figura 34 — Pannello Proprietà SSPR: abilitazione e selezione del gruppo pilota.* _(caption)_
+![](img/3-enable-sspr.png) _(dimensioni: 1327×450 px)_
+*Pannello Proprietà SSPR: abilitazione e selezione del gruppo pilota.* _(caption)_
 
 3. **Metodi di autenticazione** — scegliere quanti metodi sono richiesti (1 o 2) e quali metodi abilitare tra i sei disponibili.
 
-![Figura 35](img/3-auth-methods.png) _(dimensioni: 1327×858 px)_
-*Figura 35 — Pannello Metodi di autenticazione SSPR: numero richiesto e metodi disponibili.* _(caption)_
+![](img/3-auth-methods.png) _(dimensioni: 1327×858 px)_
+*Pannello Metodi di autenticazione SSPR: numero richiesto e metodi disponibili.* _(caption)_
 
 4. **Registrazione** — specificare se richiedere la registrazione al successivo accesso e con quale frequenza richiedere la riconferma delle informazioni di autenticazione.
 
-![Figura 36](img/3-registration-options.png) _(dimensioni: 1872×629 px)_
-*Figura 36 — Opzioni di registrazione SSPR: richiesta automatica alla prima autenticazione e scadenza periodica.* _(caption)_
+![](img/3-registration-options.png) _(dimensioni: 1872×629 px)_
+*Opzioni di registrazione SSPR: richiesta automatica alla prima autenticazione e scadenza periodica.* _(caption)_
 
 5. **Notifiche** — scegliere se inviare notifiche agli utenti e agli amministratori in caso di reset.
 
-![Figura 37](img/3-notification-settings.png) _(dimensioni: 995×489 px)_
-*Figura 37 — Impostazioni notifiche SSPR: avvisi all'utente e agli amministratori.* _(caption)_
+![](img/3-notification-settings.png) _(dimensioni: 995×489 px)_
+*Impostazioni notifiche SSPR: avvisi all'utente e agli amministratori.* _(caption)_
 
 6. **Personalizzazione** — specificare un indirizzo email o un URL di pagina Web dove gli utenti possono contattare il supporto aziendale.
 
-![Figura 38](img/3-customization-settings.png) _(dimensioni: 1324×445 px)_
-*Figura 38 — Personalizzazione SSPR: link all'help desk aziendale per gli utenti che non riescono ad autenticarsi.* _(caption)_
+![](img/3-customization-settings.png) _(dimensioni: 1324×445 px)_
+*Personalizzazione SSPR: link all'help desk aziendale per gli utenti che non riescono ad autenticarsi.* _(caption)_
 
 **Integrazione con ambienti ibridi — Password Writeback** _(stepTitle)_
 

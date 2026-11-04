@@ -4,11 +4,11 @@ _Questo percorso introduce i fondamenti operativi per lavorare come amministrato
 con focus sugli strumenti di gestione interattiva e sull'automazione dell'infrastruttura tramite template dichiarativi._
 
 **Immagini usate in questo modulo:**
-- `img/cloud-shell-powershell.png` (955×576) — Figura 1
+- `img/cloud-shell-powershell.png` (955×576)
 
 **Tabelle generate da codice:**
-- `toolsTable()` — Tabella 1: Strumenti disponibili in Cloud Shell
-- `armStructureTable()` — Tabella 2: Elementi di un file modello ARM
+- `toolsTable()` — Strumenti disponibili in Cloud Shell
+- `armStructureTable()` — Elementi di un file modello ARM
 
 ---
 
@@ -29,9 +29,9 @@ _(h3: Calibri 12pt grassetto #2D5F8A keepNext)_
 
 Azure Cloud Shell è un ambiente shell interattivo e autenticato accessibile direttamente dal browser, senza necessità di installare nulla in locale. Supporta sia Bash che PowerShell e si integra nativamente con la sottoscrizione Azure dell'utente.
 
-![Figura 1](img/cloud-shell-powershell.png) _(dimensioni: 955×576 px)_
+![](img/cloud-shell-powershell.png) _(dimensioni: 955×576 px)_
 
-*Figura 1 — Sessione di Azure Cloud Shell in modalità PowerShell all'interno del portale di Azure.* _(caption)_
+*Sessione di Azure Cloud Shell in modalità PowerShell all'interno del portale di Azure.* _(caption)_
 
 
 ### 1.1.3 — Come funziona Azure Cloud Shell?
@@ -49,7 +49,7 @@ Cloud Shell è la scelta ideale quando si lavora da un dispositivo senza strumen
 
 [TABELLA: toolsTable] _(tabella generata da codice)_
 
-*Tabella 1 — Strumenti disponibili in una sessione Cloud Shell.* _(caption)_
+*Strumenti disponibili in una sessione Cloud Shell.* _(caption)_
 
 
 ---
@@ -81,7 +81,7 @@ Un modello ARM è un file JSON che usa sintassi dichiarativa: si descrive cosa d
 
 [TABELLA: armStructureTable] _(tabella generata da codice)_
 
-*Tabella 2 — Elementi di un file modello ARM (* = obbligatorio).* _(caption)_
+*Elementi di un file modello ARM (* = obbligatorio).* _(caption)_
 
 Esempio di template ARM completo per la distribuzione di un account di archiviazione:
 

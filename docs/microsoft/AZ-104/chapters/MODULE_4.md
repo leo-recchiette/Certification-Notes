@@ -3,32 +3,32 @@
 _Questo percorso illustra le soluzioni di archiviazione in Azure: dalla configurazione degli account alla gestione di blob, file e sicurezza dei dati. La scelta corretta è cruciale per prestazioni, costi, durabilità e conformità normativa._
 
 **Immagini usate in questo modulo:**
-- `img/storage-types.png` (869×216) — Figura 62
-- `img/explore-storage-services.png` (506×291) — Figura 63
-- `img/locally-redundant-storage.png` (273×285) — Figura 64
-- `img/zone-redundant-storage.png` (503×501) — Figura 65
-- `img/geo-redundant-storage.png` (731×299) — Figura 66
-- `img/geo-zone-redundant-storage.png` (960×541) — Figura 67
-- `img/secure-storage-access-d32868ef.png` (867×338) — Figura 68
-- `img/service-endpoints-portal-lrg.png` (820×559) — Figura 69
-- `img/blob-storage-94fb52b8.png` (660×302) — Figura 70
-- `img/blob-containers-a243a2b9.png` (741×307) — Figura 71
-- `img/blob-lifecycle-2854d812.png` (633×549) — Figura 72
-- `img/blob-object-replication-21fd3c07.png` (540×338) — Figura 73
-- `img/upload-blobs-7ad73d30.png` (410×599) — Figura 74
-- `img/blob-storage-explorer.png` (639×341) — Figura 75
-- `img/blob-pricing.png` (580×310) — Figura 76
-- `img/storage-defense.png` (975×253) — Figura 77
-- `img/secure-encryption-e3b68445.png` (703×481) — Figura 78
-- `img/customer-keys-b24acc48.png` (1079×547) — Figura 79
-- `img/storage-insights.png` (1248×635) — Figura 80
-- `img/configure-classic-files.png` (623×511) — Figura 81
-- `img/file-share-snapshot-cbda2136.png` (709×406) — Figura 82
-- `img/files-enable-soft-delete-new-ui.png` (1200×890) — Figura 83
-- `img/storage-explorer.png` (753×322) — Figura 84
-- `img/connection-options-1df9c8f7.png` (567×579) — Figura 85
-- `img/attach-name-key-13fe3ba3.png` (412×354) — Figura 86
-- `img/file-sync-1d3fd2e7.png` (2402×1544) — Figura 87
+- `img/storage-types.png` (869×216)
+- `img/explore-storage-services.png` (506×291)
+- `img/locally-redundant-storage.png` (273×285)
+- `img/zone-redundant-storage.png` (503×501)
+- `img/geo-redundant-storage.png` (731×299)
+- `img/geo-zone-redundant-storage.png` (960×541)
+- `img/secure-storage-access-d32868ef.png` (867×338)
+- `img/service-endpoints-portal-lrg.png` (820×559)
+- `img/blob-storage-94fb52b8.png` (660×302)
+- `img/blob-containers-a243a2b9.png` (741×307)
+- `img/blob-lifecycle-2854d812.png` (633×549)
+- `img/blob-object-replication-21fd3c07.png` (540×338)
+- `img/upload-blobs-7ad73d30.png` (410×599)
+- `img/blob-storage-explorer.png` (639×341)
+- `img/blob-pricing.png` (580×310)
+- `img/storage-defense.png` (975×253)
+- `img/secure-encryption-e3b68445.png` (703×481)
+- `img/customer-keys-b24acc48.png` (1079×547)
+- `img/storage-insights.png` (1248×635)
+- `img/configure-classic-files.png` (623×511)
+- `img/file-share-snapshot-cbda2136.png` (709×406)
+- `img/files-enable-soft-delete-new-ui.png` (1200×890)
+- `img/storage-explorer.png` (753×322)
+- `img/connection-options-1df9c8f7.png` (567×579)
+- `img/attach-name-key-13fe3ba3.png` (412×354)
+- `img/file-sync-1d3fd2e7.png` (2402×1544)
 
 ---
 
@@ -51,7 +51,7 @@ Capire **Azure Storage** è importante perché è il fondamento su cui poggiano 
 Il modo più efficace per ragionare su **Azure Storage** è pensarlo come supporto a tre categorie di dati: dati strutturati, dati non strutturati e dati delle macchine virtuali. Questa distinzione non è accademica: ti guida nella scelta del servizio corretto, perché ogni categoria ha caratteristiche, formati e servizi dedicati. Mentre leggi, prova a riconoscere quali di questi tipi sono già presenti nella tua organizzazione.
 
 ![Tipi di dati gestiti da Azure Storage](img/storage-types.png) _(dimensioni: 869×216 px)_
-*Figura 62: Dati strutturati e non strutturati gestiti da una macchina virtuale.* _(caption)_
+*Dati strutturati e non strutturati gestiti da una macchina virtuale.* _(caption)_
 
 | **Categoria** | **Descrizione** | **Esempi di archiviazione** |
 | --- | --- | --- |
@@ -80,7 +80,7 @@ _(infoBox)_
 Un **Storage Account** in Azure non è un contenitore monolitico: al suo interno convivono quattro servizi di dati distinti, ciascuno progettato per un tipo di carico di lavoro diverso. Capire le differenze tra questi servizi è fondamentale perché la scelta sbagliata si traduce in costi più alti, prestazioni inadeguate o complessità inutile. In questa unità esaminiamo i dettagli di ciascun servizio, così da poter abbinare correttamente la tecnologia al problema da risolvere.
 
 ![I quattro tipi principali di Azure Storage](img/explore-storage-services.png) _(dimensioni: 506×291 px)_
-*Figura 63: Diagramma dei quattro tipi principali di archiviazione di Azure: Blob, File, Code e Tabelle.* _(caption)_
+*Diagramma dei quattro tipi principali di archiviazione di Azure: Blob, File, Code e Tabelle.* _(caption)_
 
 **Azure Blob Storage** _(stepTitle)_
 
@@ -175,7 +175,7 @@ La domanda chiave quando si sceglie una strategia di replica è: "fin dove vogli
 **Locally redundant storage (LRS)** _(stepTitle)_
 
 ![Storage LRS con tre copie](img/locally-redundant-storage.png) _(dimensioni: 273×285 px)_
-*Figura 64: Storage LRS che mantiene tre copie dei dati all'interno di un singolo data center.* _(caption)_
+*Storage LRS che mantiene tre copie dei dati all'interno di un singolo data center.* _(caption)_
 
 Il **Locally redundant storage** (LRS) è l'opzione di replica con il costo più basso e, di conseguenza, offre la durabilità minore rispetto alle altre strategie. LRS mantiene tre copie dei dati, ma tutte all'interno di un unico data center. Il limite è proprio questo: se si verifica un disastro a livello di data center, ad esempio un incendio o un'alluvione, tutte le repliche potrebbero andare perse o risultare irrecuperabili, perché non esiste nessuna copia all'esterno di quella struttura.
 
@@ -188,7 +188,7 @@ Nonostante questi limiti, LRS resta appropriato in diversi scenari:
 **Zone redundant storage (ZRS)** _(stepTitle)_
 
 ![Storage ZRS con tre data center](img/zone-redundant-storage.png) _(dimensioni: 503×501 px)_
-*Figura 65: Storage ZRS che replica i dati su tre data center in zone di disponibilità distinte della stessa region.* _(caption)_
+*Storage ZRS che replica i dati su tre data center in zone di disponibilità distinte della stessa region.* _(caption)_
 
 Il **Zone redundant storage** (ZRS) replica i dati in modo sincrono su tre cluster di storage all'interno di una singola region. Ogni cluster è fisicamente separato dagli altri e risiede in una propria zona di disponibilità (availability zone). Ciascuna availability zone, e il cluster ZRS al suo interno, è autonoma e dispone di alimentazione e connettività di rete indipendenti. Il vantaggio concreto è che, archiviando i dati in un account ZRS, si continua ad accedere e a gestire i dati anche se un'intera zona diventa indisponibile, perché le altre due continuano a funzionare. ZRS offre inoltre prestazioni eccellenti e bassa latenza, dato che le copie restano comunque nella stessa region.
 
@@ -200,7 +200,7 @@ Da tenere presenti due aspetti operativi:
 **Geo-redundant storage (GRS)** _(stepTitle)_
 
 ![Storage GRS con due data center](img/geo-redundant-storage.png) _(dimensioni: 731×299 px)_
-*Figura 66: Storage GRS che replica i dati in una region secondaria distante centinaia di chilometri.* _(caption)_
+*Storage GRS che replica i dati in una region secondaria distante centinaia di chilometri.* _(caption)_
 
 Il **Geo-redundant storage** (GRS) replica i dati in una region secondaria, distante centinaia di chilometri dalla posizione primaria dei dati di origine. Questo fa un salto di qualità nella protezione: GRS garantisce un livello di durabilità più elevato anche in caso di interruzione che colpisce un'intera region. GRS è progettato per fornire almeno il 99,99999999999999% di durabilità, cioè **16 nove**. Con GRS abilitato, i dati restano durevoli anche in presenza di un'interruzione regionale completa o di un disastro in cui la region primaria non sia recuperabile.
 
@@ -217,7 +217,7 @@ _(infoBox)_
 **Geo-zone-redundant storage (GZRS)** _(stepTitle)_
 
 ![Storage GZRS su tre zone di disponibilità replicate in una region secondaria](img/geo-zone-redundant-storage.png) _(dimensioni: 960×541 px)_
-*Figura 67: Storage GZRS che combina la ridondanza zonale nella region primaria con la replica geografica in una region secondaria.* _(caption)_
+*Storage GZRS che combina la ridondanza zonale nella region primaria con la replica geografica in una region secondaria.* _(caption)_
 
 Il **Geo-zone-redundant storage** (GZRS) combina l'alta disponibilità dello zone-redundant storage con la protezione dalle interruzioni regionali tipica del geo-redundant storage. In pratica prende il meglio di ZRS e di GRS: i dati di un account GZRS vengono replicati su tre availability zone della region primaria e, contemporaneamente, replicati in una region geografica secondaria per la protezione dai disastri regionali. Ogni region di Azure è abbinata a un'altra region all'interno della stessa area geografica, formando insieme una coppia di region (regional pair).
 
@@ -294,14 +294,14 @@ Quando un account di archiviazione viene creato, per impostazione predefinita è
 Per accedere a queste impostazioni nel tuo account di archiviazione utilizzi la sezione **Firewalls and virtual networks** (Firewall e reti virtuali). Qui aggiungi le reti virtuali che devono avere accesso al servizio per l'account. L'effetto pratico è importante: questa impostazione limita l'accesso al tuo **Storage Account** a subnet specifiche di reti virtuali oppure a indirizzi IP pubblici ben definiti. In altre parole, sposti l'account da "aperto a tutti" a "aperto solo a chi conosco", riducendo drasticamente la superficie di attacco esposta su internet.
 
 ![Impostazioni Firewall e reti virtuali dello Storage Account nel portale Azure](img/secure-storage-access-d32868ef.png) _(dimensioni: 867×338 px)_
-*Figura 68: Impostazioni Firewalls and virtual networks dello Storage Account nel portale Azure.* _(caption)_
+*Impostazioni Firewalls and virtual networks dello Storage Account nel portale Azure.* _(caption)_
 
 **Gli endpoint del servizio e gli URL delle risorse** _(stepTitle)_
 
 Gli endpoint del servizio di un account di archiviazione forniscono l'URL di base per qualsiasi oggetto blob, queue, table o file all'interno di **Azure Storage**. Questo URL di base è il punto di partenza che usi per costruire l'indirizzo di una qualunque risorsa: conoscendolo, puoi comporre l'indirizzo completo aggiungendo il nome del contenitore e dell'oggetto. È quindi un elemento fondamentale sia per accedere ai dati sia per ragionare su come metterli in sicurezza.
 
 ![URL degli endpoint del servizio nel portale Azure](img/service-endpoints-portal-lrg.png) _(dimensioni: 820×559 px)_
-*Figura 69: URL degli endpoint del servizio dello Storage Account visualizzati nel portale Azure.* _(caption)_
+*URL degli endpoint del servizio dello Storage Account visualizzati nel portale Azure.* _(caption)_
 
 **Cosa sapere sulla configurazione degli endpoint del servizio** _(stepTitle)_
 
@@ -351,7 +351,7 @@ Il punto chiave da comprendere è il concetto di dato *non strutturato*: a diffe
 Per capire come configurare il servizio, conviene partire dalla sua architettura e dagli elementi che lo compongono.
 
 ![Architettura di Azure Blob Storage](img/blob-storage-94fb52b8.png) _(dimensioni: 660×302 px)_
-*Figura 70: Architettura di Azure Blob Storage: lo Storage Account contiene i container, che a loro volta contengono i blob.* _(caption)_
+*Architettura di Azure Blob Storage: lo Storage Account contiene i container, che a loro volta contengono i blob.* _(caption)_
 
 - **Blob Storage** può memorizzare qualsiasi tipo di dato, testuale o binario. Alcuni esempi tipici sono documenti di testo, immagini, file video e programmi di installazione delle applicazioni.
 - Per organizzare e gestire i dati, **Blob Storage** utilizza tre risorse disposte in modo gerarchico (è importante capire questa gerarchia perché determina come si indirizzano e si proteggono i dati):
@@ -401,7 +401,7 @@ Il fatto che sia contenitori sia blob siano illimitati significa che la struttur
 Nel portale di Azure configuri alcune impostazioni per creare un contenitore all'interno di uno Storage Account. Mentre imposti questi valori, è utile ragionare fin da subito su come intendi organizzare i contenitori, perché nome e livello di accesso sono scelte che condizionano l'uso futuro dei dati.
 
 ![Pagina di creazione del contenitore e scelte del livello di accesso pubblico nel portale di Azure](img/blob-containers-a243a2b9.png) _(dimensioni: 741×307 px)_
-*Figura 71: Pagina di creazione del contenitore e scelte del livello di accesso pubblico nel portale di Azure.* _(caption)_
+*Pagina di creazione del contenitore e scelte del livello di accesso pubblico nel portale di Azure.* _(caption)_
 
 **Nome del contenitore** _(stepTitle)_
 
@@ -506,7 +506,7 @@ Per capire il valore pratico di queste regole, considera uno scenario in cui i d
 Nel portale di Azure le regole di criterio del ciclo di vita per lo **Storage Account** si creano specificando alcune impostazioni. Per ogni regola si definiscono blocchi di condizione **If - Then** (Se - Allora) che spostano o fanno scadere i dati in base ai criteri stabiliti. Mentre esamini questi dettagli, prova a immaginare come imposteresti le regole per i tuoi insiemi di dati.
 
 ![Aggiungere una regola di criterio del ciclo di vita nel portale di Azure](img/blob-lifecycle-2854d812.png) _(dimensioni: 633×549 px)_
-*Figura 72: Aggiunta di una regola di criterio per la gestione del ciclo di vita dei dati blob nel portale di Azure.* _(caption)_
+*Aggiunta di una regola di criterio per la gestione del ciclo di vita dei dati blob nel portale di Azure.* _(caption)_
 
 Il funzionamento della regola si basa su due clausole complementari:
 
@@ -530,7 +530,7 @@ La replica degli oggetti (object replication) copia i blob presenti in un contai
 La replica copia tre cose insieme: il **contenuto** del blob, le sue **proprietà di metadati** e le sue **versioni**. L'illustrazione seguente mostra un esempio di replica asincrona di container di blob tra regioni diverse.
 
 ![Replica asincrona di container di blob tra regioni](img/blob-object-replication-21fd3c07.png) _(dimensioni: 540×338 px)_
-*Figura 73: Replica asincrona di container di blob tra due regioni Azure.* _(caption)_
+*Replica asincrona di container di blob tra due regioni Azure.* _(caption)_
 
 **Cose da sapere sulla replica degli oggetti blob** _(stepTitle)_
 
@@ -587,7 +587,7 @@ _(infoBox)_
 Per caricare e gestire i blob è possibile usare il portale di Azure. Questa opzione è adatta quando i file sono pochi. Dopo aver individuato i file da caricare, si scelgono il tipo di blob e la dimensione del blocco (*block size*), oltre alla cartella del container. Si impostano inoltre il livello di accesso (*access tier*) e l'ambito di crittografia (*encryption scope*). In altre parole, il portale espone in un'unica schermata tutte le decisioni rilevanti sul singolo upload, ed è proprio per questo che risulta comodo solo su volumi ridotti: ripetere queste scelte manualmente per migliaia di file non è pratico.
 
 ![Pagina di caricamento dei blob con tipo di autenticazione, tipi di blob e dimensione del blocco](img/upload-blobs-7ad73d30.png) _(dimensioni: 410×599 px)_
-*Figura 74: Pagina Upload Blob che mostra il tipo di autenticazione, i tipi di blob e la dimensione del blocco.* _(caption)_
+*Pagina Upload Blob che mostra il tipo di autenticazione, i tipi di blob e la dimensione del blocco.* _(caption)_
 
 **Strumenti per grandi volumi di file** _(stepTitle)_
 
@@ -596,7 +596,7 @@ Quando i file da gestire sono molti, conviene usare uno strumento dedicato anzic
 - **Azure Storage Explorer**. Permette di caricare, scaricare e gestire blob, file, code (queue) e tabelle, oltre alle entità di **Azure Data Lake Storage** e ai dischi gestiti (managed disk). Consente inoltre di visualizzare, modificare e gestire le risorse, fare l'anteprima dei dati e configurare autorizzazioni e controlli di accesso allo storage. È un'applicazione con interfaccia grafica, quindi unisce la comodità visiva del portale alla capacità di lavorare su molte risorse.
 
 ![Pagina di Storage Explorer](img/blob-storage-explorer.png) _(dimensioni: 639×341 px)_
-*Figura 75: Pagina di Storage Explorer.* _(caption)_
+*Pagina di Storage Explorer.* _(caption)_
 
 - **AzCopy**. Uno strumento da riga di comando semplice da usare, disponibile per Windows e Linux. Consente di copiare dati da e verso Blob Storage, tra container diversi e tra account di storage diversi. È la scelta naturale per automatizzare i trasferimenti tramite script.
 - **Azure Data Box Disk**. Un servizio per trasferire dati on-premises verso Blob Storage quando i dataset sono troppo grandi o i vincoli di rete rendono poco realistico l'upload tramite connessione di rete. Con **Azure Data Box Disk** si possono richiedere a Microsoft dischi a stato solido (SSD): si copiano i propri dati su questi dischi e li si rispedisce a Microsoft, che li carica in Blob Storage. È quindi un trasferimento "fisico" pensato per i casi in cui la rete non basta.
@@ -618,7 +618,7 @@ In linea generale, il costo dello storage di tipo block blob dipende da tre fatt
 - L'**opzione di ridondanza** dei dati selezionata.
 
 ![Azure Pricing Calculator con la sezione storage evidenziata](img/blob-pricing.png) _(dimensioni: 580×310 px)_
-*Figura 76: Azure Pricing Calculator con la sezione dedicata allo storage evidenziata, dove si inseriscono i parametri del carico di lavoro per ottenere una stima dei costi.* _(caption)_
+*Azure Pricing Calculator con la sezione dedicata allo storage evidenziata, dove si inseriscono i parametri del carico di lavoro per ottenere una stima dei costi.* _(caption)_
 
 > **Suggerimento**: utilizza l'Azure Pricing Calculator per simulare scenari diversi (ad esempio lo stesso volume di dati nel tier Hot rispetto al Cool) prima di prendere decisioni architetturali. Confrontare le stime ti permette di capire dove conviene davvero risparmiare.
 _(infoBox)_
@@ -667,7 +667,7 @@ _(infoBox)_
 Il concetto chiave da tenere a mente mentre si studia questo modulo è la _difesa in profondità_ (defense in depth): invece di affidarsi a una sola barriera, si sovrappongono più funzionalità di sicurezza. La domanda da porsi per ogni funzionalità è: come contribuisce a questo schema a strati? L'immagine seguente mostra come le diverse funzionalità di **Azure Storage** si dispongono su livelli concentrici, dal perimetro di rete fino alla cifratura del dato.
 
 ![Funzionalità di difesa in profondità di Azure Storage](img/storage-defense.png) _(dimensioni: 975×253 px)_
-*Figura 77: Le funzionalità di sicurezza di Azure Storage organizzate secondo il principio della difesa in profondità.* _(caption)_
+*Le funzionalità di sicurezza di Azure Storage organizzate secondo il principio della difesa in profondità.* _(caption)_
 
 Vediamo le caratteristiche principali e, soprattutto, il motivo per cui esistono.
 
@@ -796,7 +796,7 @@ _(infoBox)_
 Nel portale di Azure, la crittografia di Azure Storage si configura specificando il *tipo di crittografia*, ovvero scegliendo chi gestisce le chiavi. Hai due possibilità di fondo: gestire tu stesso le chiavi oppure lasciarle gestire interamente a Microsoft. La figura seguente mostra le opzioni disponibili nel portale.
 
 ![Crittografia di Azure Storage con chiavi gestite da Microsoft e dal cliente](img/secure-encryption-e3b68445.png) _(dimensioni: 703×481 px)_
-*Figura 78: Configurazione della crittografia di Azure Storage, con chiavi gestite da Microsoft e chiavi gestite dal cliente.* _(caption)_
+*Configurazione della crittografia di Azure Storage, con chiavi gestite da Microsoft e chiavi gestite dal cliente.* _(caption)_
 
 Le opzioni e i concetti principali da considerare sono i seguenti.
 
@@ -840,7 +840,7 @@ _(infoBox)_
 Dal portale di Azure potete configurare le chiavi di crittografia gestite dal cliente. La scelta di fondo è una sola, ma determinante: lasciare la gestione a Microsoft oppure assumerla in prima persona usando **Azure Key Vault** per creare le vostre chiavi. La figura seguente mostra il pannello di configurazione.
 
 ![Come creare una chiave gestita dal cliente](img/customer-keys-b24acc48.png) _(dimensioni: 1079×547 px)_
-*Figura 79: Pannello del portale di Azure per la creazione di una chiave di crittografia gestita dal cliente.* _(caption)_
+*Pannello del portale di Azure per la creazione di una chiave di crittografia gestita dal cliente.* _(caption)_
 
 I due parametri da impostare sono:
 
@@ -864,7 +864,7 @@ In questa unità vediamo due strumenti complementari, **Storage Insights** e **M
 Il valore di questa vista unificata è pratico: invece di consultare strumenti diversi per capire se lo storage è sano, è performante e disponibile, hai un punto di osservazione centrale. Questo è essenziale per mantenere sia la sicurezza sia l'efficienza degli account di archiviazione.
 
 ![Storage insights nel portale di Azure](img/storage-insights.png) _(dimensioni: 1248×635 px)_
-*Figura 80: La vista di Storage insights nel portale, con prestazioni, capacità e disponibilità degli account di archiviazione.* _(caption)_
+*La vista di Storage insights nel portale, con prestazioni, capacità e disponibilità degli account di archiviazione.* _(caption)_
 
 **Quali sono i vantaggi di Storage Insights** _(stepTitle)_
 
@@ -1003,7 +1003,7 @@ Le condivisioni file "classiche" vivono all'interno di uno **Storage Account** e
 Se ti serve l'accesso tramite SMB, assicurati di creare la condivisione file dentro uno **Storage Account**. Le condivisioni file SMB ti permettono di scegliere tra diversi livelli di accesso, tra cui transaction optimized, hot e cool.
 
 ![Creazione di una condivisione file con la scelta del livello di accesso](img/configure-classic-files.png) _(dimensioni: 623×511 px)_
-*Figura 81: Schermata di creazione di una condivisione file che mostra le scelte del livello di accesso.* _(caption)_
+*Schermata di creazione di una condivisione file che mostra le scelte del livello di accesso.* _(caption)_
 
 > **Nota**: quando ci si connette tramite SMB, il traffico utilizza la porta 445. Molti provider Internet (ISP) bloccano la porta 445 in uscita: è il problema di connettività più comune quando si monta una condivisione file di Azure da un ambiente on-premises.
 _(infoBox)_
@@ -1016,7 +1016,7 @@ _(infoBox)_
 **Azure Files** offre la possibilità di acquisire snapshot (istantanee) delle condivisioni file. Uno snapshot è una copia point-in-time, cioè una "fotografia" della condivisione in un preciso istante: serve a proteggere i dati da cancellazioni accidentali e a consentire il ripristino in caso di errori applicativi. In altre parole, prima di un'operazione rischiosa puoi salvare lo stato attuale e, se qualcosa va storto, tornare indietro a quel momento.
 
 ![Snapshot di una condivisione file con nome e data di creazione](img/file-share-snapshot-cbda2136.png) _(dimensioni: 709×406 px)_
-*Figura 82: Snapshot di una condivisione file che mostra il nome dello snapshot e la data in cui è stato creato.* _(caption)_
+*Snapshot di una condivisione file che mostra il nome dello snapshot e la data in cui è stato creato.* _(caption)_
 
 **Cosa sapere sugli snapshot** _(stepTitle)_
 
@@ -1058,7 +1058,7 @@ Il motivo per cui questa funzionalità è così rilevante è che gli errori uman
 L'immagine seguente illustra come abilitare il soft delete su una condivisione file di Azure.
 
 ![Come abilitare il soft delete su una condivisione file di Azure](img/files-enable-soft-delete-new-ui.png) _(dimensioni: 1200×890 px)_
-*Figura 83: Procedura per abilitare l'eliminazione reversibile (soft delete) su una condivisione file di Azure.* _(caption)_
+*Procedura per abilitare l'eliminazione reversibile (soft delete) su una condivisione file di Azure.* _(caption)_
 
 **Caratteristiche del soft delete per Azure Files** _(stepTitle)_
 
@@ -1088,7 +1088,7 @@ Il soft delete porta numerosi vantaggi. Di seguito alcuni scenari tipici in cui 
 **Azure Storage Explorer** è un'applicazione desktop autonoma che semplifica il lavoro con i dati di **Azure Storage** su Windows, macOS e Linux. Il suo valore sta nel fornire un'interfaccia grafica unica con cui gestire più account di storage e più sottoscrizioni contemporaneamente, senza dover passare ogni volta dal portale Azure o ricorrere a comandi da riga di comando. È lo strumento ideale quando si vuole sfogliare, caricare, scaricare o organizzare il contenuto di uno **Storage Account** come se fosse un normale file system.
 
 ![Azure Storage Explorer con l'account dell'emulatore aperto](img/storage-explorer.png) _(dimensioni: 753×322 px)_
-*Figura 84: Azure Storage Explorer mostra l'account di storage dell'emulatore con una cartella e diversi documenti, con visibile l'informazione sul livello di accesso.* _(caption)_
+*Azure Storage Explorer mostra l'account di storage dell'emulatore con una cartella e diversi documenti, con visibile l'informazione sul livello di accesso.* _(caption)_
 
 **Cosa sapere su Azure Storage Explorer** _(stepTitle)_
 
@@ -1101,7 +1101,7 @@ Per capire come Storage Explorer si inserisce nel modello di sicurezza di Azure,
   - Connessione e gestione dello storage locale tramite l'**Azure Storage Emulator**, utile in fase di sviluppo per lavorare senza consumare risorse cloud.
 
 ![Pagina Manage Accounts di Azure Storage Explorer](img/connection-options-1df9c8f7.png) _(dimensioni: 567×579 px)_
-*Figura 85: La pagina Manage Accounts di Azure Storage Explorer, da cui si gestiscono le diverse modalità di connessione.* _(caption)_
+*La pagina Manage Accounts di Azure Storage Explorer, da cui si gestiscono le diverse modalità di connessione.* _(caption)_
 
 **Scenari di utilizzo da considerare** _(stepTitle)_
 
@@ -1122,7 +1122,7 @@ Storage Explorer permette di collegarsi a Storage Account esterni, in modo che g
 Per creare la connessione servono il nome dell'account esterno (**Account name**) e la relativa chiave (**Account key**). Nel portale Azure, questa chiave corrisponde a **key1**.
 
 ![Procedura guidata per collegarsi a uno Storage Account esterno](img/attach-name-key-13fe3ba3.png) _(dimensioni: 412×354 px)_
-*Figura 86: La procedura guidata di Azure Storage Explorer per connettersi a uno Storage Account esterno.* _(caption)_
+*La procedura guidata di Azure Storage Explorer per connettersi a uno Storage Account esterno.* _(caption)_
 
 Per usare nome e chiave di un account proveniente da un cloud Azure nazionale, si utilizza il menu a discesa **Storage endpoints domain** selezionando **Other**, per poi inserire il dominio dell'endpoint personalizzato dello Storage Account.
 
@@ -1140,7 +1140,7 @@ Immagina di avere file server tradizionali sparsi tra la sede centrale e diverse
 Il vantaggio chiave è questo: gli utenti continuano ad accedere ai file dal server locale come hanno sempre fatto, ma la copia autorevole e completa dei dati vive in **Azure Files**. Centralizzi quindi le condivisioni dell'organizzazione nel cloud, mentre il server locale resta una cache veloce e vicina agli utenti.
 
 ![Come Azure File Sync mette in cache le condivisioni di un'organizzazione in Azure Files](img/file-sync-1d3fd2e7.png) _(dimensioni: 2402×1544 px)_
-*Figura 87: Come Azure File Sync mette in cache le condivisioni file di un'organizzazione in Azure Files.* _(caption)_
+*Come Azure File Sync mette in cache le condivisioni file di un'organizzazione in Azure Files.* _(caption)_
 
 **I cinque componenti di Azure File Sync** _(stepTitle)_
 

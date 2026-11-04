@@ -1757,9 +1757,9 @@ Terraform aggiorna tutte le risorse `random_pet.object_names`, non solo il nome 
 
 Le input variable offrono un'interfaccia per personalizzare la configurazione. A differenza delle variabili dei linguaggi di programmazione non cambiano durante un'esecuzione: si assegnano prima, invece di modificare a mano i file (vedi §4.13). Nel tutorial si distribuisce un'applicazione web su AWS (VPC, load balancer, istanze EC2) e se ne parametrizza la configurazione, con interpolazione, funzioni e validazione.
 
-![Figura 11](img/terraform-variables-architecture-diagram.png) _(dimensioni: 663×320 px)_
+![](img/terraform-variables-architecture-diagram.png) _(dimensioni: 663×320 px)_
 
-*Figura 11 — L'architettura del tutorial: una VPC con subnet, un load balancer e istanze EC2 su AWS. Fonte: HashiCorp Developer.* _(caption)_
+*L'architettura del tutorial: una VPC con subnet, un load balancer e istanze EC2 su AWS. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 4.12.1 — Parametrizzare la configurazione
 
@@ -3773,9 +3773,9 @@ Terraform valida i diversi aspetti della configurazione il prima possibile. In g
 3. le postcondition, dopo aver pianificato e applicato le modifiche;
 4. i check, alla fine delle operazioni di plan e apply, e ogni volta che su un workspace di HCP Terraform vengono eseguiti gli health assessment.
 
-![Figura 12](img/validation-order-of-operations-dark.jpg) _(dimensioni: 1312×738 px)_
+![](img/validation-order-of-operations-dark.jpg) _(dimensioni: 1312×738 px)_
 
-*Figura 12 — L'ordine in cui Terraform esegue le validazioni: validation delle variabili, precondition, postcondition e check. Fonte: HashiCorp Developer.* _(caption)_
+*L'ordine in cui Terraform esegue le validazioni: validation delle variabili, precondition, postcondition e check. Fonte: HashiCorp Developer.* _(caption)_
 
 L'ordine preciso in cui Terraform esegue check, precondition e postcondition può dipendere da quando conosce il valore di una condizione, prima o dopo l'apply della configurazione. Se il valore è disponibile prima dell'apply, Terraform esegue la validazione durante il plan. Ad esempio, se durante il plan Terraform conosce l'ID dell'immagine di una risorsa, può eseguire tutte le validazioni che si basano su quell'ID.
 
@@ -4393,9 +4393,9 @@ Tradizionalmente, gli sviluppatori che devono creare infrastruttura con Terrafor
 
 Entrambi i problemi si risolvono conservando le credenziali AWS di lunga durata nell'AWS Secrets Engine di HashiCorp Vault. Poi si usa il provider Vault di Terraform per generare credenziali AWS di breve durata e con l'ambito appropriato, che Terraform usa per creare le risorse in AWS. Così gli operatori (Vault Admin) non devono gestire segreti statici di lunga durata con ambiti diversi. Gli sviluppatori (Terraform Operator) possono invece creare le risorse senza accedere direttamente ai segreti. Nel tutorial si interpretano entrambi i ruoli, il Vault Admin e il Terraform Operator.
 
-![Figura 13](img/vault-secrets-overview.png) _(dimensioni: 1562×532 px)_
+![](img/vault-secrets-overview.png) _(dimensioni: 1562×532 px)_
 
-*Figura 13 — I due ruoli del tutorial: il Vault Admin configura e gestisce i segreti in Vault, il Terraform Operator li usa per creare le risorse AWS. Fonte: HashiCorp Developer.* _(caption)_
+*I due ruoli del tutorial: il Vault Admin configura e gestisce i segreti in Vault, il Terraform Operator li usa per creare le risorse AWS. Fonte: HashiCorp Developer.* _(caption)_
 
 Il tutorial si svolge in tre fasi:
 

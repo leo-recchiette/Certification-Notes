@@ -8,9 +8,9 @@ _Obiettivo 7 dell'esame: importare infrastruttura esistente nel workspace Terraf
 
 Importando in Terraform l'infrastruttura esistente, la si gestisce con lo stesso workflow usato per crearne di nuova: si scrive la configurazione, si rivede il piano e lo si applica (vedi §3.1).
 
-![Figura 15](img/terraform-workflow-diagram.png) _(dimensioni: 737×280 px)_
+![](img/terraform-workflow-diagram.png) _(dimensioni: 737×280 px)_
 
-*Figura 15 — Il workflow tipico di Terraform: scrivere la configurazione, rivedere il piano, applicarlo. Fonte: HashiCorp Developer.* _(caption)_
+*Il workflow tipico di Terraform: scrivere la configurazione, rivedere il piano, applicarlo. Fonte: HashiCorp Developer.* _(caption)_
 
 Da Terraform 1.5 l'import si fa con la configurazione, nel workflow di plan e apply (vedi §7.2). `terraform import` funziona ancora, ma l'import guidato dalla configurazione è più sicuro, funziona nelle pipeline CI/CD, mostra l'operazione in anteprima e può generare la configurazione. I passi sono:
 
@@ -544,9 +544,9 @@ Nel tutorial si clona un repository con una configurazione Terraform non funzion
 
 Con Terraform si possono incontrare quattro tipi di problemi: errori di linguaggio, di state, del core e dei provider.
 
-![Figura 16](img/tf-layers.png) _(dimensioni: 2400×810 px)_
+![](img/tf-layers.png) _(dimensioni: 2400×810 px)_
 
-*Figura 16 — I livelli dell'applicazione Terraform in cui può nascere un problema: linguaggio (HCL), state, core application e provider. Fonte: HashiCorp Developer.* _(caption)_
+*I livelli dell'applicazione Terraform in cui può nascere un problema: linguaggio (HCL), state, core application e provider. Fonte: HashiCorp Developer.* _(caption)_
 
 Partendo dal tipo di errore più vicino all'utente:
 

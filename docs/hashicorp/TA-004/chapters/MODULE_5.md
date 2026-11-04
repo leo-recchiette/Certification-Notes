@@ -110,9 +110,9 @@ Si usano moduli del Terraform Registry pubblico per creare un ambiente di esempi
 
 La pagina del modulo VPC nel Registry mostra informazioni, link al sorgente, menu delle versioni, metriche e una configurazione di esempio.
 
-![Figura 14](img/registry-module-vpc.png) _(dimensioni: 2360×1170 px)_
+![](img/registry-module-vpc.png) _(dimensioni: 2360×1170 px)_
 
-*Figura 14 — La pagina di un modulo nel Terraform Registry, con le istruzioni d'uso, la scelta della versione e le schede Inputs e Outputs. Fonte: HashiCorp Developer.* _(caption)_
+*La pagina di un modulo nel Terraform Registry, con le istruzioni d'uso, la scelta della versione e le schede Inputs e Outputs. Fonte: HashiCorp Developer.* _(caption)_
 
 `source` è obbligatorio (qui un modulo del Registry; può essere anche un URL o un percorso locale, vedi §5.6.2); `version` è facoltativo ma fortemente consigliato, e senza di esso si carica la versione più recente. Il tutorial indica versioni esatte. Gli altri argomenti del blocco `module` sono input variable del modulo.
 

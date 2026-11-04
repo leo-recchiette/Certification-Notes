@@ -3,43 +3,43 @@
 _Questo percorso affronta il monitoraggio proattivo delle risorse Azure e le strategie di backup e ripristino di emergenza (disaster recovery). Un amministratore deve garantire visibilità sull'infrastruttura, proteggere i dati con backup affidabili e disporre di piani di ripristino efficaci._
 
 **Immagini usate in questo modulo:**
-- `img/architecture-on-premises-mars.png` (800×593) — Figura 111
-- `img/scenario.png` (1074×488) — Figura 112
-- `img/azure-backup-overview.png` (1196×541) — Figura 113
-- `img/azure-backup-architecture.png` (1978×1383) — Figura 114
-- `img/backup-center-jobs.png` (3225×1470) — Figura 115
-- `img/data-plane.png` (1168×422) — Figura 116
-- `img/built-in-security.png` (354×166) — Figura 117
-- `img/backup-vaults.png` (1164×346) — Figura 118
-- `img/backup-center.png` (1908×888) — Figura 119
-- `img/azure-backup-sql-overview.png` (998×463) — Figura 120
-- `img/3-recovery-vault-in-context.png` (1413×710) — Figura 121
-- `img/3-azure-vm-backup-architecture.png` (994×447) — Figura 122
-- `img/4-portal-azure-backup.png` (1316×943) — Figura 123
-- `img/4-portal-backup-setup.png` (1204×500) — Figura 124
-- `img/4-recovery-services-vault.png` (1296×655) — Figura 125
-- `img/6-vm-backup-menu.png` (1314×566) — Figura 126
-- `img/6-restore-point.png` (845×749) — Figura 127
-- `img/6-restore-configuration.png` (764×773) — Figura 128
-- `img/6-restore-progress.png` (1720×593) — Figura 129
-- `img/monitoring-layers.png` (894×461) — Figura 130
-- `img/2-vm-metrics-screenshot.png` (1198×723) — Figura 131
-- `img/create-vm-monitoring.png` (1019×643) — Figura 132
-- `img/platform-metrics.png` (1162×739) — Figura 133
-- `img/3-boot-diagnostics.png` (920×667) — Figura 134
-- `img/metrics-explorer.png` (1189×640) — Figura 135
-- `img/3-view-host-level-metrics.png` (1221×633) — Figura 136
-- `img/3-metric-graph.png` (880×543) — Figura 137
-- `img/enable-insights.png` (2201×1187) — Figura 138
-- `img/guest-os-metrics.png` (777×357) — Figura 139
-- `img/vm-insights-performance.png` (1190×810) — Figura 140
-- `img/dependency-map.png` (858×769) — Figura 141
-- `img/monitor-overview.png` (986×614) — Figura 142
-- `img/dcr-create.png` (1210×528) — Figura 143
-- `img/create-dcr-basics.png` (785×654) — Figura 144
-- `img/create-dcr-resources.png` (763×652) — Figura 145
-- `img/create-dcr-finish.png` (698×460) — Figura 146
-- `img/dcr-log.png` (1053×638) — Figura 147
+- `img/architecture-on-premises-mars.png` (800×593)
+- `img/scenario.png` (1074×488)
+- `img/azure-backup-overview.png` (1196×541)
+- `img/azure-backup-architecture.png` (1978×1383)
+- `img/backup-center-jobs.png` (3225×1470)
+- `img/data-plane.png` (1168×422)
+- `img/built-in-security.png` (354×166)
+- `img/backup-vaults.png` (1164×346)
+- `img/backup-center.png` (1908×888)
+- `img/azure-backup-sql-overview.png` (998×463)
+- `img/3-recovery-vault-in-context.png` (1413×710)
+- `img/3-azure-vm-backup-architecture.png` (994×447)
+- `img/4-portal-azure-backup.png` (1316×943)
+- `img/4-portal-backup-setup.png` (1204×500)
+- `img/4-recovery-services-vault.png` (1296×655)
+- `img/6-vm-backup-menu.png` (1314×566)
+- `img/6-restore-point.png` (845×749)
+- `img/6-restore-configuration.png` (764×773)
+- `img/6-restore-progress.png` (1720×593)
+- `img/monitoring-layers.png` (894×461)
+- `img/2-vm-metrics-screenshot.png` (1198×723)
+- `img/create-vm-monitoring.png` (1019×643)
+- `img/platform-metrics.png` (1162×739)
+- `img/3-boot-diagnostics.png` (920×667)
+- `img/metrics-explorer.png` (1189×640)
+- `img/3-view-host-level-metrics.png` (1221×633)
+- `img/3-metric-graph.png` (880×543)
+- `img/enable-insights.png` (2201×1187)
+- `img/guest-os-metrics.png` (777×357)
+- `img/vm-insights-performance.png` (1190×810)
+- `img/dependency-map.png` (858×769)
+- `img/monitor-overview.png` (986×614)
+- `img/dcr-create.png` (1210×528)
+- `img/create-dcr-basics.png` (785×654)
+- `img/create-dcr-resources.png` (763×652)
+- `img/create-dcr-finish.png` (698×460)
+- `img/dcr-log.png` (1053×638)
 
 ---
 
@@ -52,7 +52,7 @@ Per chi lavora nell'IT, i dati sono uno degli asset più preziosi dell'organizza
 Nei contesti on-premises le soluzioni di backup tradizionali si sono spesso basate su storage locale ridondante oppure su copie conservate fuori sede. L'approccio classico del backup su nastro con conservazione off-site, però, introduce un ritardo significativo nel ripristino: i nastri vanno fisicamente riportati nelle sale server prima di poter avviare l'operazione di restore, con conseguenti tempi di inattività anche notevoli. Il problema è che queste soluzioni non sempre affrontano gli aspetti oggi più critici, come la sicurezza delle copie di backup, il rischio di un attacco ransomware o gli errori umani durante le operazioni di backup e ripristino. La soluzione ideale dovrebbe essere economica, semplice da usare e sicura: è esattamente il vuoto che **Azure Backup** va a colmare.
 
 ![Scenario di backup on-premises con il Backup (MARS) Agent](img/architecture-on-premises-mars.png) _(dimensioni: 800×593 px)_
-*Figura 111: Scenario di backup in cui i server e le workstation aziendali inviano file e cartelle allo storage di Azure tramite il **Backup (MARS) Agent**.* _(caption)_
+*Scenario di backup in cui i server e le workstation aziendali inviano file e cartelle allo storage di Azure tramite il **Backup (MARS) Agent**.* _(caption)_
 
 **Cosa puoi proteggere in Azure** _(stepTitle)_
 
@@ -74,7 +74,7 @@ Oltre allo scenario on-premises, **Azure Backup** copre anche gli ambienti che v
 Per rendere concreti questi concetti, immagina di gestire un'applicazione basata su SQL Server, con il database in esecuzione in un gruppo di disponibilità always-on distribuito su tre Azure VMs. Vuoi eseguire il backup dei database con un servizio nativo di Azure, conservare le copie per 10 anni su uno storage più economico per soddisfare esigenze di audit e conformità, e infine monitorare quotidianamente i job di backup di tutti questi database. È proprio il tipo di requisito (lunga conservazione, costo contenuto, monitoraggio centralizzato) per cui **Azure Backup** è progettato.
 
 ![Applicazione con database SQL Server protetta da Azure Backup](img/scenario.png) _(dimensioni: 1074×488 px)_
-*Figura 112: Applicazione con database back-end SQL Server di cui viene eseguito il backup tramite **Azure Backup**.* _(caption)_
+*Applicazione con database back-end SQL Server di cui viene eseguito il backup tramite **Azure Backup**.* _(caption)_
 
 **Che cosa imparerai** _(stepTitle)_
 
@@ -93,7 +93,7 @@ L'obiettivo finale è metterti nelle condizioni di decidere, al termine della tr
 Il valore distintivo del servizio sta in tre aggettivi che ricorrono nella sua definizione: **semplice** (un'unica interfaccia di gestione centralizzata), **sicuro** (protezione integrata dei dati in transito e a riposo) ed **economico** (paghi solo ciò che usi, senza investimenti iniziali in infrastruttura).
 
 ![Panoramica di Azure Backup](img/azure-backup-overview.png) _(dimensioni: 1196×541 px)_
-*Figura 113: Panoramica del servizio Azure Backup: gli agenti di backup inviano i dati dall'ambiente on-premises al cloud, con gestione centralizzata.* _(caption)_
+*Panoramica del servizio Azure Backup: gli agenti di backup inviano i dati dall'ambiente on-premises al cloud, con gestione centralizzata.* _(caption)_
 
 **Definizione di Azure Backup** _(stepTitle)_
 
@@ -104,7 +104,7 @@ L'espressione "infrastruttura zero" è il concetto chiave: non devi predisporre 
 Dal punto di vista architetturale, il servizio si organizza su due livelli. Il *data plane* è il piano che si occupa concretamente dei dati: legge i carichi di lavoro da proteggere ed esegue le operazioni di backup e ripristino. Il *management plane* è il piano di gestione e governance, dove risiedono le **backup policy**, l'integrazione con **Azure Policy** (per applicare regole di conformità a tappeto), con **Azure Monitor** (per il monitoraggio e gli avvisi) e con **Azure Lighthouse** (per la gestione delegata su più tenant). Questa separazione spiega perché si può governare l'intero parco di backup in modo centralizzato senza dover toccare i singoli carichi di lavoro.
 
 ![Architettura di Azure Backup](img/azure-backup-architecture.png) _(dimensioni: 1978×1383 px)_
-*Figura 114: Architettura di Azure Backup: i carichi di lavoro alimentano il data plane, che si collega al management plane (backup policy, Azure Policy, Azure Monitor, Azure Lighthouse).* _(caption)_
+*Architettura di Azure Backup: i carichi di lavoro alimentano il data plane, che si collega al management plane (backup policy, Azure Policy, Azure Monitor, Azure Lighthouse).* _(caption)_
 
 **Quando usare Azure Backup** _(stepTitle)_
 
@@ -127,7 +127,7 @@ Azure Backup può fornire servizi di backup per i seguenti asset di dati:
 Tutte queste operazioni si monitorano da un'unica console, il **Backup Center**, che mostra l'elenco dei processi di backup con la relativa istanza, origine dati, tipo di operazione e stato.
 
 ![Processi di backup nel Backup Center](img/backup-center-jobs.png) _(dimensioni: 3225×1470 px)_
-*Figura 115: Il Backup Center mostra l'elenco dei processi di backup con istanza, origine dati, tipo di operazione e stato.* _(caption)_
+*Il Backup Center mostra l'elenco dei processi di backup con istanza, origine dati, tipo di operazione e stato.* _(caption)_
 
 **Caratteristiche principali** _(stepTitle)_
 
@@ -206,7 +206,7 @@ I backup possono essere conservati in tre livelli di accesso (*access tier*), pe
 Ogni tier offre RTO (Recovery Time Objective) diversi ed è soggetto a prezzi differenti: la scelta del livello è quindi un compromesso tra rapidità di ripristino e costo di mantenimento.
 
 ![Data plane e access tier di Azure Backup](img/data-plane.png) _(dimensioni: 1168×422 px)_
-*Figura 116: i diversi workload (server on-premises, Azure VM, Azure Files) confluiscono nel data plane, dove risiedono gli access tier.* _(caption)_
+*i diversi workload (server on-premises, Azure VM, Azure Files) confluiscono nel data plane, dove risiedono gli access tier.* _(caption)_
 
 **Data plane - Disponibilità e sicurezza** _(stepTitle)_
 
@@ -221,7 +221,7 @@ La sicurezza è integrata su tre fronti complementari, in modo da proteggere i b
 Azure Backup supporta inoltre la gestione del ciclo di vita dei dati di backup, utile per rispettare i criteri di retention previsti dalla compliance.
 
 ![Le tre opzioni di sicurezza integrate in Azure Backup](img/built-in-security.png) _(dimensioni: 354×166 px)_
-*Figura 117: le tre opzioni di sicurezza integrate, ovvero Azure RBAC, crittografia e soft delete.* _(caption)_
+*le tre opzioni di sicurezza integrate, ovvero Azure RBAC, crittografia e soft delete.* _(caption)_
 
 **Management plane - Recovery Services vault / Backup vault e Backup center** _(stepTitle)_
 
@@ -233,7 +233,7 @@ Puoi usare un singolo vault oppure più vault per organizzare la tua attività d
 - Se i workload sono distribuiti su più sottoscrizioni, puoi creare più vault, con uno o più vault per ciascuna sottoscrizione.
 
 ![Management plane con Recovery Services vault](img/backup-vaults.png) _(dimensioni: 1164×346 px)_
-*Figura 118: il management plane; il Recovery Services vault mostra i criteri di backup e la gestione tramite portale, SDK o interfaccia a riga di comando (CLI).* _(caption)_
+*il management plane; il Recovery Services vault mostra i criteri di backup e la gestione tramite portale, SDK o interfaccia a riga di comando (CLI).* _(caption)_
 
 Il **Backup center** offre un'unica vista centralizzata (*single pane of glass*) per gestire tutte le attività legate ai backup. È progettato per funzionare bene anche in ambienti Azure ampi e distribuiti: con il Backup center puoi gestire in modo efficiente backup che attraversano più tipi di workload, più vault, più sottoscrizioni, più aree geografiche e persino più tenant Azure Lighthouse.
 
@@ -241,7 +241,7 @@ Il **Backup center** offre un'unica vista centralizzata (*single pane of glass*)
 _(infoBox)_
 
 ![Interfaccia del Backup center](img/backup-center.png) _(dimensioni: 1908×888 px)_
-*Figura 119: l'interfaccia del Backup center nel portale di Azure mostra le informazioni di backup delle Azure VM relative a processi (job) e istanze di backup.* _(caption)_
+*l'interfaccia del Backup center nel portale di Azure mostra le informazioni di backup delle Azure VM relative a processi (job) e istanze di backup.* _(caption)_
 
 ### 6.1.4 — Quando usare Azure Backup
 
@@ -282,7 +282,7 @@ In più, per SQL Server, Azure Backup offre vantaggi specifici:
 - Backup e ripristino a livello di singolo database.
 
 ![SQL Server su VM di Azure con backup nel Recovery Services vault](img/azure-backup-sql-overview.png) _(dimensioni: 998×463 px)_
-*Figura 120: SQL Server ospitato su una VM di Azure ed eseguito il backup verso un Recovery Services vault. Le frecce indicano il flusso bidirezionale del percorso dati (data path) e del percorso di controllo (control path) tra Azure Backup e l'estensione di backup sulla VM.* _(caption)_
+*SQL Server ospitato su una VM di Azure ed eseguito il backup verso un Recovery Services vault. Le frecce indicano il flusso bidirezionale del percorso dati (data path) e del percorso di controllo (control path) tra Azure Backup e l'estensione di backup sulla VM.* _(caption)_
 
 **Azure Backup aiuta con la conformità?** _(stepTitle)_
 
@@ -393,7 +393,7 @@ Il principio di fondo è semplice: una **VM di Azure** viene protetta acquisendo
 **Azure Backup** utilizza un **Recovery Services vault** per gestire e archiviare i dati di backup. Il vault è un'entità di gestione dello storage che offre un'esperienza semplificata per eseguire e monitorare le operazioni di backup e ripristino. Il vantaggio pratico è che non occorre distribuire né gestire account di archiviazione: basta indicare il vault in cui salvare la VM, e i dati vengono trasferiti in background negli account di archiviazione di **Azure Backup**, collocati in un dominio di errore separato per garantire l'isolamento. Il vault funge inoltre da confine per il controllo degli accessi in base al ruolo (RBAC), permettendo un accesso sicuro ai dati.
 
 ![Recovery Services vault mostrati in relazione alle risorse che proteggono](img/3-recovery-vault-in-context.png) _(dimensioni: 1413×710 px)_
-*Figura 121: I Recovery Services vault mostrati nel contesto delle risorse che proteggono.* _(caption)_
+*I Recovery Services vault mostrati nel contesto delle risorse che proteggono.* _(caption)_
 
 **Snapshot (istantanee)** _(stepTitle)_
 
@@ -439,7 +439,7 @@ Ecco come **Azure Backup** completa il backup di una VM di Azure, passo dopo pas
   - I dati dello snapshot potrebbero non essere copiati immediatamente nel vault e, nei momenti di picco, il trasferimento può richiedere diverse ore. Il tempo totale di backup di una VM rimane comunque inferiore a 24 ore con i criteri di backup giornalieri.
 
 ![Architettura del backup di una VM di Azure](img/3-azure-vm-backup-architecture.png) _(dimensioni: 994×447 px)_
-*Figura 122: Architettura del backup di una VM di Azure con Azure Backup.* _(caption)_
+*Architettura del backup di una VM di Azure con Azure Backup.* _(caption)_
 
 È inoltre possibile abilitare la crittografia del vault con chiavi gestite dal cliente (CMK, customer-managed keys), per avere il pieno controllo del materiale crittografico.
 
@@ -472,7 +472,7 @@ Nel pannello **Backup** della VM si configurano i due elementi fondamentali dell
 - **Backup policy**: accetta il criterio proposto o selezionane uno diverso. Un criterio tipico esegue, ad esempio, un backup giornaliero a un orario fisso (in UTC) con un intervallo di conservazione di 180 giorni.
 
 ![Opzioni di backup della VM nel portale](img/4-portal-azure-backup.png) _(dimensioni: 1316×943 px)_
-*Figura 123: Pannello con le opzioni di backup per la VM nel portale di Azure: selezione del vault e del criterio di backup.* _(caption)_
+*Pannello con le opzioni di backup per la VM nel portale di Azure: selezione del vault e del criterio di backup.* _(caption)_
 
 > **Importante**: il **Recovery Services vault** e la VM devono trovarsi nella stessa area geografica (region). Il criterio di backup determina sia quando vengono creati i punti di ripristino, sia per quanto tempo vengono mantenuti: scegliere bene la retention è essenziale per bilanciare costi di archiviazione e requisiti di conformità.
 _(infoBox)_
@@ -484,7 +484,7 @@ Dopo aver scelto vault e criterio, seleziona il pulsante **Enable backup**. Azur
 Al termine della distribuzione, tornando al pannello **Backup** della VM (scheda **Capabilities** → **Backup**), si nota che la pagina è cambiata: ora mostra lo stato della protezione, il criterio associato e le azioni disponibili, tra cui l'avvio di un backup immediato.
 
 ![Pagina Backup dopo la configurazione](img/4-portal-backup-setup.png) _(dimensioni: 1204×500 px)_
-*Figura 124: Pannello Backup della VM dopo che la protezione è stata abilitata, con la sezione di stato del backup.* _(caption)_
+*Pannello Backup della VM dopo che la protezione è stata abilitata, con la sezione di stato del backup.* _(caption)_
 
 > **Nota**: abilitare il backup non crea immediatamente un punto di ripristino. Il primo backup automatico avverrà all'orario previsto dal criterio. Se serve una copia subito, occorre avviare un backup on-demand, come descritto nel passo successivo.
 _(infoBox)_
@@ -508,7 +508,7 @@ Una volta avviato il backup, si può controllarne l'esito direttamente dalla VM.
 - Apri di nuovo il pannello **Backup** della macchina virtuale (scheda **Capabilities** → **Backup**).
 - Nella sezione **Backup status**, il campo **Last backup status** mostra lo stato corrente dell'ultima operazione: ad esempio se è in corso, completata con successo oppure terminata con errori.
 
-Questa vista, mostrata in Figura 124, è la più rapida per controllare la salute della protezione di una singola macchina, senza dover passare dal vault.
+Questa vista, mostrata nella figura precedente, è la più rapida per controllare la salute della protezione di una singola macchina, senza dover passare dal vault.
 
 **Passo 6 — Verificare il job nel Recovery Services vault** _(stepTitle)_
 
@@ -519,7 +519,7 @@ Per avere una visione complessiva di tutti gli elementi protetti e dei relativi 
 - Nel pannello **Overview**, seleziona la scheda interna **Backup** per visualizzare un riepilogo di tutti gli elementi protetti, dello spazio di archiviazione utilizzato e dello stato corrente dei job di backup in corso o completati.
 
 ![Dashboard di backup nel Recovery Services vault](img/4-recovery-services-vault.png) _(dimensioni: 1296×655 px)_
-*Figura 125: Dashboard di backup all'interno del Recovery Services vault, con il riepilogo degli elementi protetti e dei job.* _(caption)_
+*Dashboard di backup all'interno del Recovery Services vault, con il riepilogo degli elementi protetti e dei job.* _(caption)_
 
 Il vault è il punto di osservazione centrale quando si gestiscono più macchine: da qui è possibile monitorare tutti i job, controllare il consumo di storage e individuare rapidamente eventuali backup falliti, indipendentemente dalla singola VM da cui sono partiti.
 
@@ -589,7 +589,7 @@ Se l'obiettivo è sostituire una VM esistente, è necessario che quella VM sia a
 I **Recovery Services vault** sono accessibili a livello di sottoscrizione, ma quando si sta visualizzando una VM Azure fornisce un collegamento diretto al vault specifico tramite la sezione **Operations**. Per avviare il ripristino, dalla pagina della VM si scorre fino a **Operations** e si seleziona **Backup**: questa è la scorciatoia che mette in relazione la VM con il vault che ne custodisce i punti di ripristino.
 
 ![Menu dell'operazione Backup di una VM](img/6-vm-backup-menu.png) _(dimensioni: 1314×566 px)_
-*Figura 126: Menu dell'operazione Backup nella sezione Operations di una VM.* _(caption)_
+*Menu dell'operazione Backup nella sezione Operations di una VM.* _(caption)_
 
 Dal pannello di Backup, nella barra dei comandi si seleziona **Restore VM**: si apre il pannello **Restore Virtual Machine** dedicato alla VM scelta, da cui si guida l'intera operazione.
 
@@ -598,7 +598,7 @@ Dal pannello di Backup, nella barra dei comandi si seleziona **Restore VM**: si 
 Il cuore del ripristino è la scelta del **restore point**: il punto nel tempo a cui si vuole riportare la VM. Sotto la casella **Restore point** si seleziona **Select** e compare il pannello **Select restore point**, che elenca i punti disponibili. Per impostazione predefinita l'intervallo proposto copre due settimane; impostando una **Start date** appropriata si filtra l'elenco fino a trovare lo snapshot desiderato. La scelta è cruciale: occorre selezionare un punto di ripristino anteriore al momento in cui si è verificato il problema, così da recuperare dati integri e non già compromessi.
 
 ![Selezione di un punto di ripristino](img/6-restore-point.png) _(dimensioni: 845×749 px)_
-*Figura 127: Selezione di un punto di ripristino entro l'intervallo di date impostato.* _(caption)_
+*Selezione di un punto di ripristino entro l'intervallo di date impostato.* _(caption)_
 
 Confermata la scelta con **OK**, si torna al pannello **Restore Virtual Machine** per definire come applicare il ripristino.
 
@@ -615,7 +615,7 @@ La configurazione di ripristino determina cosa Azure farà con i dati recuperati
 Nello scenario di una VM corrotta da rimettere in produzione con la stessa identità, si imposta **Replace existing** e, alla voce **Staging Location**, si seleziona dal menu a discesa lo storage account creato in precedenza. Lo staging è obbligatorio in questa modalità perché Azure ricostruisce i dischi nell'area temporanea prima di sostituirli su quella esistente.
 
 ![Opzioni di configurazione del ripristino](img/6-restore-configuration.png) _(dimensioni: 764×773 px)_
-*Figura 128: Opzioni di configurazione del ripristino, con la modalità Replace existing e lo storage account di staging.* _(caption)_
+*Opzioni di configurazione del ripristino, con la modalità Replace existing e lo storage account di staging.* _(caption)_
 
 > **Nota**: la modalità **Replace existing** sovrascrive i dischi della VM esistente: è un'operazione distruttiva e irreversibile sui dati attuali. Se non si è certi del punto di ripristino o si vuole conservare lo stato corrente, preferire **Create new** o **Restore disks**.
 _(infoBox)_
@@ -627,7 +627,7 @@ Completata la configurazione, si seleziona **Restore** per avviare l'operazione.
 Il ripristino non è istantaneo: è un job asincrono gestito dal **Recovery Services vault**, e va seguito fino al completamento per avere la certezza che sia andato a buon fine. Nella sezione **Alerts and Jobs** del pannello di Backup si seleziona **View all Jobs** per aprire l'elenco **Backup Jobs**. Individuato il job di tipo **Restore**, nella colonna **Details** si seleziona **View details** per aprirne la scheda dedicata.
 
 ![Avanzamento del job di ripristino](img/6-restore-progress.png) _(dimensioni: 1720×593 px)_
-*Figura 129: Scheda di avanzamento del job di ripristino con stato in tempo reale.* _(caption)_
+*Scheda di avanzamento del job di ripristino con stato in tempo reale.* _(caption)_
 
 Nella scheda del job si possono monitorare tre informazioni chiave:
 
@@ -667,7 +667,7 @@ Una VM di Azure non è un'entità monolitica: è composta da più strati sovrapp
 - Le **applicazioni** che vengono eseguite sulla VM
 
 ![Architettura fondamentale di una VM e strati di monitoraggio](img/monitoring-layers.png) _(dimensioni: 894×461 px)_
-*Figura 130: Architettura fondamentale di una VM con i diversi strati da monitorare (host e guest).* _(caption)_
+*Architettura fondamentale di una VM con i diversi strati da monitorare (host e guest).* _(caption)_
 
 La distinzione chiave è tra ciò che Azure vede dall'esterno (l'host) e ciò che accade dentro il sistema operativo (il guest). L'host viene monitorato automaticamente dalla piattaforma; per il guest, invece, serve installare un agente, come vedremo più avanti.
 
@@ -699,7 +699,7 @@ Per andare oltre i grafici predefiniti puoi usare **Azure Monitor Metrics Explor
 - Raggruppare le metriche per intervalli di tempo, aree geografiche, cluster di server o componenti dell'applicazione.
 
 ![Grafico di utilizzo CPU e flusso in ingresso di una VM](img/2-vm-metrics-screenshot.png) _(dimensioni: 1198×723 px)_
-*Figura 131: Grafico della percentuale di utilizzo della CPU e del flusso in ingresso per una VM.* _(caption)_
+*Grafico della percentuale di utilizzo della CPU e del flusso in ingresso per una VM.* _(caption)_
 
 **Regole di avviso consigliate** _(stepTitle)_
 
@@ -774,7 +774,7 @@ Sempre nella scheda **Monitoring**, sotto la sezione **Diagnostics**, in corrisp
 _(infoBox)_
 
 ![Scheda Monitoring nella creazione della VM](img/create-vm-monitoring.png) _(dimensioni: 1019×643 px)_
-*Figura 132: Scheda Monitoring e configurazione delle regole di avviso nella pagina di creazione della macchina virtuale.* _(caption)_
+*Scheda Monitoring e configurazione delle regole di avviso nella pagina di creazione della macchina virtuale.* _(caption)_
 
 Per completare, selezionare **Review + create** in fondo alla pagina e, superata la validazione, selezionare **Create**. Nella finestra **Generate new key pair** scegliere **Download private key and create resource** per scaricare la chiave privata e avviare il deployment. La creazione richiede qualche minuto; al termine, selezionare **Go to resource** per aprire la VM.
 
@@ -796,7 +796,7 @@ I grafici disponibili per impostazione predefinita sono:
 | **Disk operations/sec (average)** | Operazioni disco al secondo (media) |
 
 ![Grafici delle platform metrics nella pagina Overview](img/platform-metrics.png) _(dimensioni: 1162×739 px)_
-*Figura 133: Grafici delle platform metrics nella pagina Overview della VM.* _(caption)_
+*Grafici delle platform metrics nella pagina Overview della VM.* _(caption)_
 
 > **Nota**: nella sezione **Guest OS metrics** si noterà che le metriche del sistema operativo guest non vengono ancora raccolte. Per ottenerle occorre configurare **VM insights** e le **Data Collection Rule**, trattate più avanti.
 _(infoBox)_
@@ -813,7 +813,7 @@ Avendo abilitato i boot diagnostics in fase di creazione, è ora possibile esami
 - Nella pagina **Boot diagnostics**, selezionare **Screenshot** per visualizzare una schermata di avvio catturata dall'hypervisor, oppure **Serial log** per leggere i messaggi di log generati all'avvio della VM.
 
 ![Schermata dei boot diagnostics della VM](img/3-boot-diagnostics.png) _(dimensioni: 920×667 px)_
-*Figura 134: Schermata di avvio catturata dai boot diagnostics della VM.* _(caption)_
+*Schermata di avvio catturata dai boot diagnostics della VM.* _(caption)_
 
 ### 6.3.4 — Usare Esplora metriche per le metriche host
 
@@ -830,7 +830,7 @@ Per aprire **Esplora metriche** hai a disposizione tre strade diverse, a seconda
 - Seleziona **Metrics** dal menu di navigazione a sinistra nella pagina **Overview** di **Azure Monitor**.
 
 ![Interfaccia di Esplora metriche](img/metrics-explorer.png) _(dimensioni: 1189×640 px)_
-*Figura 135: Schermata di Esplora metriche (Metrics Explorer).* _(caption)_
+*Schermata di Esplora metriche (Metrics Explorer).* _(caption)_
 
 Una volta dentro Esplora metriche, costruisci il grafico scegliendo i valori da alcuni menu a discesa. Capire cosa rappresenta ciascun campo è importante perché ti dà il controllo preciso su quali dati visualizzare e come aggregarli:
 
@@ -860,7 +860,7 @@ Vediamo ora in pratica come costruire un grafico in Esplora metriche che mostri 
 3. Il campo **Aggregation** viene popolato automaticamente con **Avg**, ma in questo caso impostalo su **Max**: vuoi infatti vedere i picchi di CPU, non la media che li smusserebbe.
 
 ![Grafico delle metriche di CPU a livello host per una VM](img/3-view-host-level-metrics.png) _(dimensioni: 1221×633 px)_
-*Figura 136: Grafico della metrica Percentage CPU a livello host per una VM.* _(caption)_
+*Grafico della metrica Percentage CPU a livello host per una VM.* _(caption)_
 
 4. Seleziona **Add metric** in alto a sinistra per aggiungere una seconda metrica allo stesso grafico.
 5. In **Metric**, seleziona **Inbound Flows**. Lascia **Aggregation** su **Avg**.
@@ -869,7 +869,7 @@ Vediamo ora in pratica come costruire un grafico in Esplora metriche che mostri 
 A questo punto il grafico mostra le due metriche sovrapposte e dovrebbe avere un aspetto simile alla schermata seguente, in cui puoi confrontare visivamente l'andamento dell'uso della CPU con quello del traffico in ingresso:
 
 ![Grafico che mostra uso della CPU e traffico in ingresso](img/3-metric-graph.png) _(dimensioni: 880×543 px)_
-*Figura 137: Grafico che combina l'uso della CPU e il traffico in ingresso.* _(caption)_
+*Grafico che combina l'uso della CPU e il traffico in ingresso.* _(caption)_
 
 > **Suggerimento**: per aggiungere un'altra metrica a un grafico già esistente usa sempre il pulsante **Add metric**; non serve creare un nuovo grafico. Combinare più metriche nello stesso grafico è proprio ciò che rende Esplora metriche utile per individuare correlazioni.
 _(infoBox)_
@@ -898,7 +898,7 @@ La procedura di attivazione si svolge interamente dal portale di Azure:
 4. Seleziona **Configure**.
 
 ![Abilitazione e configurazione di VM insights](img/enable-insights.png) _(dimensioni: 2201×1187 px)_
-*Figura 138: Abilitazione e configurazione di VM insights dalla pagina Insights della VM.* _(caption)_
+*Abilitazione e configurazione di VM insights dalla pagina Insights della VM.* _(caption)_
 
 > **Nota**: la configurazione del workspace e l'installazione dell'agente richiedono in genere dai 5 ai 10 minuti. Possono servire altri 5-10 minuti prima che i dati diventino disponibili per la visualizzazione nel portale.
 _(infoBox)_
@@ -908,7 +908,7 @@ _(infoBox)_
 A questo punto, nella scheda **Monitoring** della pagina **Overview**, sotto **Performance and utilization**, noterai che ora vengono raccolte le **Guest OS metrics**, cioè le metriche del sistema operativo interno alla VM: è la prova concreta che l'agente sta osservando la macchina dall'interno.
 
 ![Metriche del sistema operativo guest nella scheda Monitoring](img/guest-os-metrics.png) _(dimensioni: 777×357 px)_
-*Figura 139: Metriche del sistema operativo guest (Guest OS metrics) nella scheda Monitoring della VM.* _(caption)_
+*Metriche del sistema operativo guest (Guest OS metrics) nella scheda Monitoring della VM.* _(caption)_
 
 **Visualizzare i dati di VM insights** _(stepTitle)_
 
@@ -920,7 +920,7 @@ Per visualizzare i grafici delle prestazioni e le mappe di VM insights:
 2. Vicino alla parte alta della pagina **Insights**, seleziona la scheda **Performance**. Il workbook predefinito **VM insights Performance** mostra grafici e diagrammi con i dati di prestazione relativi alla VM corrente.
 
 ![Workbook Performance predefinito di VM insights](img/vm-insights-performance.png) _(dimensioni: 1190×810 px)_
-*Figura 140: Il workbook Performance predefinito di VM insights con i grafici delle prestazioni.* _(caption)_
+*Il workbook Performance predefinito di VM insights con i grafici delle prestazioni.* _(caption)_
 
    - Puoi personalizzare la vista specificando un diverso **Time range** in cima alla pagina e aggregazioni differenti in cima a ciascun grafico.
    - Seleziona **View Workbooks** per scegliere tra gli altri workbook predefiniti di VM insights. Seleziona **Go To Gallery** per accedere a una galleria di workbook e modelli di VM insights, oppure per modificare e creare i tuoi workbook personalizzati.
@@ -928,7 +928,7 @@ Per visualizzare i grafici delle prestazioni e le mappe di VM insights:
 3. Se l'hai abilitata in precedenza (impostando **Processes and dependencies (Map)** su **Enabled**), seleziona la scheda **Map** nella pagina **Insights** per vedere il workbook della funzionalità Map. La mappa visualizza le dipendenze della VM individuando i gruppi di processi e i singoli processi in esecuzione che hanno connessioni di rete attive in un intervallo di tempo specificato. È particolarmente utile per capire come la VM comunica con gli altri sistemi e per diagnosticare problemi di connettività.
 
 ![Mappa delle dipendenze nella scheda Map di VM insights](img/dependency-map.png) _(dimensioni: 858×769 px)_
-*Figura 141: Mappa delle dipendenze nella scheda Map di VM insights.* _(caption)_
+*Mappa delle dipendenze nella scheda Map di VM insights.* _(caption)_
 
 ### 6.3.6 — Raccogliere i log eventi del client VM
 
@@ -951,7 +951,7 @@ _(infoBox)_
 Nel portale Azure cerca e seleziona _monitor_ per aprire la pagina **Overview** di **Azure Monitor**. È il punto di partenza per gestire endpoint e regole di raccolta.
 
 ![Pagina Overview di Azure Monitor](img/monitor-overview.png) _(dimensioni: 986×614 px)_
-*Figura 142: Pagina Overview di Azure Monitor, da cui si gestiscono endpoint e regole di raccolta dati.* _(caption)_
+*Pagina Overview di Azure Monitor, da cui si gestiscono endpoint e regole di raccolta dati.* _(caption)_
 
 **Creare un Data Collection Endpoint** _(stepTitle)_
 
@@ -974,7 +974,7 @@ Con l'endpoint pronto, si crea la **Data Collection Rule** vera e propria:
 2. Nella pagina **Data Collection Rules** vedrai già la DCR creata da **VM insights**. Seleziona **Create** per crearne una nuova.
 
 ![Schermata Data Collection Rules con il pulsante Create evidenziato](img/dcr-create.png) _(dimensioni: 1210×528 px)_
-*Figura 143: Pagina Data Collection Rules con il pulsante Create evidenziato; è già presente la DCR generata da VM insights.* _(caption)_
+*Pagina Data Collection Rules con il pulsante Create evidenziato; è già presente la DCR generata da VM insights.* _(caption)_
 
 3. Nella scheda **Basics** della schermata **Create Data Collection Rule** fornisci queste informazioni:
   - **Rule name**: inserisci _collect-events-linux_.
@@ -983,7 +983,7 @@ Con l'endpoint pronto, si crea la **Data Collection Rule** vera e propria:
 4. Seleziona **Next: Resources** oppure la scheda **Resources**.
 
 ![Scheda Basics della creazione della Data Collection Rule](img/create-dcr-basics.png) _(dimensioni: 785×654 px)_
-*Figura 144: Scheda Basics della schermata Create Data Collection Rule, con nome regola, sottoscrizione e tipo di piattaforma Linux.* _(caption)_
+*Scheda Basics della schermata Create Data Collection Rule, con nome regola, sottoscrizione e tipo di piattaforma Linux.* _(caption)_
 
 Nella scheda **Resources** colleghi la VM da monitorare e l'endpoint che hai creato:
 
@@ -994,7 +994,7 @@ Nella scheda **Resources** colleghi la VM da monitorare e l'endpoint che hai cre
 9. Seleziona **Next: Collect and deliver** oppure la scheda **Collect and deliver**.
 
 ![Scheda Resources della creazione della Data Collection Rule](img/create-dcr-resources.png) _(dimensioni: 763×652 px)_
-*Figura 145: Scheda Resources della schermata Create Data Collection Rule, con la VM e il Data Collection Endpoint associati.* _(caption)_
+*Scheda Resources della schermata Create Data Collection Rule, con la VM e il Data Collection Endpoint associati.* _(caption)_
 
 Nella scheda **Collect and deliver** definisci cosa raccogliere (la sorgente) e dove inviarlo (la destinazione):
 
@@ -1005,7 +1005,7 @@ Nella scheda **Collect and deliver** definisci cosa raccogliere (la sorgente) e 
 14. Nella schermata **Create Data Collection Rule** seleziona **Review + create** e, quando la convalida ha esito positivo, seleziona **Create**.
 
 ![Review + create nella schermata di creazione della Data Collection Rule](img/create-dcr-finish.png) _(dimensioni: 698×460 px)_
-*Figura 146: Passaggio Review + create della schermata Create Data Collection Rule, pronto per la creazione della regola.* _(caption)_
+*Passaggio Review + create della schermata Create Data Collection Rule, pronto per la creazione della regola.* _(caption)_
 
 **Visualizzare i dati di log** _(stepTitle)_
 
@@ -1030,4 +1030,4 @@ Syslog
 ```
 
 ![Eventi restituiti dal Syslog grazie alla DCR](img/dcr-log.png) _(dimensioni: 1053×638 px)_
-*Figura 147: Eventi restituiti dal Syslog grazie alla DCR, filtrati per livello di severità in Log Analytics.* _(caption)_
+*Eventi restituiti dal Syslog grazie alla DCR, filtrati per livello di severità in Log Analytics.* _(caption)_

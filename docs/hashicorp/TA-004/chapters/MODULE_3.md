@@ -82,9 +82,9 @@ Il luogo naturale per queste revisioni sono le pull request del controllo versio
 
 Il problema diventa produrre l'output dello speculative plan da far rivedere al team. Alcuni team che eseguono ancora Terraform in locale stabiliscono che le pull request includano una copia dell'output dello speculative plan generato dall'autore della modifica; altri fanno in modo che sia il sistema di CI a pubblicare automaticamente l'output nelle pull request.
 
-![Figura 5](img/manually-pasted-plan-output.png) _(dimensioni: 790×733 px)_
+![](img/manually-pasted-plan-output.png) _(dimensioni: 790×733 px)_
 
-*Figura 5 — Una pull request in cui l'autore ha incollato a mano l'output del plan di Terraform. Fonte: HashiCorp Developer.* _(caption)_
+*Una pull request in cui l'autore ha incollato a mano l'output del plan di Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
 Oltre a verificare che il plan esprima correttamente l'intento dell'autore, il team può anche valutare se vuole che la modifica avvenga adesso. Ad esempio, se il team nota che una certa modifica potrebbe causare un'interruzione del servizio, può decidere di rimandare il merge della pull request finché non riesce a programmare una finestra di manutenzione.
 
@@ -132,33 +132,33 @@ Dopo aver configurato l'integrazione, ai membri del team basta una chiave API di
 
 Quando una pull request è pronta per la revisione, HCP Terraform semplifica la revisione dello speculative plan. Innanzitutto il plan viene eseguito automaticamente alla creazione della pull request, e degli aggiornamenti di stato nella pull request indicano quando il plan è in corso. Al termine, l'aggiornamento di stato indica, direttamente dalla vista della pull request, se lo speculative plan contiene modifiche.
 
-![Figura 6](img/pull-request.png) _(dimensioni: 1586×1254 px)_
+![](img/pull-request.png) _(dimensioni: 1586×1254 px)_
 
-*Figura 6 — Una pull request con le modifiche alle risorse riportate nell'aggiornamento di stato del check di HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
+*Una pull request con le modifiche alle risorse riportate nell'aggiornamento di stato del check di HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
 Per certi tipi di modifiche questa informazione è tutto ciò che serve a un collega per approvare la pull request. Quando invece serve una revisione completa del plan, il link a HCP Terraform apre una vista che permette di analizzarne rapidamente tutti i dettagli. Da questa pagina il revisore capisce in fretta se il plan corrisponde all'intento dell'autore e può valutare il rischio della modifica.
 
-![Figura 7](img/pr-plan.png) _(dimensioni: 2086×2362 px)_
+![](img/pr-plan.png) _(dimensioni: 2086×2362 px)_
 
-*Figura 7 — Il run della pull request in HCP Terraform, con i dettagli del plan. Fonte: HashiCorp Developer.* _(caption)_
+*Il run della pull request in HCP Terraform, con i dettagli del plan. Fonte: HashiCorp Developer.* _(caption)_
 
 **Apply** _(stepTitle)_
 
 Dopo il merge, HCP Terraform presenta al team il plan concreto da rivedere e approvare, e il team può discutere le domande ancora aperte prima che la modifica venga applicata.
 
-![Figura 8](img/concrete-plan.png) _(dimensioni: 2001×2005 px)_
+![](img/concrete-plan.png) _(dimensioni: 2001×2005 px)_
 
-*Figura 8 — Il plan concreto dopo il merge, in attesa di revisione e conferma in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
+*Il plan concreto dopo il merge, in attesa di revisione e conferma in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
-![Figura 9](img/plan-comments.png) _(dimensioni: 2001×2005 px)_
+![](img/plan-comments.png) _(dimensioni: 2001×2005 px)_
 
-*Figura 9 — Lo scambio di commenti sul run in HCP Terraform prima della conferma. Fonte: HashiCorp Developer.* _(caption)_
+*Lo scambio di commenti sul run in HCP Terraform prima della conferma. Fonte: HashiCorp Developer.* _(caption)_
 
 Una volta confermato l'apply, HCP Terraform ne mostra l'avanzamento in tempo reale a chiunque voglia seguirlo.
 
-![Figura 10](img/in-progress-apply.png) _(dimensioni: 2003×1969 px)_
+![](img/in-progress-apply.png) _(dimensioni: 2003×1969 px)_
 
-*Figura 10 — Un apply in corso in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
+*Un apply in corso in HCP Terraform. Fonte: HashiCorp Developer.* _(caption)_
 
 ### 3.1.4 — Conclusioni
 
