@@ -27,7 +27,7 @@ Study notes for the **Microsoft AZ-104 (Azure Administrator)** certification, wr
 
 ## Build / run
 
-Needs Node.js (v18+) and the single dependency `docx`, installed once from the **repo root** (`npm install`) and shared by every certification. **Note:** the portable Node that used to live under `…\AppData\Local\node-portable\` was removed to free space — reinstall Node (system install or portable + PATH, see [README.md](README.md)) before regenerating.
+Needs Node.js (v18+) and the single dependency `docx`, installed once from the **repo root** (`npm install`) and shared by every certification. **Note:** the portable Node that used to live under `…\AppData\Local\node-portable\` was removed to free space — reinstall Node (system install or portable + PATH, see the root [README.md](../../../README.md)) before regenerating.
 
 ```powershell
 npm install                             # one-time, from the repo root (node_modules/ is gitignored)

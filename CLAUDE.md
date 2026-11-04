@@ -19,11 +19,10 @@ docs/<provider>/<CERTIFICATION>/
 ├── img/         figures, in per-module subfolders; resolved by basename
 ├── script/      the generator (Markdown parser → .docx → .pdf)
 ├── style/       STYLE_GUIDE.md — styling spec + the Markdown marker vocabulary
-├── README.md    how to build that certification's document
 └── CLAUDE.md    the detailed guidance for that generator — read it before editing there
 ```
 
-Root holds only shared tooling: `package.json` (the single `docx` dependency + one build script per certification), `.gitignore`, `.gitattributes`, `README.md` (index) and this file.
+Root holds only shared tooling: `package.json` (the single `docx` dependency + one build script per certification), `.gitignore`, `.gitattributes`, `README.md` (the single, project-level documentation covering every certification — there are no per-folder READMEs) and this file.
 
 **Each certification folder is self-contained and its `CLAUDE.md` is authoritative for that generator** (parser internals, marker vocabulary, gotchas, figure numbering). This file covers only what is common to all of them.
 
@@ -57,7 +56,7 @@ There are no tests and no linter; verification is regenerating the document and 
 1. Create `docs/<provider>/<CERTIFICATION>/` with `chapters/`, `img/`, `script/`, `style/`.
 2. Start the generator from an existing one — it **must** keep `ROOT = path.join(__dirname, '..')`.
 3. Register `build:<cert>` (and `:toc`) in [package.json](package.json).
-4. Add a `README.md` and a `CLAUDE.md` in the new folder, and a row in the root [README.md](README.md) table.
+4. Add a `CLAUDE.md` in the new folder, and in the root [README.md](README.md) a row in the certifications table plus a section for the new certification (documentation is centralized there — do not add a README to the folder).
 
 Use the existing provider folder when there is one (`microsoft/`, `hashicorp/`): provider names are lowercase, certification folders keep the official code in uppercase (`AZ-104`, `TA-004`).
 
