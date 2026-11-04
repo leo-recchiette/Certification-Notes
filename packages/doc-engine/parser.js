@@ -5,7 +5,13 @@ const { splitTag, stripStars, inlineRaw, inlineText, linkParts } = require('./in
 // Numero di figura/tabella eventualmente già scritto a mano nella didascalia del .md.
 // Viene RIMOSSO e sostituito da quello calcolato dal motore: così la numerazione è
 // idempotente e funziona identica prima e dopo la migrazione dei .md.
-const RE_FIGNO = /^(?:Figura|Tabella)\s+\d+\s*[—–-]\s*/;
+//
+// Il separatore va riconosciuto in TUTTE le forme usate nei .md: AZ-104 ha 65
+// didascalie "Figura N — testo" e 86 "Figura N: testo". Riconoscerne una sola
+// lascerebbe il numero scritto a mano dentro il testo, producendo un doppio
+// prefisso ("Figura 90 — Figura 62: ..."). Il motore riemette sempre la forma
+// con il trattino, uniformando i due stili.
+const RE_FIGNO = /^(?:Figura|Tabella)\s+\d+\s*(?:[—–-]|:)\s*/;
 
 /**
  * Parser Markdown -> elementi docx. Macchina a stati riga per riga.
