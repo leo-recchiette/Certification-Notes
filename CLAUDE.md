@@ -43,7 +43,7 @@ docs/STYLE_GUIDE.md           the marker vocabulary + every style, shared by all
 docs/COVER_TOC.md             how the cover page and the Sommario are produced
 ```
 
-Root holds only shared tooling: the Docker build environment, `package.json` (the `docx` dependency, the `packages/*` workspace and one build script per certification), `.gitignore`, `.gitattributes`, `.dockerignore`, `README.md` (the single, project-level documentation covering every certification — there are no per-folder READMEs) and this file.
+Root holds only shared tooling: the Docker build environment, `package.json` (the `docx` dependency, the `packages/*` workspace and one build script per certification), `.gitignore`, `.gitattributes`, `.dockerignore`, `README.md` (the single, short project-level README — there are no per-folder READMEs) and this file.
 
 **The engine is shared: a change in `packages/doc-engine/` affects every certification.** Regenerate both documents after touching it. Anything that should differ between certifications belongs in that certification's `script/config.js`, not in the engine.
 
@@ -88,7 +88,7 @@ Natively, `npm install` + `npm run build:az104` still work with Node 18+; the PD
 1. Create `docs/<provider>/<CERTIFICATION>/` with `chapters/` and `img/`.
 2. Write `script/config.js` (`id`, `root`, `banner`, `palette`, `cover`, `deliverables`) and an entry point of ~15 lines that calls `build(require('./config'))`. Copy them from an existing certification — **there is no generator to copy**.
 3. Register `build:<cert>` in [package.json](package.json); `build:all` picks it up automatically.
-4. Add a `CLAUDE.md` in the new folder, and in the root [README.md](README.md) a row in the certifications table plus a section for the new certification (documentation is centralized there — do not add a README to the folder).
+4. Add a `CLAUDE.md` in the new folder, and a row in the certifications table of the root [README.md](README.md) — do not add a README to the folder. Keep the README short: it is for whoever reads or edits the notes; technical detail belongs here or in the per-folder `CLAUDE.md`.
 
 Use the existing provider folder when there is one (`microsoft/`, `hashicorp/`): provider names are lowercase, certification folders keep the official code in uppercase (`AZ-104`, `TA-004`).
 
